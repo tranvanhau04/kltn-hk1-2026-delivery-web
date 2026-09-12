@@ -201,6 +201,7 @@ export interface VrpRoute {
   totalWeightKg: number;
   totalVolM3: number;
   color: string; // hex color for map polyline
+  polyline?: [number, number][];
 }
 
 // --------------- Navigation ---------------

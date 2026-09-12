@@ -32,7 +32,7 @@ interface AppContextValue {
   selectedOrderIds: string[];
   toggleOrderSelection: (orderId: string) => void;
   clearSelection: () => void;
-  selectAllNew: () => void;
+  setSelectedOrderIds: (ids: string[]) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -124,11 +124,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const clearSelection = useCallback(() => setSelectedOrderIds([]), []);
 
-  const selectAllNew = useCallback(() => {
-    const newIds = orders.filter((o) => o.status === 'NEW').map((o) => o.id);
-    setSelectedOrderIds(newIds);
-  }, [orders]);
-
   return (
     <AppContext.Provider
       value={{
@@ -144,7 +139,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         selectedOrderIds,
         toggleOrderSelection,
         clearSelection,
-        selectAllNew,
+        setSelectedOrderIds,
       }}
     >
       {children}

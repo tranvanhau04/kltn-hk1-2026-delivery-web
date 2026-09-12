@@ -60,6 +60,7 @@ interface VrpMapViewProps {
       driver: { fullName: string };
       stops: Order[];
       color: string;
+      polyline?: [number, number][];
     }>;
   } | null;
   depot: Depot;
@@ -104,10 +105,10 @@ export default function VrpMapView({ orders, solution, depot }: VrpMapViewProps)
         <React.Fragment key={route.driver.fullName}>
           {/* Polyline */}
           <Polyline
-            positions={buildPolyline(depot, route.stops)}
+            positions={route.polyline && route.polyline.length > 0 ? route.polyline : buildPolyline(depot, route.stops)}
             pathOptions={{
               color: route.color,
-              weight: 3,
+              weight: 4,
               opacity: 0.85,
               dashArray: undefined,
             }}
