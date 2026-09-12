@@ -3,9 +3,9 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import {
-  Zap, Package, Truck, CheckCircle, Clock, Route,
-  ChevronRight, X, AlertCircle, RefreshCw, Play,
-  MapPin, Weight, Box, Send,
+  Zap, Package, CheckCircle, Route,
+  ChevronRight, X, AlertCircle, RefreshCw,
+  Weight, Box, Send,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { useApp } from '@/context/AppContext';
@@ -179,7 +179,7 @@ function VrpLoadingOverlay({ orderCount }: { orderCount: number }) {
 }
 
 // ─── Route Summary Card ──────────────────────────────────────────
-function RouteSummaryCard({ route, idx }: { route: VrpRoute; idx: number }) {
+function RouteSummaryCard({ route }: { route: VrpRoute; }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -573,8 +573,8 @@ export default function VrpPage() {
             <h3 className="text-sm font-700 text-gray-900 mb-1">Tóm tắt tuyến đường</h3>
             <p className="text-xs text-gray-400">{solution.routes.length} tuyến được tạo</p>
           </div>
-          {solution.routes.map((route, i) => (
-            <RouteSummaryCard key={route.driver.userId} route={route} idx={i} />
+          {solution.routes.map((route) => (
+            <RouteSummaryCard key={route.driver.userId} route={route} />
           ))}
         </div>
       )}

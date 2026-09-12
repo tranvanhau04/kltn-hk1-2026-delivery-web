@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Phone, Mail, Truck, Star, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Phone, Eye, Pencil } from 'lucide-react';
 import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
@@ -323,7 +323,7 @@ export default function DriversPage() {
         onSearchChange={setSearch}
         searchPlaceholder="Tìm tên, biển số, SĐT..."
         getRowKey={(row) => row.userId}
-        rowActions={(row) => (
+        rowActions={() => (
           <>
             <button className="flex items-center justify-center w-7 h-7 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors">
               <Eye size={14} />

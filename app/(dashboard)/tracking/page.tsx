@@ -4,11 +4,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Search, Navigation, Phone, MessageSquare,
-  Zap, Clock, MapPin, Truck, ArrowRight, X, ChevronRight,
+  MapPin, X,
   Activity,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { mockDrivers, mockOrders } from '@/lib/mock-data';
+import { mockDrivers } from '@/lib/mock-data';
 import { fetchLiveTracking, type ApiLiveDriver } from '@/lib/api';
 import type { Driver } from '@/types/domain';
 import { cn } from '@/lib/utils';
@@ -107,7 +107,7 @@ function useLiveTracking() {
 
   // API Polling — every 5 seconds
   useEffect(() => {
-    fetchPositions();
+    // fetchPositions();
     const t1 = setInterval(fetchPositions, 5000);
     return () => clearInterval(t1);
   }, [fetchPositions]);
@@ -162,7 +162,7 @@ function useLiveTracking() {
           // Priority 3: Driver has no route and no GPS history — fallback to mock location for testing
           const mockDriver = mockDrivers.find(m => m.userId === did);
           if (mockDriver && mockDriver.currentLat != null && mockDriver.currentLng != null) {
-            const state = simStateRef.current[did] || { distance: 0 };
+
             next[did] = { lat: mockDriver.currentLat, lng: mockDriver.currentLng };
             setPositionSource(ps => ps[did] === 'simulated' ? ps : { ...ps, [did]: 'simulated' });
             changed = true;

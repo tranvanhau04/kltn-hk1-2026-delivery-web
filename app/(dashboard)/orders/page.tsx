@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  Plus, Download, Eye, Pencil, Trash2,
-  MapPin, Package, Phone, User, Clock,
-  CheckCircle, Truck, AlertCircle, Calendar,
+  Plus, Download, Eye, Pencil,
+  MapPin, Phone, User, Clock,
+  CheckCircle, Truck, AlertCircle,
   Image as ImageIcon, Weight, Box,
   FileText, DollarSign,
 } from 'lucide-react';
@@ -451,7 +451,7 @@ const STATUS_FILTER_TABS: FilterTab[] = [
 const EXCEPTION_STATUSES: OrderStatus[] = ['FAILED', 'RESCHEDULED'];
 
 export default function OrdersPage() {
-  const { orders, updateOrderStatus } = useApp();
+  const { orders } = useApp();
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -459,7 +459,7 @@ export default function OrdersPage() {
   const [showMapForOrder, setShowMapForOrder] = useState<Order | null>(null);
   const [localOrders, setLocalOrders] = useState<Order[]>(orders);
 
-  useEffect(() => { setLocalOrders(orders); }, [orders]);
+
 
   // Build tabs with counts
   const tabsWithCounts = useMemo(() => {

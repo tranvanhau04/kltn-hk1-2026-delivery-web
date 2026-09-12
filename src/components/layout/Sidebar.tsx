@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -33,7 +33,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { logout, currentUser } = useApp();
-  const [showNewShipment, setShowNewShipment] = useState(false);
 
   const handleLogout = () => {
     logout();

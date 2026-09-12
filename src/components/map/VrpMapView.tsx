@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, Popup, CircleMarker } from 'react-leaflet';
 import { divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { Order, VrpSolution, Depot } from '@/types/domain';
+import type { Order, Depot } from '@/types/domain';
 
 // Fix Leaflet icon
 import L from 'leaflet';

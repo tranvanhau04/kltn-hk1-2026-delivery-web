@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Mail, Phone, Shield, UserCheck, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { Plus, Mail, Phone, Shield, UserCheck, Pencil } from 'lucide-react';
 import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';

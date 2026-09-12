@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Search, Phone, Mail, User, ChevronDown, ChevronUp, Send, CheckCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface FAQ {
   question: string;

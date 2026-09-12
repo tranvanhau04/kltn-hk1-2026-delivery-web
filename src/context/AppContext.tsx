@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import type { User, Order, Driver } from '@/types/domain';
+import type { User, Order } from '@/types/domain';
 import { mockUsers, mockOrders } from '@/lib/mock-data';
 
 interface Notification {
@@ -47,28 +47,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       message: '3 đơn hàng mới cần phân công hôm nay',
       type: 'info',
       read: false,
-      createdAt: new Date().toISOString(),
+      createdAt: "2026-09-12T06:00:00.000Z",
     },
     {
       id: 'n2',
       message: 'Tài xế Võ Thanh Hải đã hoàn thành tuyến đường RT-001',
       type: 'success',
       read: false,
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
+      createdAt: "2026-09-12T05:00:00.000Z",
     },
     {
       id: 'n3',
       message: 'Đơn SE240901005 giao thất bại – cần xử lý',
       type: 'warning',
       read: false,
-      createdAt: new Date(Date.now() - 7200000).toISOString(),
+      createdAt: "2026-09-12T04:00:00.000Z",
     },
     {
       id: 'n4',
       message: 'Khu vực Bình Thạnh vượt tải (18/15 đơn)',
       type: 'error',
       read: true,
-      createdAt: new Date(Date.now() - 10800000).toISOString(),
+      createdAt: "2026-09-12T03:00:00.000Z",
     },
   ]);
 
@@ -77,7 +77,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('iuh_user') : null;
     if (saved) {
       try {
-        setCurrentUser(JSON.parse(saved));
+        // setCurrentUser(JSON.parse(saved));
       } catch {
         localStorage.removeItem('iuh_user');
       }

@@ -3,11 +3,10 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import {
-  Map, Plus, Pencil, Trash2, AlertTriangle,
-  Users, Package, CheckCircle, X,
+  Map, Plus, Pencil, Trash2, AlertTriangle, X,
 } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
-import { mockZones, mockDrivers, mockOrders } from '@/lib/mock-data';
+import { mockZones, mockDrivers } from '@/lib/mock-data';
 import type { Zone } from '@/types/domain';
 import { cn } from '@/lib/utils';
 
@@ -94,7 +93,7 @@ function ZoneCard({
         <div className="text-center">
           <p className={cn(
             'text-base font-700',
-            mockDrivers.filter((d) => true).length > 0 ? 'text-green-600' : 'text-gray-400'
+            mockDrivers.filter(() => true).length > 0 ? 'text-green-600' : 'text-gray-400'
           )}>
             {mockDrivers.length}
           </p>

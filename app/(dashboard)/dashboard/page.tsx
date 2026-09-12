@@ -9,12 +9,12 @@ import { mockOrders, mockChartData } from '@/lib/mock-data';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: any; label?: string }) {
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { color: string; name: string; value: number }[]; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-white border border-slate-100 rounded-xl shadow-lg p-3 text-xs">
       <p className="font-700 text-gray-700 mb-2">{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p: { color: string; name: string; value: number }, i: number) => (
         <div key={i} className="flex items-center gap-2 mb-1">
           <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
           <span className="text-gray-500">{p.name}:</span>

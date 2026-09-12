@@ -2,17 +2,16 @@
 
 import React, { useState } from 'react';
 import {
-  Package, CheckCircle, DollarSign, Clock, TrendingUp,
-  Check, X, ChevronDown, BarChart2,
+  Package, CheckCircle, DollarSign, Clock,
+  Check,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
+  ResponsiveContainer,
 } from 'recharts';
 import { StatCard } from '@/components/common/StatCard';
-import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { mockChartData, mockDriverPerformance, mockOrders } from '@/lib/mock-data';
-import { formatCurrency, formatDate, cn } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import type { DriverPerformance } from '@/types/domain';
 
 // ─── Custom Tooltip for Recharts ────────────────────────────────
@@ -203,7 +202,7 @@ export default function ReportsPage() {
   const delivered = mockOrders.filter((o) => o.status === 'DELIVERED').length;
   const successRate = Math.round((delivered / totalOrders) * 100);
   const totalCOD = mockOrders.reduce((s, o) => s + o.codAmount, 0);
-  const deliveredOrders = mockOrders.filter((o) => o.status === 'DELIVERED');
+
 
   return (
     <div className="space-y-6 animate-fade-in">
