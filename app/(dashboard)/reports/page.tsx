@@ -9,6 +9,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { type ColumnDef } from '@/components/common/DataTable';
 import { StatCard } from '@/components/common/StatCard';
 import { mockChartData, mockDriverPerformance, mockOrders } from '@/lib/mock-data';
 import { formatCurrency, cn } from '@/lib/utils';
