@@ -483,7 +483,7 @@ export default function OrdersPage() {
       const res = await fetchOrders({
         status: activeFilter !== 'ALL' && activeFilter !== 'EXCEPTION' ? activeFilter : activeFilter === 'EXCEPTION' ? EXCEPTION_STATUSES : undefined,
         search: search || undefined,
-        limit: 1000,
+        limit: 100,
       });
       setLocalOrders(res.data);
     } catch (err) {
