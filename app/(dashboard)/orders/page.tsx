@@ -6,8 +6,7 @@ import {
   MapPin, Phone, User, Clock,
   CheckCircle, Truck, AlertCircle,
   Image as ImageIcon, Weight, Box,
-  FileText, DollarSign, Navigation,
-  RefreshCw, Loader2
+  FileText, DollarSign, Navigation
 } from 'lucide-react';
 import { DataTable, type ColumnDef, type FilterTab } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
@@ -475,23 +474,18 @@ export default function OrdersPage() {
   const [showMapForOrder, setShowMapForOrder] = useState<Order | null>(null);
   const [relocateOrder, setRelocateOrder] = useState<Order | null>(null);
   const [localOrders, setLocalOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  
   const loadOrders = useCallback(async () => {
     try {
-      setIsLoading(true);
-      setError(null);
       const data = await fetchOrders();
       setLocalOrders(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi tải đơn hàng');
-    } finally {
-      setIsLoading(false);
+      console.error(err instanceof Error ? err.message : 'Lỗi tải đơn hàng');
     }
   }, []);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadOrders();
   }, [loadOrders]);
 

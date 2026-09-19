@@ -269,6 +269,7 @@ export default function ZonesPage() {
   const loadZones = loadZonesAndDrivers; // fallback for refresh button
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadZonesAndDrivers();
   }, [loadZonesAndDrivers]);
 

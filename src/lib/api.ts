@@ -9,7 +9,7 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-import type { OrderStatus } from '@/types/domain';
+import type { OrderStatus, Driver } from '@/types/domain';
 
 export interface ApiOrder {
   id: string;
@@ -160,8 +160,8 @@ export async function fetchLiveTracking(): Promise<ApiLiveDriver[]> {
 }
 
 /** Fetch all drivers from the backend */
-export async function fetchDrivers(): Promise<any[]> {
-  return apiFetch<any[]>('/drivers');
+export async function fetchDrivers(): Promise<Driver[]> {
+  return apiFetch<Driver[]>('/drivers');
 }
 
 // ─── Orders – Coordinate Patch ────────────────────────────────────────────────

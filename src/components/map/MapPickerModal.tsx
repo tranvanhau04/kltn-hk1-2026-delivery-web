@@ -117,6 +117,7 @@ export default function MapPickerModal({
   // Reverse geocode on initial load if coordinates are non-zero
   useEffect(() => {
     if (lat !== 0 && lng !== 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void doReverseGeocode(lat, lng);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

@@ -36,7 +36,7 @@ export default function DriverAssignmentModal({
   onAssign,
   onUnassign,
 }: DriverAssignmentModalProps) {
-  const assignedIds = new Set(zone.assignedDriverIds ?? []);
+  const assignedIds = useMemo(() => new Set(zone.assignedDriverIds ?? []), [zone.assignedDriverIds]);
   const [pendingAdd, setPendingAdd] = useState<Set<string>>(new Set());
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +53,11 @@ export default function DriverAssignmentModal({
   const togglePendingAdd = (driverId: string) => {
     setPendingAdd((prev) => {
       const next = new Set(prev);
-      next.has(driverId) ? next.delete(driverId) : next.add(driverId);
+      if (next.has(driverId)) {
+        next.delete(driverId);
+      } else {
+        next.add(driverId);
+      }
       return next;
     });
   };
