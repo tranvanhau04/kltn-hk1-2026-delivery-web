@@ -5,7 +5,7 @@
 
 // --------------- Enums ---------------
 
-export type UserRole = 'ADMIN' | 'DISPATCHER';
+export type UserRole = 'ADMIN' | 'DISPATCHER' | 'DRIVER';
 export type UserStatus = 'ACTIVE' | 'INACTIVE';
 
 export type VehicleType = 'MOTORBIKE' | 'VAN_500KG' | 'TRUCK_1TON' | 'TRUCK_2TON';

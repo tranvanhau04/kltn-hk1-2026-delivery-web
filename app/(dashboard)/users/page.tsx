@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Mail, Phone, Shield, UserCheck, Pencil } from 'lucide-react';
+import { Plus, Mail, Phone, Shield, UserCheck, Pencil, Truck } from 'lucide-react';
 import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
@@ -12,6 +12,7 @@ import { formatDateTime, cn } from '@/lib/utils';
 const ROLE_CONFIG: Record<UserRole, { label: string; className: string }> = {
   ADMIN:      { label: 'Quản trị viên', className: 'badge badge-failed' },
   DISPATCHER: { label: 'Điều phối',     className: 'badge badge-assigned' },
+  DRIVER:     { label: 'Tài xế',        className: 'badge badge-delivered' },
 };
 
 function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (u: Partial<User>) => void }) {
@@ -199,10 +200,11 @@ export default function UsersPage() {
       </div>
 
       {/* Role stats */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         {[
           { role: 'ADMIN', label: 'Quản trị viên', icon: <Shield size={18} />, color: 'bg-red-50 text-red-600' },
           { role: 'DISPATCHER', label: 'Điều phối', icon: <UserCheck size={18} />, color: 'bg-violet-50 text-violet-600' },
+          { role: 'DRIVER', label: 'Tài xế', icon: <Truck size={18} />, color: 'bg-green-50 text-green-600' },
         ].map((r) => (
           <div key={r.role} className="card p-4 flex items-center gap-4 animate-fade-in">
             <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center', r.color)}>
@@ -225,6 +227,7 @@ export default function UsersPage() {
           { label: 'Tất cả', value: 'ALL', count: users.length },
           { label: 'Quản trị viên', value: 'ADMIN', count: users.filter((u) => u.role === 'ADMIN').length },
           { label: 'Điều phối', value: 'DISPATCHER', count: users.filter((u) => u.role === 'DISPATCHER').length },
+          { label: 'Tài xế', value: 'DRIVER', count: users.filter((u) => u.role === 'DRIVER').length },
         ]}
         activeFilter={filter}
         onFilterChange={setFilter}
