@@ -1,18 +1,19 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Plus, Download, Eye, Pencil,
   MapPin, Phone, User, Clock,
   CheckCircle, Truck, AlertCircle,
   Image as ImageIcon, Weight, Box,
-  FileText, DollarSign,
+  FileText, DollarSign, Navigation
 } from 'lucide-react';
 import { DataTable, type ColumnDef, type FilterTab } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
 import { useApp } from '@/context/AppContext';
 import { formatDateTime, formatCurrency, cn } from '@/lib/utils';
+import { fetchOrders } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/domain';
 import dynamic from 'next/dynamic';
 
@@ -87,11 +88,15 @@ function OrderDetailModal({
   order,
   onClose,
   onOpenMap,
+  onRelocate,
 }: {
   order: Order;
   onClose: () => void;
   onOpenMap: () => void;
+  onRelocate: () => void;
 }) {
+  const isDelivered = order.status === 'DELIVERED';
+  const needsGeoReview = order.isGeocoded === false;
   return (
     <Modal
       isOpen
@@ -102,6 +107,11 @@ function OrderDetailModal({
       footer={
         <>
           <button onClick={onClose} className="btn-secondary">Đóng</button>
+          {!isDelivered && (
+            <button onClick={onRelocate} className="btn-secondary text-sm" id="btn-relocate-order">
+              <Navigation size={15} /> Định vị lại
+            </button>
+          )}
           <button onClick={onOpenMap} className="btn-primary">
             <MapPin size={15} /> Xem bản đồ
           </button>
@@ -141,8 +151,13 @@ function OrderDetailModal({
                   <p className="text-[11px] text-gray-400">Địa chỉ giao hàng</p>
                   <p className="text-sm font-600 text-gray-800">{order.deliveryAddress}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {order.latitude.toFixed(4)}, {order.longitude.toFixed(4)}
+                    {Number(order.latitude || 0).toFixed(4)}, {Number(order.longitude || 0).toFixed(4)}
                   </p>
+                  {needsGeoReview && (
+                    <p className="text-[10px] text-amber-600 font-600 mt-1 flex items-center gap-1">
+                      <AlertCircle size={10} /> Tọa độ chưa geocode – cần xác nhận lại
+                    </p>
+                  )}
                 </div>
               </div>
               {order.driverName && (
@@ -457,9 +472,30 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [showMapForOrder, setShowMapForOrder] = useState<Order | null>(null);
-  const [localOrders, setLocalOrders] = useState<Order[]>(orders);
+  const [relocateOrder, setRelocateOrder] = useState<Order | null>(null);
+  const [localOrders, setLocalOrders] = useState<Order[]>([]);
+  
+  const loadOrders = useCallback(async () => {
+    try {
+      const data = await fetchOrders();
+      setLocalOrders(data);
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : 'Lỗi tải đơn hàng');
+    }
+  }, []);
 
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadOrders();
+  }, [loadOrders]);
 
+  /** Update a single order's coordinates in local state after server save */
+  const handleCoordinatesSaved = useCallback((orderId: string, lat: number, lng: number) => {
+    setLocalOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, latitude: lat, longitude: lng, isGeocoded: true } : o))
+    );
+    setRelocateOrder(null);
+  }, []);
 
   // Build tabs with counts
   const tabsWithCounts = useMemo(() => {
@@ -657,10 +693,11 @@ export default function OrdersPage() {
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
           onOpenMap={() => { setShowMapForOrder(selectedOrder); setSelectedOrder(null); }}
+          onRelocate={() => { setRelocateOrder(selectedOrder); setSelectedOrder(null); }}
         />
       )}
 
-      {/* Map Picker Modal for viewing order location */}
+      {/* Map Picker for viewing (read-only) */}
       {showMapForOrder && (
         <MapPickerModal
           initialLat={showMapForOrder.latitude}
@@ -669,6 +706,19 @@ export default function OrdersPage() {
           title={`Vị trí giao hàng – ${showMapForOrder.code}`}
           onConfirm={() => setShowMapForOrder(null)}
           onClose={() => setShowMapForOrder(null)}
+        />
+      )}
+
+      {/* Map Picker for re-locating (server-save mode) */}
+      {relocateOrder && (
+        <MapPickerModal
+          initialLat={relocateOrder.latitude}
+          initialLng={relocateOrder.longitude}
+          title={`Định vị lại – ${relocateOrder.code}`}
+          orderId={relocateOrder.id}
+          onConfirm={(lat, lng) => handleCoordinatesSaved(relocateOrder.id, lat, lng)}
+          onCoordinatesSaved={(lat, lng) => handleCoordinatesSaved(relocateOrder.id, lat, lng)}
+          onClose={() => setRelocateOrder(null)}
         />
       )}
 
