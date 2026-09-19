@@ -63,21 +63,41 @@ export interface Depot {
   longitude: number;
 }
 
+export type OverloadSeverity = 'NORMAL' | 'WARNING' | 'CRITICAL';
+
+export interface ZoneOverloadMetrics {
+  totalOrders: number;
+  demandWeight: number;
+  demandVolume: number;
+  activeDriversCount: number;
+  fleetCapacityWeight: number;
+  fleetCapacityVolume: number;
+  weightRatio: number;
+  volumeRatio: number;
+  isOverloaded: boolean;
+  overloadSeverity: OverloadSeverity;
+}
+
 export interface Zone {
   id: string;
   name: string;
-  boundaryGeoJson: string; // GeoJSON polygon string
+  /** Parsed GeoJSON object from backend, or null if not set */
+  boundaryGeoJson: object | string | null;
   createdAt: string;
-  // Derived
+  // Assigned driver IDs from zone_drivers table
+  assignedDriverIds?: string[];
+  // Live overload metrics from backend
+  metrics?: ZoneOverloadMetrics;
+  // Legacy / mock compat fields
   drivers?: Driver[];
   orderCount?: number;
-  capacity?: number; // max orders
+  capacity?: number;
 }
 
 export interface Order {
   id: string;
   code: string;
-  dispatcherId: string; // FK → USER.id
+  dispatcherId?: string; // FK → USER.id
   zoneId?: string; // FK → ZONE.id (nullable)
   receiverName: string;
   receiverPhone: string;
@@ -94,6 +114,11 @@ export interface Order {
   driverId?: string;
   estimatedDelivery?: string;
   notes?: string;
+  /**
+   * false when geocoding failed and depot fallback was used.
+   * UI should flag this order for manual coordinate review.
+   */
+  isGeocoded?: boolean;
 }
 
 export interface Shift {

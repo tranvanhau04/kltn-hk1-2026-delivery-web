@@ -3,9 +3,13 @@
  * Connects to NestJS backend on localhost:3001
  */
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim() !== '')
+  ? process.env.NEXT_PUBLIC_API_URL
+  : 'http://localhost:3001/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+import type { OrderStatus } from '@/types/domain';
 
 export interface ApiOrder {
   id: string;
@@ -18,7 +22,7 @@ export interface ApiOrder {
   weightKg: number;
   volumeM3: number;
   codAmount: number;
-  status: string;
+  status: OrderStatus;
   createdAt: string;
 }
 
@@ -88,12 +92,13 @@ export interface ApiLiveDriver {
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const fullUrl = `${API_BASE}${path}`;
+  const res = await fetch(fullUrl, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
   if (!res.ok) {
-    throw new Error(`API ${path} failed: ${res.status} ${res.statusText}`);
+    throw new Error(`API ${fullUrl} failed: ${res.status} ${res.statusText}`);
   }
   return res.json() as Promise<T>;
 }
@@ -103,6 +108,11 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 /** Fetch all depots from the backend */
 export async function fetchDepots(): Promise<ApiDepot[]> {
   return apiFetch<ApiDepot[]>('/depots');
+}
+
+/** Fetch all orders from the backend */
+export async function fetchOrders(): Promise<ApiOrder[]> {
+  return apiFetch<ApiOrder[]>('/orders');
 }
 
 /** Fetch all unassigned (NEW) orders from the backend */
@@ -147,4 +157,104 @@ export async function confirmVRPDispatch(solution: ApiVrpSolution): Promise<{ me
 /** Fetch live driver positions + active route polylines */
 export async function fetchLiveTracking(): Promise<ApiLiveDriver[]> {
   return apiFetch<ApiLiveDriver[]>('/tracking/live');
+}
+
+/** Fetch all drivers from the backend */
+export async function fetchDrivers(): Promise<any[]> {
+  return apiFetch<any[]>('/drivers');
+}
+
+// ─── Orders – Coordinate Patch ────────────────────────────────────────────────
+
+/**
+ * PATCH /orders/:id/coordinates
+ * Dispatcher-initiated coordinate correction.
+ * Throws if order is in DELIVERED status (backend returns 400).
+ */
+export async function patchOrderCoordinates(
+  orderId: string,
+  latitude: number,
+  longitude: number,
+): Promise<ApiOrder> {
+  return apiFetch<ApiOrder>(`/orders/${orderId}/coordinates`, {
+    method: 'PATCH',
+    body: JSON.stringify({ latitude, longitude }),
+  });
+}
+
+// ─── Zones ────────────────────────────────────────────────────────────────────
+
+export interface ApiZoneMetrics {
+  totalOrders: number;
+  demandWeight: number;
+  demandVolume: number;
+  activeDriversCount: number;
+  fleetCapacityWeight: number;
+  fleetCapacityVolume: number;
+  weightRatio: number;
+  volumeRatio: number;
+  isOverloaded: boolean;
+  overloadSeverity: 'NORMAL' | 'WARNING' | 'CRITICAL';
+}
+
+export interface ApiZone {
+  id: string;
+  name: string;
+  boundaryGeoJson: object | null;
+  createdAt: string;
+  assignedDriverIds: string[];
+  metrics: ApiZoneMetrics;
+}
+
+/** GET /zones — all zones with live overload metrics */
+export async function fetchZones(): Promise<ApiZone[]> {
+  return apiFetch<ApiZone[]>('/zones');
+}
+
+/** GET /zones/:id — single zone with live metrics */
+export async function fetchZone(id: string): Promise<ApiZone> {
+  return apiFetch<ApiZone>(`/zones/${id}`);
+}
+
+/** POST /zones — create a new zone */
+export async function createZone(name: string, boundaryGeoJson?: string): Promise<ApiZone> {
+  return apiFetch<ApiZone>('/zones', {
+    method: 'POST',
+    body: JSON.stringify({ name, boundaryGeoJson }),
+  });
+}
+
+/** PATCH /zones/:id/boundary — update GeoJSON polygon */
+export async function updateZoneBoundary(
+  zoneId: string,
+  boundaryGeoJson: string,
+): Promise<ApiZone> {
+  return apiFetch<ApiZone>(`/zones/${zoneId}/boundary`, {
+    method: 'PATCH',
+    body: JSON.stringify({ boundaryGeoJson }),
+  });
+}
+
+/**
+ * POST /zones/:id/drivers — assign driver(s) to zone.
+ * Idempotent: duplicates silently ignored by backend.
+ */
+export async function assignDriversToZone(
+  zoneId: string,
+  driverIds: string[],
+): Promise<ApiZone> {
+  return apiFetch<ApiZone>(`/zones/${zoneId}/drivers`, {
+    method: 'POST',
+    body: JSON.stringify({ driverIds }),
+  });
+}
+
+/** DELETE /zones/:id/drivers/:driverId — remove driver from zone */
+export async function unassignDriverFromZone(
+  zoneId: string,
+  driverId: string,
+): Promise<ApiZone> {
+  return apiFetch<ApiZone>(`/zones/${zoneId}/drivers/${driverId}`, {
+    method: 'DELETE',
+  });
 }
