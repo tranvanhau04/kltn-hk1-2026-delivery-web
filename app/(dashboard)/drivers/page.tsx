@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
 import { mockDrivers } from '@/lib/mock-data';
 import type { Driver, VehicleType } from '@/types/domain';
+import { fetchDrivers, createUser, createDriver } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
@@ -197,10 +198,23 @@ function AddDriverModal({ onClose, onSubmit }: {
 }
 
 export default function DriversPage() {
-  const [drivers, setDrivers] = useState<Driver[]>(mockDrivers);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [search, setSearch] = useState('');
   const [showAddDriver, setShowAddDriver] = useState(false);
   const [filter, setFilter] = useState('ALL');
+
+  const loadDrivers = React.useCallback(async () => {
+    try {
+      const data = await fetchDrivers();
+      setDrivers(data);
+    } catch (err) {
+      console.error('Failed to load drivers', err);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadDrivers();
+  }, [loadDrivers]);
 
   const filteredDrivers = drivers.filter((d) => {
     const matchSearch =
@@ -338,20 +352,29 @@ export default function DriversPage() {
       {showAddDriver && (
         <AddDriverModal
           onClose={() => setShowAddDriver(false)}
-          onSubmit={(data) => {
-            const newDriver: Driver = {
-              userId: `d${Date.now()}`,
-              fullName: data.fullName ?? '',
-              phone: data.phone ?? '',
-              email: data.email ?? '',
-              licensePlate: data.licensePlate ?? '',
-              vehicleType: data.vehicleType ?? 'MOTORBIKE',
-              maxWeightKg: data.maxWeightKg ?? 30,
-              maxVolumeM3: data.maxVolumeM3 ?? 0.1,
-              currentShiftStatus: 'OFF_DUTY',
-            };
-            setDrivers((prev) => [newDriver, ...prev]);
-            setShowAddDriver(false);
+          onSubmit={async (data) => {
+            try {
+              // 1. Create User
+              const user = await createUser({
+                fullName: data.fullName,
+                email: data.email || undefined,
+                phone: data.phone,
+                password: 'Password123!',
+                role: 'DRIVER',
+              });
+              // 2. Create Driver profile
+              await createDriver(user.id, {
+                licensePlate: data.licensePlate,
+                vehicleType: data.vehicleType,
+                maxWeightKg: data.maxWeightKg,
+                maxVolumeM3: data.maxVolumeM3,
+              });
+              void loadDrivers();
+              setShowAddDriver(false);
+            } catch (err) {
+              console.error('Lỗi tạo tài xế', err);
+              alert('Lỗi tạo tài xế');
+            }
           }}
         />
       )}

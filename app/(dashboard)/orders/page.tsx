@@ -17,8 +17,9 @@ import { fetchOrders } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/domain';
 import dynamic from 'next/dynamic';
 
-// Lazy-load map picker to avoid SSR issues
+// Lazy-load modals to avoid SSR issues
 const MapPickerModal = dynamic(() => import('@/components/map/MapPickerModal'), { ssr: false });
+const ImportExcelModal = dynamic(() => import('@/components/orders/ImportExcelModal'), { ssr: false });
 
 // ─── Delivery Progress Stepper ───────────────────────────────────
 const STEPS: { key: OrderStatus[]; label: string; icon: React.ReactNode }[] = [
@@ -475,14 +476,20 @@ export default function OrdersPage() {
   const [relocateOrder, setRelocateOrder] = useState<Order | null>(null);
   const [localOrders, setLocalOrders] = useState<Order[]>([]);
   
+  const [showImportExcel, setShowImportExcel] = useState(false);
+  
   const loadOrders = useCallback(async () => {
     try {
-      const data = await fetchOrders();
-      setLocalOrders(data);
+      const res = await fetchOrders({
+        status: activeFilter !== 'ALL' && activeFilter !== 'EXCEPTION' ? activeFilter : activeFilter === 'EXCEPTION' ? EXCEPTION_STATUSES : undefined,
+        search: search || undefined,
+        limit: 1000,
+      });
+      setLocalOrders(res.data);
     } catch (err) {
       console.error(err instanceof Error ? err.message : 'Lỗi tải đơn hàng');
     }
-  }, []);
+  }, [activeFilter, search]);
 
   React.useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -631,6 +638,7 @@ export default function OrdersPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowImportExcel(true)}
             className="btn-secondary text-sm"
             id="btn-import-excel"
           >
@@ -727,6 +735,16 @@ export default function OrdersPage() {
         <NewOrderModal
           onClose={() => setShowNewOrder(false)}
           onSubmit={handleNewOrder}
+        />
+      )}
+
+      {/* Import Excel Modal */}
+      {showImportExcel && (
+        <ImportExcelModal
+          onClose={() => setShowImportExcel(false)}
+          onSuccess={() => {
+            void loadOrders();
+          }}
         />
       )}
     </div>

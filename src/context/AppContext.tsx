@@ -74,33 +74,54 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Restore session from localStorage
   useEffect(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('iuh_user') : null;
-    if (saved) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const savedUser = typeof window !== 'undefined' ? localStorage.getItem('iuh_user') : null;
+    if (token && savedUser) {
       try {
-        // setCurrentUser(JSON.parse(saved));
+        setCurrentUser(JSON.parse(savedUser));
       } catch {
         localStorage.removeItem('iuh_user');
+        localStorage.removeItem('accessToken');
       }
     }
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    // Mock authentication
-    const user = mockUsers.find((u) => u.email === email);
-    if (user && password === 'Admin@123') {
-      setCurrentUser(user);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('iuh_user', JSON.stringify(user));
+    try {
+      // Assuming API_BASE is defined in environment or using default
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api') + '/auth/login';
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!res.ok) {
+        return false;
       }
-      return true;
+
+      const data = await res.json();
+      
+      if (data.accessToken && data.user) {
+        setCurrentUser(data.user);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('accessToken', data.accessToken);
+          localStorage.setItem('iuh_user', JSON.stringify(data.user));
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
-    return false;
   }, []);
 
   const logout = useCallback(() => {
     setCurrentUser(null);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('iuh_user');
+      localStorage.removeItem('accessToken');
     }
   }, []);
 

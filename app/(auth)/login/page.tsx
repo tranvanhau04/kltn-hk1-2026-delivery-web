@@ -4,18 +4,27 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Zap, Package, Route, Navigation, Mail, Lock, ArrowRight, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { forgotPassword } from '@/lib/api';
 
 function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<'email' | 'sent'>('email');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [error, setError] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    setStep('sent');
+    setError('');
+    try {
+      await forgotPassword(email);
+      setStep('sent');
+    } catch (err: any) {
+      setError(err.message || 'Lỗi gửi yêu cầu');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,6 +60,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
                   />
                 </div>
               </div>
+              {error && <p className="text-xs text-red-500">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
@@ -92,8 +102,8 @@ const FEATURES = [
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useApp();
-  const [email, setEmail] = useState('admin@iuhlogistics.vn');
-  const [password, setPassword] = useState('Admin@123');
+  const [email, setEmail] = useState('ceo@smartexpress.vn');
+  const [password, setPassword] = useState('Password123!');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -109,7 +119,7 @@ export default function LoginPage() {
     if (ok) {
       router.replace('/orders');
     } else {
-      setError('Email hoặc mật khẩu không chính xác. Thử: Admin@123');
+      setError('Email hoặc mật khẩu không chính xác.');
     }
   };
 
@@ -285,8 +295,8 @@ export default function LoginPage() {
 
             {/* Hint */}
             <div className="mt-5 p-3 bg-blue-50 rounded-xl">
-              <p className="text-xs text-blue-600 font-500">Demo credentials:</p>
-              <p className="text-xs text-blue-500 mt-0.5">admin@iuhlogistics.vn / Admin@123</p>
+              <p className="text-xs text-blue-600 font-500">Tài khoản Admin mới:</p>
+              <p className="text-xs text-blue-500 mt-0.5">ceo@smartexpress.vn / Password123!</p>
             </div>
           </div>
 

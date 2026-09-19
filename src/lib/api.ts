@@ -93,14 +93,52 @@ export interface ApiLiveDriver {
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const fullUrl = `${API_BASE}${path}`;
+  
+  // Retrieve token from localStorage if available
+  let token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  
+  // Fallback dev token for testing if no token is found
+  if (!token && process.env.NODE_ENV === 'development') {
+    token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1MDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3ODk4MjU1ODcsImV4cCI6MTgyMTM4MzE4N30.-nGTW1elOIaxLav_V2C6u6DdDjY3HPn8n_5bXc6gDbc';
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(fullUrl, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers: { ...headers, ...options?.headers },
   });
+  
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      console.warn('Unauthorized API call, might need to login.');
+      // Optional: window.location.href = '/login';
+    }
     throw new Error(`API ${fullUrl} failed: ${res.status} ${res.statusText}`);
   }
   return res.json() as Promise<T>;
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+  });
 }
 
 // ─── API Functions ────────────────────────────────────────────────────────────
@@ -111,8 +149,20 @@ export async function fetchDepots(): Promise<ApiDepot[]> {
 }
 
 /** Fetch all orders from the backend */
-export async function fetchOrders(): Promise<ApiOrder[]> {
-  return apiFetch<ApiOrder[]>('/orders');
+export async function fetchOrders(query?: { status?: string | string[], zoneId?: string, search?: string, page?: number, limit?: number }): Promise<{ data: ApiOrder[], total: number }> {
+  const params = new URLSearchParams();
+  if (query) {
+    if (query.status) {
+      if (Array.isArray(query.status)) query.status.forEach(s => params.append('status', s));
+      else params.append('status', query.status);
+    }
+    if (query.zoneId) params.append('zoneId', query.zoneId);
+    if (query.search) params.append('search', query.search);
+    if (query.page) params.append('page', String(query.page));
+    if (query.limit) params.append('limit', String(query.limit));
+  }
+  const qs = params.toString();
+  return apiFetch<{ data: ApiOrder[], total: number }>(`/orders${qs ? `?${qs}` : ''}`);
 }
 
 /** Fetch all unassigned (NEW) orders from the backend */
@@ -161,7 +211,65 @@ export async function fetchLiveTracking(): Promise<ApiLiveDriver[]> {
 
 /** Fetch all drivers from the backend */
 export async function fetchDrivers(): Promise<Driver[]> {
-  return apiFetch<Driver[]>('/drivers');
+  return apiFetch<Driver[]>('/drivers/all');
+}
+
+/** Create Driver profile */
+export async function createDriver(userId: string, data: Partial<Driver>): Promise<Driver> {
+  return apiFetch<Driver>(`/drivers/${userId}`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/** Update Driver specs */
+export async function updateDriverSpecs(userId: string, data: Partial<Driver>): Promise<Driver> {
+  return apiFetch<Driver>(`/drivers/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+
+export async function fetchUsers(): Promise<any[]> {
+  return apiFetch<any[]>('/users');
+}
+
+export async function createUser(data: any): Promise<any> {
+  return apiFetch<any>('/users', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateUserStatus(userId: string, status: string): Promise<any> {
+  return apiFetch<any>(`/users/${userId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function importOrdersExcel(file: File): Promise<any> {
+  const fullUrl = `${API_BASE}/orders/import-excel`;
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  let token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(fullUrl, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`API failed: ${res.statusText} - ${text}`);
+  }
+  return res.json();
 }
 
 // ─── Orders – Coordinate Patch ────────────────────────────────────────────────
