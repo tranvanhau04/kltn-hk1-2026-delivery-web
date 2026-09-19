@@ -211,7 +211,13 @@ export async function fetchLiveTracking(): Promise<ApiLiveDriver[]> {
 
 /** Fetch all drivers from the backend */
 export async function fetchDrivers(): Promise<Driver[]> {
-  return apiFetch<Driver[]>('/drivers/all');
+  const res = await apiFetch<{ data: any[] }>('/drivers?limit=1000');
+  return res.data.map(d => ({
+    ...d,
+    fullName: d.user?.fullName || '',
+    phone: d.user?.phone || '',
+    email: d.user?.email || '',
+  }));
 }
 
 /** Create Driver profile */
@@ -233,7 +239,8 @@ export async function updateDriverSpecs(userId: string, data: Partial<Driver>): 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export async function fetchUsers(): Promise<any[]> {
-  return apiFetch<any[]>('/users');
+  const res = await apiFetch<{ data: any[] }>('/users?limit=1000');
+  return res.data;
 }
 
 export async function createUser(data: any): Promise<any> {
