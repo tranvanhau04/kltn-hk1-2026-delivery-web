@@ -5,12 +5,12 @@
 
 // --------------- Enums ---------------
 
-export type UserRole = 'ADMIN' | 'DISPATCHER';
-export type UserStatus = 'ACTIVE' | 'INACTIVE';
+export type UserRole = 'ADMIN' | 'DISPATCHER' | 'DRIVER';
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'LOCKED';
 
 export type VehicleType = 'MOTORBIKE' | 'VAN_500KG' | 'TRUCK_1TON' | 'TRUCK_2TON';
 export type ShiftStatus = 'ACTIVE' | 'COMPLETED' | 'PENDING';
-export type DriverShiftStatus = 'ON_DUTY' | 'OFF_DUTY' | 'ON_BREAK';
+export type DriverShiftStatus = 'OFFLINE' | 'ONLINE_READY' | 'BUSY';
 
 export type OrderStatus =
   | 'NEW'

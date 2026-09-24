@@ -14,10 +14,10 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const STATUS_COLORS = {
-  ON_DUTY: '#22C55E',
-  ON_BREAK: '#F59E0B',
-  OFF_DUTY: '#9CA3AF',
+const STATUS_COLORS: Record<string, string> = {
+  ONLINE_READY: '#22C55E',
+  BUSY: '#3B82F6',
+  OFFLINE: '#9CA3AF',
 };
 
 function driverIcon(driver: Driver, isSelected: boolean, heading: number = 0) {
@@ -60,7 +60,7 @@ function driverIcon(driver: Driver, isSelected: boolean, heading: number = 0) {
           margin-top: 2px;
         "></div>
       </div>
-      ${driver.currentShiftStatus === 'ON_DUTY' ? `
+      ${driver.currentShiftStatus === 'ONLINE_READY' ? `
         <div style="
           position:absolute;bottom:-2px;right:-2px;
           width:10px;height:10px;background:#22C55E;

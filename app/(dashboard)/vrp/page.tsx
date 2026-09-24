@@ -29,7 +29,7 @@ const ROUTE_COLORS = ['#FA7070', '#6D28D9', '#1D4ED8', '#059669', '#D97706', '#D
 
 // ─── Mock VRP Solver (fallback when API is unreachable) ──────────
 function solveVRP(orders: Order[], drivers: Driver[]): VrpSolution {
-  const availableDrivers = drivers.filter((d) => d.currentShiftStatus !== 'OFF_DUTY');
+  const availableDrivers = drivers.filter((d) => d.currentShiftStatus !== 'OFFLINE');
   const routes: VrpRoute[] = [];
   let orderIdx = 0;
 
@@ -78,7 +78,7 @@ function mapApiSolutionToVrp(apiSolution: ApiVrpSolution): VrpSolution & { _api:
       vehicleType: r.vehicleType as Driver['vehicleType'],
       maxWeightKg: 1000,
       maxVolumeM3: 10,
-      currentShiftStatus: 'ON_DUTY' as const,
+      currentShiftStatus: 'ONLINE_READY' as const,
     };
 
     const stops: Order[] = r.stops.map((s) => ({
@@ -308,7 +308,7 @@ export default function VrpPage() {
     setSelectedOrderIds(newOrders.map((o) => o.id));
   }, [newOrders, setSelectedOrderIds]);
 
-  const availableDrivers = mockDrivers.filter((d) => d.currentShiftStatus !== 'OFF_DUTY');
+  const availableDrivers = mockDrivers.filter((d) => d.currentShiftStatus !== 'OFFLINE');
   const displayDepot = apiDepot
     ? { id: apiDepot.id, name: apiDepot.name, address: apiDepot.address, latitude: apiDepot.latitude, longitude: apiDepot.longitude }
     : mockDepots[0];

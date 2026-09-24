@@ -1,17 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Mail, Phone, Shield, UserCheck, Pencil } from 'lucide-react';
+import { Plus, Mail, Phone, Shield, UserCheck, Pencil, Truck } from 'lucide-react';
 import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
-import { mockUsers } from '@/lib/mock-data';
+import { fetchUsers, createUser, updateUserStatus } from '@/lib/api';
 import type { User, UserRole } from '@/types/domain';
 import { formatDateTime, cn } from '@/lib/utils';
 
 const ROLE_CONFIG: Record<UserRole, { label: string; className: string }> = {
   ADMIN:      { label: 'Quản trị viên', className: 'badge badge-failed' },
   DISPATCHER: { label: 'Điều phối',     className: 'badge badge-assigned' },
+  DRIVER:     { label: 'Tài xế',        className: 'badge badge-delivered' },
 };
 
 function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (u: Partial<User>) => void }) {
@@ -100,10 +101,34 @@ function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit:
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
   const [showInvite, setShowInvite] = useState(false);
   const [filter, setFilter] = useState('ALL');
+
+  const loadUsers = React.useCallback(async () => {
+    try {
+      const data = await fetchUsers();
+      setUsers(data);
+    } catch (error) {
+      console.error('Failed to load users', error);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadUsers();
+  }, [loadUsers]);
+
+  const toggleUserStatus = async (user: User) => {
+    try {
+      const newStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+      await updateUserStatus(user.id, newStatus);
+      void loadUsers();
+    } catch (error) {
+      console.error('Failed to update user status', error);
+    }
+  };
 
   const filteredUsers = users.filter((u) => {
     const matchSearch = !search || u.fullName.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
@@ -176,10 +201,11 @@ export default function UsersPage() {
       </div>
 
       {/* Role stats */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         {[
           { role: 'ADMIN', label: 'Quản trị viên', icon: <Shield size={18} />, color: 'bg-red-50 text-red-600' },
           { role: 'DISPATCHER', label: 'Điều phối', icon: <UserCheck size={18} />, color: 'bg-violet-50 text-violet-600' },
+          { role: 'DRIVER', label: 'Tài xế', icon: <Truck size={18} />, color: 'bg-green-50 text-green-600' },
         ].map((r) => (
           <div key={r.role} className="card p-4 flex items-center gap-4 animate-fade-in">
             <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center', r.color)}>
@@ -202,6 +228,7 @@ export default function UsersPage() {
           { label: 'Tất cả', value: 'ALL', count: users.length },
           { label: 'Quản trị viên', value: 'ADMIN', count: users.filter((u) => u.role === 'ADMIN').length },
           { label: 'Điều phối', value: 'DISPATCHER', count: users.filter((u) => u.role === 'DISPATCHER').length },
+          { label: 'Tài xế', value: 'DRIVER', count: users.filter((u) => u.role === 'DRIVER').length },
         ]}
         activeFilter={filter}
         onFilterChange={setFilter}
@@ -209,8 +236,18 @@ export default function UsersPage() {
         onSearchChange={setSearch}
         searchPlaceholder="Tìm tên, email..."
         getRowKey={(row) => row.id}
-        rowActions={() => (
+        rowActions={(row) => (
           <>
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleUserStatus(row); }}
+              className={cn(
+                'flex items-center justify-center w-7 h-7 rounded-lg transition-colors',
+                row.status === 'ACTIVE' ? 'text-red-500 hover:bg-red-50' : 'text-green-500 hover:bg-green-50'
+              )}
+              title={row.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
+            >
+              {row.status === 'ACTIVE' ? <Shield size={14} /> : <UserCheck size={14} />}
+            </button>
             <button className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
               <Pencil size={14} />
             </button>
@@ -221,19 +258,18 @@ export default function UsersPage() {
       {showInvite && (
         <InviteUserModal
           onClose={() => setShowInvite(false)}
-          onSubmit={(data) => {
-            const newUser: User = {
-              id: `u${Date.now()}`,
-              fullName: data.fullName ?? '',
-              email: data.email ?? '',
-              phone: data.phone ?? '',
-              passwordHash: '',
-              role: data.role ?? 'DISPATCHER',
-              status: 'ACTIVE',
-              createdAt: new Date().toISOString(),
-            };
-            setUsers((prev) => [newUser, ...prev]);
-            setShowInvite(false);
+          onSubmit={async (data) => {
+            try {
+              await createUser({
+                ...data,
+                password: 'Password123!', // default password
+              });
+              void loadUsers();
+              setShowInvite(false);
+            } catch (err) {
+              console.error('Lỗi tạo user', err);
+              alert('Lỗi tạo user');
+            }
           }}
         />
       )}
