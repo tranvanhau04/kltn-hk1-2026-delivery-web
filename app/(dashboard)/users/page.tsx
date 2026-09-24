@@ -75,8 +75,8 @@ function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit:
         </div>
         <div>
           <label className="block text-sm font-500 text-gray-700 mb-2">Vai trò *</label>
-          <div className="grid grid-cols-2 gap-2">
-            {(['ADMIN', 'DISPATCHER'] as UserRole[]).map((role) => (
+          <div className="grid grid-cols-3 gap-2">
+            {(['ADMIN', 'DISPATCHER', 'DRIVER'] as UserRole[]).map((role) => (
               <button
                 key={role}
                 type="button"
@@ -89,7 +89,7 @@ function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit:
                 )}
                 id={`role-${role}`}
               >
-                {role === 'ADMIN' ? <Shield size={15} /> : <UserCheck size={15} />}
+                {role === 'ADMIN' ? <Shield size={15} /> : role === 'DISPATCHER' ? <UserCheck size={15} /> : <Truck size={15} />}
                 {ROLE_CONFIG[role].label}
               </button>
             ))}
