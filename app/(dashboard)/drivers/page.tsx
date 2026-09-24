@@ -5,9 +5,8 @@ import { Plus, Phone, Eye, Pencil } from 'lucide-react';
 import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
-import { mockDrivers } from '@/lib/mock-data';
-import type { Driver, VehicleType } from '@/types/domain';
-import { fetchDrivers, createUser, createDriver } from '@/lib/api';
+import type { Driver, VehicleType, DriverShiftStatus } from '@/types/domain';
+import { fetchDrivers, createUser, createDriver, updateDriverSpecs, updateShiftStatus } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
@@ -18,6 +17,15 @@ const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
 };
 
 const VEHICLE_TYPES: VehicleType[] = ['MOTORBIKE', 'VAN_500KG', 'TRUCK_1TON', 'TRUCK_2TON'];
+
+// Aligned with backend DriverShiftStatus enum: OFFLINE, ONLINE_READY, BUSY
+const SHIFT_STATUS_LABELS: Record<DriverShiftStatus, string> = {
+  OFFLINE:      '⬛ Offline',
+  ONLINE_READY: '🟢 Sẵn sàng',
+  BUSY:         '🔵 Đang giao',
+};
+
+const SHIFT_STATUSES: DriverShiftStatus[] = ['OFFLINE', 'ONLINE_READY', 'BUSY'];
 
 function DriverAvatarCell({ driver }: { driver: Driver }) {
   return (
@@ -32,6 +40,8 @@ function DriverAvatarCell({ driver }: { driver: Driver }) {
     </div>
   );
 }
+
+// ─── Add Driver Modal ─────────────────────────────────────────────────────────
 
 function AddDriverModal({ onClose, onSubmit }: {
   onClose: () => void;
@@ -56,12 +66,7 @@ function AddDriverModal({ onClose, onSubmit }: {
 
   const handleVehicleChange = (vt: VehicleType) => {
     const defaults = vehicleDefaults[vt];
-    setForm((f) => ({
-      ...f,
-      vehicleType: vt,
-      maxWeightKg: defaults.weight,
-      maxVolumeM3: defaults.volume,
-    }));
+    setForm((f) => ({ ...f, vehicleType: vt, maxWeightKg: defaults.weight, maxVolumeM3: defaults.volume }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,7 +79,7 @@ function AddDriverModal({ onClose, onSubmit }: {
       vehicleType: form.vehicleType,
       maxWeightKg: parseFloat(form.maxWeightKg) || 0,
       maxVolumeM3: parseFloat(form.maxVolumeM3) || 0,
-      currentShiftStatus: 'OFF_DUTY',
+      currentShiftStatus: 'OFFLINE', // Backend default
     });
   };
 
@@ -98,98 +103,41 @@ function AddDriverModal({ onClose, onSubmit }: {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-500 text-gray-700 mb-1.5">Họ tên *</label>
-            <input
-              required
-              value={form.fullName}
-              onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
-              placeholder="Nguyễn Văn A"
-              className="input-base"
-              id="driver-fullname"
-            />
+            <input required value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} placeholder="Nguyễn Văn A" className="input-base" id="driver-fullname" />
           </div>
           <div>
             <label className="block text-sm font-500 text-gray-700 mb-1.5">Số điện thoại *</label>
-            <input
-              required
-              value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              placeholder="0901234567"
-              className="input-base"
-              id="driver-phone"
-            />
+            <input required value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="0901234567" className="input-base" id="driver-phone" />
           </div>
         </div>
-
         <div>
           <label className="block text-sm font-500 text-gray-700 mb-1.5">Email</label>
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            placeholder="driver@iuhlogistics.vn"
-            className="input-base"
-            id="driver-email"
-          />
+          <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="driver@iuhlogistics.vn" className="input-base" id="driver-email" />
         </div>
-
         <div>
           <label className="block text-sm font-500 text-gray-700 mb-1.5">Biển số xe *</label>
-          <input
-            required
-            value={form.licensePlate}
-            onChange={(e) => setForm((f) => ({ ...f, licensePlate: e.target.value }))}
-            placeholder="59G1-234.56"
-            className="input-base"
-            id="driver-plate"
-          />
+          <input required value={form.licensePlate} onChange={(e) => setForm((f) => ({ ...f, licensePlate: e.target.value }))} placeholder="59G1-234.56" className="input-base" id="driver-plate" />
         </div>
-
-        {/* Vehicle Type */}
         <div>
           <label className="block text-sm font-500 text-gray-700 mb-2">Loại phương tiện *</label>
           <div className="grid grid-cols-2 gap-2">
             {VEHICLE_TYPES.map((vt) => (
-              <button
-                key={vt}
-                type="button"
-                onClick={() => handleVehicleChange(vt)}
-                className={cn(
-                  'px-3 py-2.5 rounded-xl border text-sm font-500 transition-all text-left',
-                  form.vehicleType === vt
-                    ? 'border-[#FA7070] bg-[#FFF0F0] text-[#FA7070]'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                )}
-                id={`vehicle-type-${vt}`}
-              >
+              <button key={vt} type="button" onClick={() => handleVehicleChange(vt)} id={`vehicle-type-${vt}`}
+                className={cn('px-3 py-2.5 rounded-xl border text-sm font-500 transition-all text-left',
+                  form.vehicleType === vt ? 'border-[#FA7070] bg-[#FFF0F0] text-[#FA7070]' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50')}>
                 {VEHICLE_TYPE_LABELS[vt]}
               </button>
             ))}
           </div>
         </div>
-
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-500 text-gray-700 mb-1.5">Tải trọng tối đa (kg)</label>
-            <input
-              type="number"
-              min="0"
-              value={form.maxWeightKg}
-              onChange={(e) => setForm((f) => ({ ...f, maxWeightKg: e.target.value }))}
-              className="input-base"
-              id="driver-max-weight"
-            />
+            <input type="number" min="0" value={form.maxWeightKg} onChange={(e) => setForm((f) => ({ ...f, maxWeightKg: e.target.value }))} className="input-base" id="driver-max-weight" />
           </div>
           <div>
             <label className="block text-sm font-500 text-gray-700 mb-1.5">Thể tích tối đa (m³)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              value={form.maxVolumeM3}
-              onChange={(e) => setForm((f) => ({ ...f, maxVolumeM3: e.target.value }))}
-              className="input-base"
-              id="driver-max-volume"
-            />
+            <input type="number" min="0" step="0.1" value={form.maxVolumeM3} onChange={(e) => setForm((f) => ({ ...f, maxVolumeM3: e.target.value }))} className="input-base" id="driver-max-volume" />
           </div>
         </div>
       </form>
@@ -197,10 +145,81 @@ function AddDriverModal({ onClose, onSubmit }: {
   );
 }
 
+// ─── Edit Driver Modal (Bug #7 fix) ──────────────────────────────────────────
+
+function EditDriverModal({ driver, onClose, onSubmit }: {
+  driver: Driver;
+  onClose: () => void;
+  onSubmit: (payload: { maxWeightKg: number; maxVolumeM3: number; currentShiftStatus: DriverShiftStatus }) => void;
+}) {
+  const [form, setForm] = useState({
+    maxWeightKg: String(driver.maxWeightKg),
+    maxVolumeM3: String(driver.maxVolumeM3),
+    currentShiftStatus: driver.currentShiftStatus,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      maxWeightKg: parseFloat(form.maxWeightKg) || 0,
+      maxVolumeM3: parseFloat(form.maxVolumeM3) || 0,
+      currentShiftStatus: form.currentShiftStatus as DriverShiftStatus,
+    });
+  };
+
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Chỉnh sửa – ${driver.fullName}`}
+      subtitle={`Biển số: ${driver.licensePlate}`}
+      size="sm"
+      footer={
+        <>
+          <button onClick={onClose} className="btn-secondary">Hủy</button>
+          <button form="edit-driver-form" type="submit" className="btn-primary">Lưu thay đổi</button>
+        </>
+      }
+    >
+      <form id="edit-driver-form" onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-500 text-gray-700 mb-1.5">Tải trọng (kg)</label>
+            <input type="number" min="0" step="0.1" required value={form.maxWeightKg}
+              onChange={(e) => setForm((f) => ({ ...f, maxWeightKg: e.target.value }))}
+              className="input-base" id="edit-driver-max-weight" />
+          </div>
+          <div>
+            <label className="block text-sm font-500 text-gray-700 mb-1.5">Thể tích (m³)</label>
+            <input type="number" min="0" step="0.001" required value={form.maxVolumeM3}
+              onChange={(e) => setForm((f) => ({ ...f, maxVolumeM3: e.target.value }))}
+              className="input-base" id="edit-driver-max-volume" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-500 text-gray-700 mb-2">Trạng thái ca làm việc</label>
+          <div className="flex flex-col gap-2">
+            {SHIFT_STATUSES.map((s) => (
+              <button key={s} type="button" onClick={() => setForm((f) => ({ ...f, currentShiftStatus: s }))} id={`edit-shift-${s}`}
+                className={cn('px-3 py-2.5 rounded-xl border text-sm font-500 transition-all text-left',
+                  form.currentShiftStatus === s ? 'border-[#FA7070] bg-[#FFF0F0] text-[#FA7070]' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50')}>
+                {SHIFT_STATUS_LABELS[s]}
+              </button>
+            ))}
+          </div>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function DriversPage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [search, setSearch] = useState('');
   const [showAddDriver, setShowAddDriver] = useState(false);
+  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [filter, setFilter] = useState('ALL');
 
   const loadDrivers = React.useCallback(async () => {
@@ -213,6 +232,7 @@ export default function DriversPage() {
   }, []);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDrivers();
   }, [loadDrivers]);
 
@@ -222,10 +242,7 @@ export default function DriversPage() {
       d.fullName.toLowerCase().includes(search.toLowerCase()) ||
       d.licensePlate.toLowerCase().includes(search.toLowerCase()) ||
       d.phone.includes(search);
-    const matchFilter =
-      filter === 'ALL' ||
-      (filter === 'ON_DUTY' && d.currentShiftStatus === 'ON_DUTY') ||
-      (filter === 'OFF' && d.currentShiftStatus !== 'ON_DUTY');
+    const matchFilter = filter === 'ALL' || d.currentShiftStatus === filter;
     return matchSearch && matchFilter;
   });
 
@@ -272,7 +289,7 @@ export default function DriversPage() {
     {
       key: 'currentShiftStatus',
       header: 'Ca làm việc',
-      render: (v) => <StatusBadge status={v as Driver['currentShiftStatus']} />,
+      render: (v) => <StatusBadge status={v as DriverShiftStatus} />,
     },
   ];
 
@@ -283,40 +300,21 @@ export default function DriversPage() {
           <h2 className="text-xl font-700 text-gray-900">Tài xế</h2>
           <p className="text-sm text-gray-400 mt-0.5">{drivers.length} tài xế trong hệ thống</p>
         </div>
-        <button
-          onClick={() => setShowAddDriver(true)}
-          className="btn-primary"
-          id="btn-add-driver"
-        >
+        <button onClick={() => setShowAddDriver(true)} className="btn-primary" id="btn-add-driver">
           <Plus size={15} /> Thêm tài xế
         </button>
       </div>
 
-      {/* Quick stats */}
+      {/* Quick stats — aligned with backend: OFFLINE / ONLINE_READY / BUSY */}
       <div className="grid grid-cols-3 gap-4 stagger">
         {[
-          {
-            label: 'Đang làm việc',
-            value: drivers.filter((d) => d.currentShiftStatus === 'ON_DUTY').length,
-            color: 'bg-green-50 text-green-700',
-            border: 'border-green-100',
-          },
-          {
-            label: 'Nghỉ giữa ca',
-            value: drivers.filter((d) => d.currentShiftStatus === 'ON_BREAK').length,
-            color: 'bg-amber-50 text-amber-700',
-            border: 'border-amber-100',
-          },
-          {
-            label: 'Không trực ca',
-            value: drivers.filter((d) => d.currentShiftStatus === 'OFF_DUTY').length,
-            color: 'bg-gray-50 text-gray-600',
-            border: 'border-gray-100',
-          },
+          { label: 'Sẵn sàng', key: 'ONLINE_READY', color: 'bg-green-50 text-green-700', border: 'border-green-100' },
+          { label: 'Đang giao', key: 'BUSY',         color: 'bg-blue-50 text-blue-700',   border: 'border-blue-100' },
+          { label: 'Offline',   key: 'OFFLINE',      color: 'bg-gray-50 text-gray-600',   border: 'border-gray-100' },
         ].map((s) => (
-          <div key={s.label} className={cn('card p-4 border animate-fade-in flex items-center gap-4', s.border)}>
+          <div key={s.key} className={cn('card p-4 border animate-fade-in flex items-center gap-4', s.border)}>
             <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-700', s.color)}>
-              {s.value}
+              {drivers.filter((d) => d.currentShiftStatus === s.key).length}
             </div>
             <p className="text-sm text-gray-600 font-500">{s.label}</p>
           </div>
@@ -327,9 +325,10 @@ export default function DriversPage() {
         data={filteredDrivers}
         columns={columns}
         filterTabs={[
-          { label: 'Tất cả', value: 'ALL', count: drivers.length },
-          { label: 'Đang làm', value: 'ON_DUTY', count: drivers.filter((d) => d.currentShiftStatus === 'ON_DUTY').length },
-          { label: 'Nghỉ', value: 'OFF', count: drivers.filter((d) => d.currentShiftStatus !== 'ON_DUTY').length },
+          { label: 'Tất cả',    value: 'ALL',          count: drivers.length },
+          { label: 'Sẵn sàng', value: 'ONLINE_READY',  count: drivers.filter((d) => d.currentShiftStatus === 'ONLINE_READY').length },
+          { label: 'Đang giao',value: 'BUSY',           count: drivers.filter((d) => d.currentShiftStatus === 'BUSY').length },
+          { label: 'Offline',  value: 'OFFLINE',        count: drivers.filter((d) => d.currentShiftStatus === 'OFFLINE').length },
         ]}
         activeFilter={filter}
         onFilterChange={setFilter}
@@ -337,24 +336,30 @@ export default function DriversPage() {
         onSearchChange={setSearch}
         searchPlaceholder="Tìm tên, biển số, SĐT..."
         getRowKey={(row) => row.userId}
-        rowActions={() => (
+        rowActions={(row) => (
           <>
-            <button className="flex items-center justify-center w-7 h-7 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors">
+            <button className="flex items-center justify-center w-7 h-7 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors" title="Xem chi tiết">
               <Eye size={14} />
             </button>
-            <button className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+            {/* Pencil now opens EditDriverModal — Bug #7 fix */}
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditingDriver(row as Driver); }}
+              className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+              title="Chỉnh sửa thông số xe"
+              id={`btn-edit-driver-${(row as Driver).userId}`}
+            >
               <Pencil size={14} />
             </button>
           </>
         )}
       />
 
+      {/* Add Driver Modal */}
       {showAddDriver && (
         <AddDriverModal
           onClose={() => setShowAddDriver(false)}
           onSubmit={async (data) => {
             try {
-              // 1. Create User
               const user = await createUser({
                 fullName: data.fullName,
                 email: data.email || undefined,
@@ -362,7 +367,6 @@ export default function DriversPage() {
                 password: 'Password123!',
                 role: 'DRIVER',
               });
-              // 2. Create Driver profile
               await createDriver(user.id, {
                 licensePlate: data.licensePlate,
                 vehicleType: data.vehicleType,
@@ -373,7 +377,33 @@ export default function DriversPage() {
               setShowAddDriver(false);
             } catch (err) {
               console.error('Lỗi tạo tài xế', err);
-              alert('Lỗi tạo tài xế');
+              alert('Lỗi tạo tài xế: ' + (err instanceof Error ? err.message : 'Vui lòng thử lại'));
+            }
+          }}
+        />
+      )}
+
+      {/* Edit Driver Modal — Bug #7 fix */}
+      {editingDriver && (
+        <EditDriverModal
+          driver={editingDriver}
+          onClose={() => setEditingDriver(null)}
+          onSubmit={async (payload) => {
+            try {
+              // Call API to update vehicle specs (does not accept shift status)
+              await updateDriverSpecs(editingDriver.userId, {
+                maxWeightKg: payload.maxWeightKg,
+                maxVolumeM3: payload.maxVolumeM3,
+              });
+              
+              // Call API to update shift status
+              await updateShiftStatus(editingDriver.userId, payload.currentShiftStatus);
+
+              void loadDrivers();
+              setEditingDriver(null);
+            } catch (err) {
+              console.error('Lỗi cập nhật tài xế', err);
+              alert('Lỗi cập nhật: ' + (err instanceof Error ? err.message : 'Vui lòng thử lại'));
             }
           }}
         />

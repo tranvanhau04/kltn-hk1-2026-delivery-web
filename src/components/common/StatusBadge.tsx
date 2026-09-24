@@ -8,7 +8,8 @@ type StatusValue =
   | ShiftStatus
   | DriverShiftStatus
   | 'ACTIVE'
-  | 'INACTIVE';
+  | 'INACTIVE'
+  | 'LOCKED';
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; dot: string }> = {
   // Order statuses
@@ -30,14 +31,15 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; dot: str
   IN_PROGRESS:  { label: 'Đang chạy', className: 'badge badge-transit',   dot: 'bg-blue-500' },
   CANCELLED:    { label: 'Hủy',       className: 'badge badge-failed',    dot: 'bg-red-500' },
 
-  // Shift statuses
-  ACTIVE:       { label: 'Hoạt động', className: 'badge badge-delivered', dot: 'bg-green-500' },
-  INACTIVE:     { label: 'Không HĐ',  className: 'badge badge-failed',    dot: 'bg-red-500' },
+  // User account statuses
+  ACTIVE:       { label: 'Hoạt động',  className: 'badge badge-delivered', dot: 'bg-green-500' },
+  INACTIVE:     { label: 'Không HĐ',   className: 'badge badge-failed',    dot: 'bg-red-500' },
+  LOCKED:       { label: 'Đã khóa',    className: 'badge badge-failed',    dot: 'bg-red-700' },
 
-  // Driver shift
-  ON_DUTY:      { label: 'On Duty',   className: 'badge badge-delivered', dot: 'bg-green-500' },
-  OFF_DUTY:     { label: 'Off Duty',  className: 'badge badge-new',       dot: 'bg-zinc-400' },
-  ON_BREAK:     { label: 'Nghỉ giữa',className: 'badge badge-rescheduled',dot: 'bg-yellow-500' },
+  // Driver shift (aligned with backend: OFFLINE, ONLINE_READY, BUSY)
+  OFFLINE:      { label: 'Offline',      className: 'badge badge-new',        dot: 'bg-zinc-400' },
+  ONLINE_READY: { label: 'Sẵn sàng',    className: 'badge badge-delivered',  dot: 'bg-green-500' },
+  BUSY:         { label: 'Đang giao',   className: 'badge badge-transit',    dot: 'bg-blue-500' },
 };
 
 interface StatusBadgeProps {

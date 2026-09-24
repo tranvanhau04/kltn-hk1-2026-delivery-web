@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Plus, Download, Eye, Pencil,
   MapPin, Phone, User, Clock,
@@ -13,7 +13,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
 import { useApp } from '@/context/AppContext';
 import { formatDateTime, formatCurrency, cn } from '@/lib/utils';
-import { fetchOrders } from '@/lib/api';
+import { fetchOrders, fetchZones, type ApiZone } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/domain';
 import dynamic from 'next/dynamic';
 
@@ -467,7 +467,7 @@ const STATUS_FILTER_TABS: FilterTab[] = [
 const EXCEPTION_STATUSES: OrderStatus[] = ['FAILED', 'RESCHEDULED'];
 
 export default function OrdersPage() {
-  const { orders } = useApp();
+  useApp(); // kept for backward-compat (layout etc.)
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -475,21 +475,32 @@ export default function OrdersPage() {
   const [showMapForOrder, setShowMapForOrder] = useState<Order | null>(null);
   const [relocateOrder, setRelocateOrder] = useState<Order | null>(null);
   const [localOrders, setLocalOrders] = useState<Order[]>([]);
-  
   const [showImportExcel, setShowImportExcel] = useState(false);
+
+  // Zone filter state — Bug #11 fix
+  const [zones, setZones] = useState<ApiZone[]>([]);
+  const [zoneFilter, setZoneFilter] = useState<string>('');
   
   const loadOrders = useCallback(async () => {
     try {
       const res = await fetchOrders({
         status: activeFilter !== 'ALL' && activeFilter !== 'EXCEPTION' ? activeFilter : activeFilter === 'EXCEPTION' ? EXCEPTION_STATUSES : undefined,
         search: search || undefined,
+        zoneId: zoneFilter || undefined, // Bug #11 fix: pass zone filter
         limit: 100,
       });
       setLocalOrders(res.data);
     } catch (err) {
       console.error(err instanceof Error ? err.message : 'Lỗi tải đơn hàng');
     }
-  }, [activeFilter, search]);
+  }, [activeFilter, search, zoneFilter]);
+
+  // Load zones for the filter dropdown — Bug #11 fix
+  useEffect(() => {
+    fetchZones()
+      .then((data) => setZones(data))
+      .catch(() => setZones([]));
+  }, []);
 
   React.useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -504,17 +515,17 @@ export default function OrdersPage() {
     setRelocateOrder(null);
   }, []);
 
-  // Build tabs with counts
+  // Build tabs with counts from localOrders (real API data) — Issue #13 fix
   const tabsWithCounts = useMemo(() => {
     return STATUS_FILTER_TABS.map((tab) => ({
       ...tab,
       count: tab.value === 'ALL'
-        ? orders.length
+        ? localOrders.length
         : tab.value === 'EXCEPTION'
-        ? orders.filter((o) => EXCEPTION_STATUSES.includes(o.status)).length
-        : orders.filter((o) => o.status === tab.value).length,
+        ? localOrders.filter((o) => EXCEPTION_STATUSES.includes(o.status)).length
+        : localOrders.filter((o) => o.status === tab.value).length,
     }));
-  }, [orders]);
+  }, [localOrders]);
 
   // Apply search + filter
   const filteredOrders = useMemo(() => {
@@ -634,9 +645,24 @@ export default function OrdersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-700 text-gray-900">Đơn hàng</h2>
-          <p className="text-sm text-gray-400 mt-0.5">{orders.length} tổng số đơn hàng</p>
+          <p className="text-sm text-gray-400 mt-0.5">{localOrders.length} tổng số đơn hàng</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Zone filter dropdown — Bug #11 fix */}
+          {zones.length > 0 && (
+            <select
+              id="zone-filter"
+              value={zoneFilter}
+              onChange={(e) => setZoneFilter(e.target.value)}
+              className="input-base text-sm h-9 py-0 pr-8 max-w-[180px]"
+              aria-label="Lọc theo khu vực"
+            >
+              <option value="">Tất cả khu vực</option>
+              {zones.map((z) => (
+                <option key={z.id} value={z.id}>{z.name}</option>
+              ))}
+            </select>
+          )}
           <button
             onClick={() => setShowImportExcel(true)}
             className="btn-secondary text-sm"

@@ -336,7 +336,7 @@ export default function TrackingPage() {
   const { positions, positionSource, polylines, liveDrivers, usingRealApi } = useLiveTracking();
 
   const allDrivers = mergeDriverData(liveDrivers);
-  const activeDrivers = allDrivers.filter((d) => d.currentShiftStatus !== 'OFF_DUTY');
+  const activeDrivers = allDrivers.filter((d) => d.currentShiftStatus !== 'OFFLINE');
   const filteredDrivers = activeDrivers.filter((d) =>
     !search || d.fullName.toLowerCase().includes(search.toLowerCase()) || d.licensePlate.toLowerCase().includes(search.toLowerCase())
   );
@@ -378,7 +378,7 @@ export default function TrackingPage() {
         ) : (
           <div className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full text-amber-600 bg-amber-50">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            {activeDrivers.filter((d) => d.currentShiftStatus === 'ON_DUTY').length} tài xế (demo)
+            {activeDrivers.filter((d) => d.currentShiftStatus === 'ONLINE_READY').length} tài xế (demo)
           </div>
         )}
         <div className="ml-auto relative flex items-center w-56">
@@ -408,8 +408,8 @@ export default function TrackingPage() {
             >
               <span className={cn(
                 'w-2 h-2 rounded-full',
-                driver.currentShiftStatus === 'ON_DUTY' ? 'bg-green-500' :
-                driver.currentShiftStatus === 'ON_BREAK' ? 'bg-amber-500' : 'bg-gray-400'
+                driver.currentShiftStatus === 'ONLINE_READY' ? 'bg-green-500' :
+                driver.currentShiftStatus === 'BUSY' ? 'bg-blue-500' : 'bg-gray-400'
               )} />
               {driver.fullName.replace(/\s*\(.*\)/, '').split(' ').slice(-2).join(' ')}
             </button>

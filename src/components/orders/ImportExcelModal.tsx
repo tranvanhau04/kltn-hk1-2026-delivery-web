@@ -40,8 +40,8 @@ export default function ImportExcelModal({
       if (res.importedCount > 0) {
         onSuccess();
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Lỗi khi upload file');
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message || 'Lỗi khi upload file');
     } finally {
       setIsUploading(false);
     }

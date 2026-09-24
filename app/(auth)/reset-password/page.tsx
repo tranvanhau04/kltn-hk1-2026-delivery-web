@@ -9,6 +9,7 @@ function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const email = searchParams.get('email') ?? '';
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,6 +22,7 @@ function ResetPasswordForm() {
 
   useEffect(() => {
     if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError('Đường dẫn không hợp lệ hoặc đã hết hạn.');
     }
   }, [token]);
@@ -37,10 +39,10 @@ function ResetPasswordForm() {
     setError('');
     
     try {
-      await resetPassword(token, password);
+      await resetPassword(token, password, email);
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Lỗi đặt lại mật khẩu');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Lỗi đặt lại mật khẩu');
     } finally {
       setLoading(false);
     }

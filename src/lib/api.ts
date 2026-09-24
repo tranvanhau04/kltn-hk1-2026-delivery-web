@@ -117,8 +117,13 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined') {
-      console.warn('Unauthorized API call, might need to login.');
-      // Optional: window.location.href = '/login';
+      // Auto-redirect to login on token expiry — Bug #8 fix
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('iuh_user');
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.href = '/login';
+      // Throw so callers don't try to process undefined data
+      throw new Error('Session expired. Please log in again.');
     }
     throw new Error(`API ${fullUrl} failed: ${res.status} ${res.statusText}`);
   }
@@ -134,10 +139,10 @@ export async function forgotPassword(email: string): Promise<{ message: string }
   });
 }
 
-export async function resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+export async function resetPassword(token: string, newPassword: string, email: string): Promise<{ message: string }> {
   return apiFetch<{ message: string }>('/auth/reset-password', {
     method: 'POST',
-    body: JSON.stringify({ token, newPassword }),
+    body: JSON.stringify({ token, newPassword, email }),
   });
 }
 
@@ -211,8 +216,9 @@ export async function fetchLiveTracking(): Promise<ApiLiveDriver[]> {
 
 /** Fetch all drivers from the backend */
 export async function fetchDrivers(): Promise<Driver[]> {
-  const res = await apiFetch<{ data: any[] }>('/drivers?limit=100');
-  return res.data.map(d => ({
+  const res = await apiFetch<{ data: unknown[] }>('/drivers?limit=100');
+  type RawDriver = Driver & { user?: { fullName?: string; phone?: string; email?: string } };
+  return (res.data as RawDriver[]).map(d => ({
     ...d,
     fullName: d.user?.fullName || '',
     phone: d.user?.phone || '',
@@ -236,33 +242,41 @@ export async function updateDriverSpecs(userId: string, data: Partial<Driver>): 
   });
 }
 
+/** Update Driver shift status */
+export async function updateShiftStatus(userId: string, currentShiftStatus: string): Promise<Driver> {
+  return apiFetch<Driver>(`/drivers/${userId}/shift-status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ currentShiftStatus }),
+  });
+}
+
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export async function fetchUsers(): Promise<any[]> {
-  const res = await apiFetch<{ data: any[] }>('/users?limit=100');
+export async function fetchUsers(): Promise<unknown[]> {
+  const res = await apiFetch<{ data: unknown[] }>('/users?limit=100');
   return res.data;
 }
 
-export async function createUser(data: any): Promise<any> {
-  return apiFetch<any>('/users', {
+export async function createUser(data: unknown): Promise<unknown> {
+  return apiFetch<unknown>('/users', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
-export async function updateUserStatus(userId: string, status: string): Promise<any> {
-  return apiFetch<any>(`/users/${userId}/status`, {
+export async function updateUserStatus(userId: string, status: string): Promise<unknown> {
+  return apiFetch<unknown>(`/users/${userId}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
 }
 
-export async function importOrdersExcel(file: File): Promise<any> {
+export async function importOrdersExcel(file: File): Promise<unknown> {
   const fullUrl = `${API_BASE}/orders/import-excel`;
   const formData = new FormData();
   formData.append('file', file);
   
-  let token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
 

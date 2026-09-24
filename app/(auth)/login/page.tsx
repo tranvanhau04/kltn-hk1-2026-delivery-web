@@ -20,8 +20,8 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
     try {
       await forgotPassword(email);
       setStep('sent');
-    } catch (err: any) {
-      setError(err.message || 'Lỗi gửi yêu cầu');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Lỗi gửi yêu cầu');
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,7 @@ const FEATURES = [
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useApp();
-  const [email, setEmail] = useState('ceo@smartexpress.vn');
+  const [email, setEmail] = useState('admin@smartexpress.vn');
   const [password, setPassword] = useState('Password123!');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -296,7 +296,7 @@ export default function LoginPage() {
             {/* Hint */}
             <div className="mt-5 p-3 bg-blue-50 rounded-xl">
               <p className="text-xs text-blue-600 font-500">Tài khoản Admin mới:</p>
-              <p className="text-xs text-blue-500 mt-0.5">ceo@smartexpress.vn / Password123!</p>
+              <p className="text-xs text-blue-500 mt-0.5">admin@smartexpress.vn / Password123!</p>
             </div>
           </div>
 

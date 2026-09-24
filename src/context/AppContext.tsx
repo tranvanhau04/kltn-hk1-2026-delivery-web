@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { User, Order } from '@/types/domain';
-import { mockUsers, mockOrders } from '@/lib/mock-data';
+import { mockOrders } from '@/lib/mock-data';
 
 interface Notification {
   id: string;
@@ -78,6 +78,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const savedUser = typeof window !== 'undefined' ? localStorage.getItem('iuh_user') : null;
     if (token && savedUser) {
       try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCurrentUser(JSON.parse(savedUser));
       } catch {
         localStorage.removeItem('iuh_user');
