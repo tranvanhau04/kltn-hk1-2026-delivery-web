@@ -62,7 +62,7 @@ type ToastState = { type: 'success' | 'error'; message: string } | null;
 export interface MapPickerModalProps {
   initialLat?: number;
   initialLng?: number;
-  onConfirm: (lat: number, lng: number) => void;
+  onConfirm: (lat: number, lng: number, address?: string) => void;
   onClose: () => void;
   readOnly?: boolean;
   title?: string;
@@ -278,7 +278,7 @@ export default function MapPickerModal({
             ) : (
               /* Local-only mode: return coords to parent */
               <button
-                onClick={() => onConfirm(lat, lng)}
+                onClick={() => onConfirm(lat, lng, reverseAddress || undefined)}
                 className="btn-primary text-sm"
                 id="btn-save-location"
               >

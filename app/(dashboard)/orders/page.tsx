@@ -446,7 +446,11 @@ function NewOrderModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (
         <MapPickerModal
           initialLat={coords.lat}
           initialLng={coords.lng}
-          onConfirm={(lat, lng) => { setCoords({ lat, lng }); setShowMap(false); }}
+          onConfirm={(lat, lng, address) => { 
+            setCoords({ lat, lng }); 
+            if (address) setForm(f => ({ ...f, deliveryAddress: address }));
+            setShowMap(false); 
+          }}
           onClose={() => setShowMap(false)}
         />
       )}
