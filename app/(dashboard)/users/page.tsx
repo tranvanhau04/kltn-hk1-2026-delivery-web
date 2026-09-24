@@ -263,7 +263,10 @@ export default function UsersPage() {
               // 1. Tạo tài khoản với mật khẩu tạm
               const randomTempPassword = `P@ss${Date.now()}`;
               await createUser({
-                ...data,
+                fullName: data.fullName,
+                email: data.email,
+                phone: data.phone,
+                role: data.role,
                 password: randomTempPassword,
               });
               
