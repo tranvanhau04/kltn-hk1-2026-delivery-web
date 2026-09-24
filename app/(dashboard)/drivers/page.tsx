@@ -45,7 +45,7 @@ function DriverAvatarCell({ driver }: { driver: Driver }) {
 
 function AddDriverModal({ onClose, onSubmit }: {
   onClose: () => void;
-  onSubmit: (driver: Partial<Driver>) => void;
+  onSubmit: (driver: { fullName: string; phone: string; email: string; licensePlate: string; vehicleType: VehicleType; maxWeightKg: number; maxVolumeM3: number; currentShiftStatus: string; }) => void;
 }) {
   const [form, setForm] = useState({
     fullName: '',

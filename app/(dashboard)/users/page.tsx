@@ -15,12 +15,12 @@ const ROLE_CONFIG: Record<UserRole, { label: string; className: string }> = {
   DRIVER:     { label: 'Tài xế',        className: 'badge badge-delivered' },
 };
 
-function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (u: Partial<User>) => void }) {
+function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (u: { fullName: string; email: string; phone: string; role: UserRole }) => void }) {
   const [form, setForm] = useState({ fullName: '', email: '', phone: '', role: 'DISPATCHER' as UserRole });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ ...form, status: 'ACTIVE', createdAt: new Date().toISOString() });
+    onSubmit({ ...form });
   };
 
   return (

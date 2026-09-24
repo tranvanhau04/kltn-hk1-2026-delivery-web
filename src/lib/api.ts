@@ -9,7 +9,7 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-import type { OrderStatus, Driver } from '@/types/domain';
+import type { OrderStatus, Driver, User } from '@/types/domain';
 
 export interface ApiOrder {
   id: string;
@@ -260,13 +260,21 @@ export async function updateShiftStatus(userId: string, currentShiftStatus: stri
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export async function fetchUsers(): Promise<unknown[]> {
-  const res = await apiFetch<{ data: unknown[] }>('/users?limit=100');
+export async function fetchUsers(): Promise<User[]> {
+  const res = await apiFetch<{ data: User[] }>('/users?limit=100');
   return res.data;
 }
 
-export async function createUser(data: unknown): Promise<unknown> {
-  return apiFetch<unknown>('/users', {
+export interface CreateUserPayload {
+  fullName: string;
+  email?: string;
+  phone: string;
+  role: string;
+  password?: string;
+}
+
+export async function createUser(data: CreateUserPayload): Promise<User> {
+  return apiFetch<User>('/users', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -279,7 +287,7 @@ export async function updateUserStatus(userId: string, status: string): Promise<
   });
 }
 
-export async function importOrdersExcel(file: File): Promise<unknown> {
+export async function importOrdersExcel(file: File): Promise<{ totalRows: number; importedCount: number; failedCount: number; errors: string[] }> {
   const fullUrl = `${API_BASE}/orders/import-excel`;
   const formData = new FormData();
   formData.append('file', file);
