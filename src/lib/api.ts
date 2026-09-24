@@ -170,6 +170,14 @@ export async function fetchOrders(query?: { status?: string | string[], zoneId?:
   return apiFetch<{ data: ApiOrder[], total: number }>(`/orders${qs ? `?${qs}` : ''}`);
 }
 
+/** Create a new order */
+export async function createOrder(data: Partial<ApiOrder>): Promise<ApiOrder> {
+  return apiFetch<ApiOrder>('/orders', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 /** Fetch all unassigned (NEW) orders from the backend */
 export async function fetchOrderPool(): Promise<ApiOrder[]> {
   return apiFetch<ApiOrder[]>('/orders/pool');

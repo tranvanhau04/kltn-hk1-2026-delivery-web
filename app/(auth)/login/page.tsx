@@ -103,7 +103,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useApp();
   const [email, setEmail] = useState('admin@smartexpress.vn');
-  const [password, setPassword] = useState('Password123!');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

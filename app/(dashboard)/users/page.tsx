@@ -5,7 +5,7 @@ import { Plus, Mail, Phone, Shield, UserCheck, Pencil, Truck } from 'lucide-reac
 import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
-import { fetchUsers, createUser, updateUserStatus } from '@/lib/api';
+import { fetchUsers, createUser, updateUserStatus, forgotPassword } from '@/lib/api';
 import type { User, UserRole } from '@/types/domain';
 import { formatDateTime, cn } from '@/lib/utils';
 
@@ -27,14 +27,14 @@ function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit:
     <Modal
       isOpen
       onClose={onClose}
-      title="Mời người dùng mới"
-      subtitle="Gửi lời mời qua email"
+      title="Tạo tài khoản mới"
+      subtitle="Người dùng sẽ nhận được email để thiết lập mật khẩu"
       size="md"
       footer={
         <>
           <button onClick={onClose} className="btn-secondary">Hủy</button>
           <button form="invite-user-form" type="submit" className="btn-primary">
-            <Mail size={15} /> Gửi lời mời
+            <UserCheck size={15} /> Tạo tài khoản
           </button>
         </>
       }
@@ -260,15 +260,24 @@ export default function UsersPage() {
           onClose={() => setShowInvite(false)}
           onSubmit={async (data) => {
             try {
+              // 1. Tạo tài khoản với mật khẩu tạm
+              const randomTempPassword = `P@ss${Date.now()}`;
               await createUser({
                 ...data,
-                password: 'Password123!', // default password
+                password: randomTempPassword,
               });
+              
+              // 2. Tự động gửi email reset password để người dùng tự thiết lập
+              if (data.email) {
+                await forgotPassword(data.email);
+              }
+              
               void loadUsers();
               setShowInvite(false);
+              alert('Đã tạo tài khoản và gửi email thiết lập mật khẩu thành công!');
             } catch (err) {
               console.error('Lỗi tạo user', err);
-              alert('Lỗi tạo user');
+              alert('Lỗi tạo tài khoản');
             }
           }}
         />
