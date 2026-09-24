@@ -13,7 +13,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
 import { useApp } from '@/context/AppContext';
 import { formatDateTime, formatCurrency, cn } from '@/lib/utils';
-import { fetchOrders, fetchZones, type ApiZone } from '@/lib/api';
+import { fetchOrders, fetchZones, createOrder, type ApiZone } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/domain';
 import dynamic from 'next/dynamic';
 
@@ -618,25 +618,15 @@ export default function OrdersPage() {
     },
   ];
 
-  const handleNewOrder = (data: Partial<Order>) => {
-    const newOrder: Order = {
-      id: `ord${Date.now()}`,
-      code: `SE${Date.now().toString().slice(-9)}`,
-      dispatcherId: 'u2',
-      receiverName: data.receiverName ?? '',
-      receiverPhone: data.receiverPhone ?? '',
-      deliveryAddress: data.deliveryAddress ?? '',
-      latitude: data.latitude ?? 10.8012,
-      longitude: data.longitude ?? 106.7138,
-      weightKg: data.weightKg ?? 0,
-      volumeM3: data.volumeM3 ?? 0,
-      codAmount: data.codAmount ?? 0,
-      status: 'NEW',
-      createdAt: new Date().toISOString(),
-      notes: data.notes,
-    };
-    setLocalOrders((prev) => [newOrder, ...prev]);
-    setShowNewOrder(false);
+  const handleNewOrder = async (data: Partial<Order>) => {
+    try {
+      const createdOrder = await createOrder(data);
+      setLocalOrders((prev) => [createdOrder, ...prev]);
+      setShowNewOrder(false);
+      alert('Tạo đơn hàng thành công!');
+    } catch (err: unknown) {
+      alert('Lỗi: ' + (err as Error).message);
+    }
   };
 
   return (
