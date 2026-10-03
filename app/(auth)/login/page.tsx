@@ -295,8 +295,8 @@ export default function LoginPage() {
 
             {/* Hint */}
             <div className="mt-5 p-3 bg-blue-50 rounded-xl">
-              <p className="text-xs text-blue-600 font-500">Tài khoản Admin mới:</p>
-              <p className="text-xs text-blue-500 mt-0.5">admin@smartexpress.vn / Password123!</p>
+              <p className="text-xs text-blue-600 font-500">Tài khoản Admin mặc định:</p>
+              <p className="text-xs text-blue-500 mt-0.5">admin@smartexpress.vn / 123456</p>
             </div>
           </div>
 

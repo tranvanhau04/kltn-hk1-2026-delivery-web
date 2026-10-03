@@ -234,6 +234,18 @@ export async function fetchDrivers(): Promise<Driver[]> {
   }));
 }
 
+/** Fetch online drivers (ONLINE_READY) from the backend */
+export async function fetchOnlineDrivers(): Promise<Driver[]> {
+  const res = await apiFetch<{ data: unknown[] }>('/drivers?currentShiftStatus=ONLINE_READY&limit=100');
+  type RawDriver = Driver & { user?: { fullName?: string; phone?: string; email?: string } };
+  return (res.data as RawDriver[]).map(d => ({
+    ...d,
+    fullName: d.user?.fullName || '',
+    phone: d.user?.phone || '',
+    email: d.user?.email || '',
+  }));
+}
+
 /** Create Driver profile */
 export async function createDriver(userId: string, data: Partial<Driver>): Promise<Driver> {
   return apiFetch<Driver>(`/drivers/${userId}`, {
