@@ -1,0 +1,103 @@
+<svg width="240" height="200" viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="10" y="10" width="220" height="190" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#FA7070" flood-opacity="0.15" />
+    </filter>
+    <linearGradient id="mapBg" x1="20" y1="20" x2="220" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDFBF7" />
+      <stop offset="100%" stop-color="#F7F3EA" />
+    </linearGradient>
+    <linearGradient id="truckBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FA7070" />
+      <stop offset="100%" stop-color="#E25555" />
+    </linearGradient>
+    <linearGradient id="roadGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FA7070" stop-opacity="0.2"/>
+      <stop offset="50%" stop-color="#FA7070" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#FA7070" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ground Shadow / Base -->
+  <ellipse cx="120" cy="180" rx="90" ry="12" fill="#E2E8F0" opacity="0.6" />
+
+  <!-- Map Card (Background) -->
+  <g filter="url(#shadow)">
+    <rect x="35" y="25" width="170" height="135" rx="16" fill="url(#mapBg)" stroke="#EDE8DF" stroke-width="2" />
+    
+    <!-- Map Grids / City Blocks -->
+    <rect x="48" y="38" width="42" height="32" rx="6" fill="#E8F4EC" opacity="0.8" />
+    <rect x="98" y="38" width="45" height="24" rx="6" fill="#FEF3D6" opacity="0.7" />
+    <rect x="151" y="38" width="42" height="40" rx="6" fill="#E6EEF8" opacity="0.8" />
+    
+    <rect x="48" y="78" width="34" height="42" rx="6" fill="#F1EAF7" opacity="0.7" />
+    <rect x="90" y="70" width="53" height="34" rx="6" fill="#E8F4EC" opacity="0.7" />
+    <rect x="151" y="86" width="42" height="34" rx="6" fill="#FEF3D6" opacity="0.7" />
+
+    <!-- Street Roads (White Grid Lines) -->
+    <path d="M35 74 H205" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" />
+    <path d="M35 124 H205" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" />
+    <path d="M88 25 V160" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" />
+    <path d="M147 25 V160" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" />
+
+    <!-- Dotted Route Path -->
+    <path d="M60 55 C 75 55, 75 100, 115 100 C 140 100, 140 60, 172 60" 
+          stroke="#FA7070" stroke-width="2.5" stroke-dasharray="4 4" stroke-linecap="round" />
+
+    <!-- Route Start Pin -->
+    <circle cx="60" cy="55" r="4.5" fill="#FA7070" />
+    <circle cx="60" cy="55" r="2" fill="#FFFFFF" />
+
+    <!-- Waypoint Pin -->
+    <circle cx="115" cy="100" r="3.5" fill="#FA7070" opacity="0.6" />
+
+    <!-- Route Destination Pin (Big Pin) -->
+    <g transform="translate(172, 60)">
+      <path d="M0 0 C-4 -4, -7 -8, -7 -13 C-7 -17.4 3.6 -21 0 -21 C3.6 -21 7 -17.4 7 -13 C7 -8, 4 -4, 0 0 Z" fill="#FA7070" />
+      <circle cx="0" cy="-13" r="3" fill="#FFFFFF" />
+    </g>
+  </g>
+
+  <!-- Delivery Truck (Isometric / 3D styled, foreground) -->
+  <g transform="translate(45, 115)">
+    <!-- Truck Shadow -->
+    <ellipse cx="60" cy="58" rx="55" ry="7" fill="#000000" opacity="0.12" />
+
+    <!-- Truck Cargo Body -->
+    <rect x="8" y="8" width="65" height="42" rx="6" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" />
+    <line x1="28" y1="8" x2="28" y2="50" stroke="#F1F5F9" stroke-width="1.5" />
+    <line x1="48" y1="8" x2="48" y2="50" stroke="#F1F5F9" stroke-width="1.5" />
+    
+    <!-- Accent Stripe on Cargo -->
+    <path d="M8 26 H73" stroke="#FA7070" stroke-width="3.5" stroke-linecap="round" />
+    
+    <!-- Small package icon on cargo -->
+    <rect x="15" y="32" width="10" height="10" rx="2" fill="#FFE8E8" stroke="#FA7070" stroke-width="1" />
+    <path d="M15 37 H25" stroke="#FA7070" stroke-width="1" />
+
+    <!-- Truck Cabin (Front) -->
+    <path d="M73 20 H92 C96 20, 102 26, 104 32 L108 40 C109 42, 109 50, 106 50 H73 V20 Z" fill="url(#truckBody)" />
+    
+    <!-- Windshield -->
+    <path d="M78 24 H90 C92 24, 96 27, 98 32 L99 35 H78 V24 Z" fill="#E0F2FE" />
+    
+    <!-- Headlight -->
+    <circle cx="106" cy="45" r="2.5" fill="#FEF08A" />
+
+    <!-- Wheels -->
+    <!-- Rear Wheel 1 -->
+    <circle cx="26" cy="52" r="9" fill="#334155" />
+    <circle cx="26" cy="52" r="4.5" fill="#94A3B8" />
+    <circle cx="26" cy="52" r="2" fill="#FFFFFF" />
+
+    <!-- Rear Wheel 2 -->
+    <circle cx="54" cy="52" r="9" fill="#334155" />
+    <circle cx="54" cy="52" r="4.5" fill="#94A3B8" />
+    <circle cx="54" cy="52" r="2" fill="#FFFFFF" />
+
+    <!-- Front Wheel -->
+    <circle cx="92" cy="52" r="9" fill="#334155" />
+    <circle cx="92" cy="52" r="4.5" fill="#94A3B8" />
+    <circle cx="92" cy="52" r="2" fill="#FFFFFF" />
+  </g>
+</svg>
