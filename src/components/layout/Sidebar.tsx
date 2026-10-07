@@ -40,38 +40,38 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="sidebar flex flex-col bg-white border-r border-slate-100 h-full overflow-hidden">
+    <aside className="sidebar flex flex-col bg-white border-r border-slate-200 h-full overflow-hidden">
       {/* Brand */}
-      <div className="px-5 pt-6 pb-5 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-[#FA7070] to-[#8B2626] shrink-0 shadow-md">
-            <Zap size={18} className="text-white" />
+      <div className="px-4 pt-4 pb-3.5 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center w-8 h-8 rounded-md bg-red-600 shrink-0 shadow-xs">
+            <Zap size={16} className="text-white" />
           </div>
           <div>
-            <p className="text-[13px] font-800 text-[#8B2626] leading-tight tracking-wide">IUH LOGISTICS</p>
-            <p className="text-[10px] text-gray-400 font-400">SmartExpress Platform</p>
+            <p className="text-xs font-bold text-slate-900 tracking-wider leading-none">IUH LOGISTICS</p>
+            <p className="text-[10px] text-slate-400 font-medium tracking-tight mt-1">SmartExpress Platform</p>
           </div>
         </div>
       </div>
 
       {/* New Shipment CTA */}
-      <div className="px-4 pb-4 shrink-0">
+      <div className="px-3 pb-3 shrink-0">
         <button
           onClick={() => router.push('/orders')}
-          className="btn-primary w-full justify-center text-sm"
+          className="btn-primary w-full justify-center text-xs font-medium h-8.5 rounded-md"
           id="sidebar-new-shipment"
         >
-          <Plus size={16} />
+          <Plus size={14} />
           Đơn hàng mới
         </button>
       </div>
 
       {/* Divider */}
-      <div className="mx-4 border-t border-slate-100 mb-3 shrink-0" />
+      <div className="mx-3 border-t border-slate-200 mb-2 shrink-0" />
 
       {/* Nav */}
-      <nav className="flex-1 px-3 overflow-y-auto space-y-0.5">
-        <p className="px-2 pb-2 text-[10px] font-700 text-gray-400 uppercase tracking-widest">Menu chính</p>
+      <nav className="flex-1 px-2.5 overflow-y-auto space-y-0.5">
+        <p className="px-2 pb-1.5 pt-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Menu chính</p>
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
@@ -79,22 +79,18 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-500 transition-all relative group',
+                'flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors relative group',
                 isActive
-                  ? 'bg-[#FFF0F0] text-[#FA7070] font-600'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                  ? 'bg-red-50 text-red-700 font-semibold'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               )}
             >
-              {/* Active indicator bar */}
-              {isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#FA7070] rounded-r-full" />
-              )}
-              <span className={cn(isActive ? 'text-[#FA7070]' : 'text-gray-400 group-hover:text-gray-600')}>
+              <span className={cn(isActive ? 'text-red-600' : 'text-slate-400 group-hover:text-slate-600')}>
                 {item.icon}
               </span>
-              {item.label}
+              <span>{item.label}</span>
               {item.badge !== undefined && (
-                <span className="ml-auto flex items-center justify-center w-5 h-5 text-[10px] font-700 bg-[#FA7070] text-white rounded-full">
+                <span className="ml-auto flex items-center justify-center px-1.5 min-w-4 h-4 text-[10px] font-semibold bg-red-600 text-white rounded-full">
                   {item.badge}
                 </span>
               )}
@@ -104,37 +100,37 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="px-3 pb-5 pt-3 border-t border-slate-100 space-y-0.5 shrink-0">
+      <div className="px-2.5 pb-3.5 pt-2 border-t border-slate-200 space-y-0.5 shrink-0">
         <Link
           href="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-500 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all"
+          className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
         >
-          <Settings size={18} className="text-gray-400" />
-          Cài đặt
+          <Settings size={15} className="text-slate-400" />
+          <span>Cài đặt</span>
         </Link>
         <Link
           href="/support"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-500 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all"
+          className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
         >
-          <HelpCircle size={18} className="text-gray-400" />
-          Hỗ trợ
+          <HelpCircle size={15} className="text-slate-400" />
+          <span>Hỗ trợ</span>
         </Link>
 
-        {/* User pill */}
-        <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#FA7070] to-[#8B2626] flex items-center justify-center text-white text-xs font-700 shrink-0">
+        {/* User profile row */}
+        <div className="mt-2 flex items-center gap-2 p-1.5 rounded-md border border-slate-200 bg-slate-50/70">
+          <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-semibold shrink-0">
             {currentUser?.fullName?.charAt(0) ?? 'A'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-600 text-gray-700 truncate">{currentUser?.fullName ?? 'Admin'}</p>
-            <p className="text-[10px] text-gray-400 truncate">{currentUser?.role === 'ADMIN' ? 'Quản trị viên' : 'Điều phối'}</p>
+            <p className="text-xs font-medium text-slate-900 truncate leading-tight">{currentUser?.fullName ?? 'Admin'}</p>
+            <p className="text-[10px] text-slate-400 truncate">{currentUser?.role === 'ADMIN' ? 'Quản trị viên' : 'Điều phối'}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            className="flex items-center justify-center w-6 h-6 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
             title="Đăng xuất"
           >
-            <LogOut size={14} />
+            <LogOut size={13} />
           </button>
         </div>
       </div>

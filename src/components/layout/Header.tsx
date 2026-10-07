@@ -59,34 +59,26 @@ export function Header() {
   }, []);
 
   return (
-    <header className="header flex items-center gap-4 px-6 bg-white border-b border-slate-100 z-30">
+    <header className="header flex items-center gap-4 px-6 bg-white border-b border-slate-200 z-30">
       {/* Title & Breadcrumb */}
       <div className="flex-1 min-w-0">
-        <h1 className="text-base font-700 text-gray-900 leading-tight truncate">{pageInfo.title}</h1>
-        <nav className="flex items-center gap-1 mt-0.5">
-          {pageInfo.breadcrumb.map((crumb, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && <span className="text-gray-300 text-xs">/</span>}
-              <span className={cn(
-                'text-xs',
-                i === pageInfo.breadcrumb.length - 1 ? 'text-[#FA7070] font-500' : 'text-gray-400'
-              )}>
-                {crumb}
-              </span>
-            </React.Fragment>
-          ))}
-        </nav>
+        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+          <span>Trang chủ</span>
+          <span className="text-slate-300">/</span>
+          <span className="text-slate-600 font-medium truncate">{pageInfo.title}</span>
+        </div>
+        <h1 className="text-base font-semibold text-slate-900 leading-tight truncate mt-0.5">{pageInfo.title}</h1>
       </div>
 
       {/* Global Search */}
-      <div className="relative hidden md:flex items-center w-60">
-        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+      <div className="relative hidden md:flex items-center w-64">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Tìm đơn hàng, tài xế..."
-          className="input-base pl-10 h-9 text-sm w-full"
+          className="input-base pl-8.5 h-8.5 text-xs w-full bg-slate-50/60 hover:bg-white focus:bg-white transition-colors"
           id="header-global-search"
         />
       </div>
@@ -96,47 +88,47 @@ export function Header() {
         <button
           id="header-notifications"
           onClick={() => { setShowNotifs((v) => !v); setShowProfile(false); }}
-          className="relative flex items-center justify-center w-9 h-9 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
+          className="relative flex items-center justify-center w-8 h-8 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
         >
-          <Bell size={18} />
+          <Bell size={16} />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center w-4 h-4 text-[9px] font-700 bg-[#FA7070] text-white rounded-full">
+            <span className="absolute -top-1 -right-1 flex items-center justify-center px-1 min-w-3.5 h-3.5 text-[9px] font-semibold bg-red-600 text-white rounded-full">
               {unreadCount}
             </span>
           )}
         </button>
 
         {showNotifs && (
-          <div className="absolute right-0 top-11 w-80 bg-white rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden animate-scale-in z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+          <div className="absolute right-0 top-10 w-80 bg-white rounded-lg shadow-dropdown border border-slate-200 overflow-hidden animate-scale-in z-50">
+            <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-100">
               <div>
-                <p className="text-sm font-600 text-gray-900">Thông báo</p>
-                <p className="text-xs text-gray-400">{unreadCount} chưa đọc</p>
+                <p className="text-xs font-semibold text-slate-900">Thông báo</p>
+                <p className="text-[11px] text-slate-400">{unreadCount} chưa đọc</p>
               </div>
               <button
                 onClick={() => { markAllRead(); }}
-                className="flex items-center gap-1 text-xs text-[#FA7070] font-500 hover:underline"
+                className="flex items-center gap-1 text-xs text-red-600 font-medium hover:underline"
               >
                 <Check size={12} /> Đánh dấu đã đọc
               </button>
             </div>
-            <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
+            <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
               {notifications.map((n) => (
                 <div
                   key={n.id}
                   className={cn(
-                    'flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer',
-                    !n.read ? 'bg-[#FFF0F0]/30' : 'hover:bg-gray-50'
+                    'flex items-start gap-2.5 px-3.5 py-2.5 transition-colors cursor-pointer',
+                    !n.read ? 'bg-red-50/40' : 'hover:bg-slate-50'
                   )}
                 >
-                  <div className={cn('flex items-center justify-center w-7 h-7 rounded-lg shrink-0 mt-0.5', NOTIF_COLORS[n.type])}>
+                  <div className={cn('flex items-center justify-center w-6 h-6 rounded shrink-0 mt-0.5', NOTIF_COLORS[n.type])}>
                     {NOTIF_ICONS[n.type]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-500 text-gray-700 leading-snug">{n.message}</p>
-                    <p className="text-[10px] text-gray-400 mt-1">{formatTime(n.createdAt)}</p>
+                    <p className="text-xs font-medium text-slate-700 leading-snug">{n.message}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{formatTime(n.createdAt)}</p>
                   </div>
-                  {!n.read && <span className="w-2 h-2 rounded-full bg-[#FA7070] shrink-0 mt-1.5" />}
+                  {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-red-600 shrink-0 mt-1.5" />}
                 </div>
               ))}
             </div>
@@ -148,9 +140,9 @@ export function Header() {
       <button
         id="header-settings"
         onClick={() => router.push('/settings')}
-        className="flex items-center justify-center w-9 h-9 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
+        className="flex items-center justify-center w-8 h-8 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
       >
-        <Settings size={18} />
+        <Settings size={16} />
       </button>
 
       {/* Profile dropdown */}
@@ -158,32 +150,33 @@ export function Header() {
         <button
           id="header-profile"
           onClick={() => { setShowProfile((v) => !v); setShowNotifs(false); }}
-          className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 pl-1.5 pr-2 py-1 rounded-md hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors"
         >
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#FA7070] to-[#8B2626] flex items-center justify-center text-white text-xs font-700 shrink-0">
+          <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-semibold shrink-0">
             {currentUser?.fullName?.charAt(0) ?? 'A'}
           </div>
           <div className="hidden sm:block text-left">
-            <p className="text-xs font-600 text-gray-800 leading-tight">{currentUser?.fullName ?? 'Admin'}</p>
-            <p className="text-[10px] text-gray-400">{currentUser?.role === 'ADMIN' ? 'Quản trị viên' : 'Điều phối'}</p>
+            <p className="text-xs font-medium text-slate-900 leading-tight">{currentUser?.fullName ?? 'Admin'}</p>
+            <p className="text-[10px] text-slate-400 leading-tight">{currentUser?.role === 'ADMIN' ? 'Quản trị viên' : 'Điều phối'}</p>
           </div>
-          <ChevronDown size={14} className="text-gray-400 ml-1" />
+          <ChevronDown size={13} className="text-slate-400 ml-0.5" />
         </button>
 
         {showProfile && (
-          <div className="absolute right-0 top-11 w-48 bg-white rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.12)] border border-slate-100 overflow-hidden animate-scale-in z-50 py-1.5">
+          <div className="absolute right-0 top-10 w-48 bg-white rounded-lg shadow-dropdown border border-slate-200 overflow-hidden animate-scale-in z-50 py-1">
             <button
               onClick={() => { router.push('/settings'); setShowProfile(false); }}
-              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
             >
-              <Settings size={15} /> Cài đặt tài khoản
+              <Settings size={14} className="text-slate-400" />
+              <span>Cài đặt tài khoản</span>
             </button>
-            <div className="border-t border-slate-100 mx-2 my-1" />
+            <div className="border-t border-slate-100 my-1" />
             <button
               onClick={() => { logout(); router.replace('/login'); }}
-              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
             >
-              Đăng xuất
+              <span>Đăng xuất</span>
             </button>
           </div>
         )}

@@ -68,15 +68,14 @@ export function Modal({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-[2px]"
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
       <div
         ref={contentRef}
         tabIndex={-1}
         className={cn(
-          'relative w-full bg-white rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.18)] animate-scale-in flex flex-col outline-none',
+          'relative w-full bg-white rounded-lg shadow-modal border border-slate-200 animate-scale-in flex flex-col outline-none overflow-hidden',
           sizeClasses[size],
           size === 'fullscreen' ? 'h-[90vh]' : 'max-h-[90vh]',
           className
@@ -84,21 +83,21 @@ export function Modal({
       >
         {/* Header */}
         {(title || subtitle) && (
-          <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
+          <div className="flex items-start justify-between px-5 py-3.5 border-b border-slate-200 shrink-0">
             <div>
               {title && (
-                <h2 className="text-lg font-700 text-gray-900">{title}</h2>
+                <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
               )}
               {subtitle && (
-                <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="ml-4 flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0 -mt-1"
+              className="ml-3 flex items-center justify-center w-7 h-7 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0"
               aria-label="Đóng"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
         )}
@@ -107,21 +106,21 @@ export function Modal({
         {!title && !subtitle && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            className="absolute top-3 right-3 z-10 flex items-center justify-center w-7 h-7 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
             aria-label="Đóng"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-5 text-xs text-slate-700">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 pb-6 pt-4 border-t border-slate-100 shrink-0 flex justify-end gap-3">
+          <div className="px-5 py-3 border-t border-slate-200 shrink-0 flex justify-end gap-2 bg-slate-50/60">
             {footer}
           </div>
         )}
