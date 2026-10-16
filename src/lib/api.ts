@@ -415,3 +415,71 @@ export async function unassignDriverFromZone(
     method: 'DELETE',
   });
 }
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+import type { ReportKpis } from '@/types/domain';
+
+/** GET /reports/kpis — KPI metrics, weekly trends, shift reconciliation overview */
+export async function fetchReportKpis(
+  period: 'week' | 'month' | 'custom' = 'week',
+  startDate?: string,
+  endDate?: string,
+): Promise<ReportKpis> {
+  const params = new URLSearchParams({ period });
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+  return apiFetch<ReportKpis>(`/reports/kpis?${params.toString()}`);
+}
+
+/** PATCH /reports/shifts/:id/reconcile — Approve COD reconciliation for a shift */
+export async function reconcileShift(
+  shiftId: string,
+  submittedAmount: number,
+  notes?: string,
+): Promise<{ success: boolean; message: string }> {
+  return apiFetch<{ success: boolean; message: string }>(
+    `/reports/shifts/${shiftId}/reconcile`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ submittedAmount, notes }),
+    },
+  );
+}
+
+/**
+ * GET /reports/export/excel — Download Excel report as blob.
+ * Handles auth headers, error checking, and Object URL memory cleanup.
+ */
+export async function downloadReportExcel(
+  startDate?: string,
+  endDate?: string,
+  driverId?: string,
+): Promise<void> {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+  if (driverId) params.append('driverId', driverId);
+
+  const fullUrl = `${API_BASE}/reports/export/excel${params.toString() ? `?${params}` : ''}`;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(fullUrl, { headers });
+
+  if (!res.ok) {
+    throw new Error(`Lỗi xuất file (${res.status})`);
+  }
+
+  const blob = await res.blob();
+  const objectUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = `Bao-cao-doi-soat-SmartExpress-${new Date().toISOString().split('T')[0]}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(objectUrl); // Avoid memory leak
+}

@@ -22,6 +22,7 @@ import {
   type ApiDepot,
 } from '@/lib/api';
 import type { Order, Driver, Depot, VrpSolution, VrpRoute } from '@/types/domain';
+import { useToast } from '@/context/ToastContext';
 
 const VrpMapView = dynamic(() => import('@/components/map/VrpMapView'), { ssr: false });
 
@@ -460,35 +461,16 @@ function RouteSummaryCard({
   );
 }
 
-// ─── Toast notification ──────────────────────────────────────────
-function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onClose, 4000);
-    return () => clearTimeout(t);
-  }, [onClose]);
-
-  return (
-    <div className={cn(
-      'fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl text-white text-sm font-500 animate-fade-in',
-      type === 'success' ? 'bg-green-600' : 'bg-red-500'
-    )}>
-      {type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-      {message}
-      <button onClick={onClose} className="ml-2 opacity-70 hover:opacity-100"><X size={14} /></button>
-    </div>
-  );
-}
-
 // ─── Main VRP Page ─────────────────────────────────────────────
 export default function VrpPage() {
   const { orders: ctxOrders, selectedOrderIds, toggleOrderSelection, clearSelection, setSelectedOrderIds } = useApp();
+  const toast = useToast();
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [solution, setSolution] = useState<(VrpSolution & { _api?: ApiVrpSolution }) | null>(null);
   const [apiOrders, setApiOrders] = useState<Order[] | null>(null);
   const [apiDepot, setApiDepot] = useState<ApiDepot | null>(null);
   const [onlineDrivers, setOnlineDrivers] = useState<Driver[] | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [usingRealApi, setUsingRealApi] = useState(false);
 
   // Fetch real orders, depots, and online drivers from backend on mount
@@ -552,15 +534,15 @@ export default function VrpPage() {
         if (!currentRoute) return prev;
 
         if (currentRoute.totalWeightKg > newDriver.maxWeightKg) {
-          setToast({
-            message: `⚠️ Cảnh báo: Tải trọng tuyến (${currentRoute.totalWeightKg.toFixed(1)}kg) vượt quá sức chở của ${newDriver.fullName} (${newDriver.maxWeightKg}kg)`,
-            type: 'error',
-          });
+          toast.warning(
+            'Cảnh báo quá tải',
+            `Tải trọng tuyến (${currentRoute.totalWeightKg.toFixed(1)}kg) vượt quá sức chở của ${newDriver.fullName} (${newDriver.maxWeightKg}kg)`,
+          );
         } else {
-          setToast({
-            message: `Đã đổi tài xế tuyến ${routeIndex + 1} sang ${newDriver.fullName}`,
-            type: 'success',
-          });
+          toast.info(
+            'Đã đổi tài xế',
+            `Tuyến ${routeIndex + 1} chuyển sang ${newDriver.fullName}`,
+          );
         }
 
         updatedRoutes[routeIndex] = {
@@ -629,29 +611,29 @@ export default function VrpPage() {
     try {
       if (solution._api) {
         await confirmVRPDispatch(solution._api);
-        setToast({ message: `✅ Đã điều phối ${solution.routes.length} tuyến thành công!`, type: 'success' });
+        toast.success(
+          'Điều phối thành công!',
+          `Đã điều phối ${solution.routes.length} tuyến tới các tài xế.`,
+        );
         setSolution(null);
         clearSelection();
         // Refresh order pool
         const fresh = await fetchOrderPool().catch(() => null);
         if (fresh) setApiOrders(fresh.map(mapApiOrderToOrder));
       } else {
-        setToast({ message: '✅ Đã xác nhận phân công (chế độ demo)', type: 'success' });
+        toast.success('Đã xác nhận phân công', 'Chế độ demo hoàn tất.');
         setSolution(null);
         clearSelection();
       }
     } catch {
-      setToast({ message: 'Xác nhận thất bại, vui lòng thử lại', type: 'error' });
+      toast.error('Xác nhận thất bại', 'Vui lòng thử lại.');
     } finally {
       setIsConfirming(false);
     }
-  }, [solution, clearSelection]);
+  }, [solution, clearSelection, toast]);
 
   return (
     <div className="flex gap-5 h-full animate-fade-in min-h-0" style={{ minHeight: 'calc(100vh - 128px)' }}>
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-      )}
 
       {/* ── Left Panel ── */}
       <div className="w-72 shrink-0 flex flex-col gap-4 max-h-[calc(100vh-140px)] overflow-y-auto">

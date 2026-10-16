@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { UploadCloud, File, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { importOrdersExcel } from '@/lib/api';
+import { useToast } from '@/context/ToastContext';
 
 export default function ImportExcelModal({
   onClose,
@@ -10,6 +11,7 @@ export default function ImportExcelModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<{
@@ -38,10 +40,16 @@ export default function ImportExcelModal({
       const res = await importOrdersExcel(file);
       setResult(res);
       if (res.importedCount > 0) {
+        toast.success('Nhập file thành công', `Đã nhập ${res.importedCount} đơn hàng vào hệ thống.`);
         onSuccess();
       }
+      if (res.failedCount > 0) {
+        toast.warning('Cảnh báo nhập đơn', `${res.failedCount} dòng dữ liệu không hợp lệ.`);
+      }
     } catch (err: unknown) {
-      setErrorMsg((err as Error).message || 'Lỗi khi upload file');
+      const msg = (err as Error).message || 'Lỗi khi upload file';
+      setErrorMsg(msg);
+      toast.error('Nhập file thất bại', msg);
     } finally {
       setIsUploading(false);
     }

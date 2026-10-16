@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
 import { fetchUsers, createUser, updateUserStatus, forgotPassword } from '@/lib/api';
 import type { User, UserRole } from '@/types/domain';
+import { useToast } from '@/context/ToastContext';
 import { formatDateTime, cn } from '@/lib/utils';
 
 const ROLE_CONFIG: Record<UserRole, { label: string; className: string }> = {
@@ -101,6 +102,7 @@ function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit:
 }
 
 export default function UsersPage() {
+  const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
   const [showInvite, setShowInvite] = useState(false);
@@ -125,8 +127,10 @@ export default function UsersPage() {
       const newStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
       await updateUserStatus(user.id, newStatus);
       void loadUsers();
+      toast.success('Cập nhật trạng thái', `Đã chuyển tài khoản ${user.fullName} sang ${newStatus === 'ACTIVE' ? 'Hoạt động' : 'Khóa'}.`);
     } catch (error) {
       console.error('Failed to update user status', error);
+      toast.error('Lỗi cập nhật', 'Không thể thay đổi trạng thái người dùng.');
     }
   };
 
@@ -277,10 +281,10 @@ export default function UsersPage() {
               
               void loadUsers();
               setShowInvite(false);
-              alert('Đã tạo tài khoản và gửi email thiết lập mật khẩu thành công!');
+              toast.success('Tạo tài khoản thành công!', `Đã tạo tài khoản cho ${data.fullName} và gửi email kích hoạt.`);
             } catch (err) {
               console.error('Lỗi tạo user', err);
-              alert('Lỗi tạo tài khoản');
+              toast.error('Lỗi tạo tài khoản', err instanceof Error ? err.message : 'Vui lòng kiểm tra lại thông tin.');
             }
           }}
         />

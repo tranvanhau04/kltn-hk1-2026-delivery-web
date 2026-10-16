@@ -13,6 +13,7 @@ import {
   type ApiZone,
 } from '@/lib/api';
 import type { Driver } from '@/types/domain';
+import { useToast } from '@/context/ToastContext';
 
 // Dynamically import Leaflet map components to prevent SSR window errors
 const ZoneMapView = dynamic(() => import('@/components/map/ZoneMapView'), { ssr: false });
@@ -232,18 +233,13 @@ function NewZoneModal({
 export default function ZonesPage() {
   const [zones, setZones] = useState<ApiZone[]>([]);
   const [selectedZone, setSelectedZone] = useState<ApiZone | null>(null);
+  const toast = useToast();
   const [showNewZone, setShowNewZone] = useState(false);
   const [driverZone, setDriverZone] = useState<ApiZone | null>(null);
   const [allDrivers, setAllDrivers] = useState<Driver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  const showToast = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 3500);
-  };
 
   const loadZonesAndDrivers = useCallback(async () => {
     try {
@@ -279,9 +275,9 @@ export default function ZonesPage() {
       const created = await createZone(name);
       setZones((prev) => [...prev, created]);
       setShowNewZone(false);
-      showToast('success', `Đã tạo khu vực "${name}"`);
+      toast.success('Tạo khu vực thành công', `Đã tạo khu vực "${name}"`);
     } catch (err) {
-      showToast('error', err instanceof Error ? err.message : 'Tạo khu vực thất bại.');
+      toast.error('Tạo khu vực thất bại', err instanceof Error ? err.message : 'Vui lòng thử lại.');
     } finally {
       setIsCreating(false);
     }
@@ -299,7 +295,7 @@ export default function ZonesPage() {
     setZones((prev) => prev.map((z) => (z.id === updated.id ? updated : z)));
     setDriverZone(updated);
     if (selectedZone?.id === updated.id) setSelectedZone(updated);
-    showToast('success', `Đã thêm ${driverIds.length} tài xế vào khu vực.`);
+    toast.success('Phân công tài xế', `Đã thêm ${driverIds.length} tài xế vào khu vực.`);
   };
 
   const handleUnassignDriver = async (driverId: string) => {
@@ -308,7 +304,7 @@ export default function ZonesPage() {
     setZones((prev) => prev.map((z) => (z.id === updated.id ? updated : z)));
     setDriverZone(updated);
     if (selectedZone?.id === updated.id) setSelectedZone(updated);
-    showToast('success', 'Đã hủy phân công tài xế.');
+    toast.info('Hủy phân công', 'Đã hủy phân công tài xế khỏi khu vực.');
   };
 
   const criticalCount = zones.filter((z) => z.metrics.overloadSeverity === 'CRITICAL').length;
@@ -468,18 +464,7 @@ export default function ZonesPage() {
         )}
       </div>
 
-      {/* Toast notification */}
-      {toast && (
-        <div
-          className={cn(
-            'fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-2 px-5 py-3 rounded-xl shadow-xl text-sm font-500 transition-all',
-            toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white',
-          )}
-        >
-          {toast.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
-          {toast.message}
-        </div>
-      )}
+
 
       {/* Modals */}
       {showNewZone && (
