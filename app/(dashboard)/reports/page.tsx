@@ -238,8 +238,36 @@ export default function ReportsPage() {
   const [exporting, setExporting] = useState(false);
   const toast = useToast();
 
-  // Fetch KPIs from API
-  const loadKpis = useCallback(async () => {
+  // Fetch KPIs from API when dateRange changes
+  useEffect(() => {
+    let ignore = false;
+    async function loadData() {
+      try {
+        const { period, startDate, endDate } = mapDateRange(dateRange);
+        const data = await fetchReportKpis(period, startDate, endDate);
+        if (!ignore) {
+          setKpis(data);
+        }
+      } catch (err) {
+        if (!ignore) {
+          console.error('Failed to fetch KPIs:', err);
+          toast.error('Tải dữ liệu thất bại', 'Không thể kết nối đến server. Vui lòng thử lại.');
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+    return () => {
+      ignore = true;
+    };
+  }, [dateRange, toast]);
+
+  // Refresh KPIs for event handlers (e.g. after COD reconciliation)
+  const refreshKpis = useCallback(async () => {
     setLoading(true);
     try {
       const { period, startDate, endDate } = mapDateRange(dateRange);
@@ -251,12 +279,7 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange]);
-
-  useEffect(() => {
-    loadKpis();
-  }, [loadKpis]);
+  }, [dateRange, toast]);
 
   // Handle COD reconciliation (1-click: submittedAmount = codCollected)
   const handleReconcile = async (shiftId: string, codCollected: number, driverName: string) => {
@@ -264,7 +287,7 @@ export default function ReportsPage() {
       const result = await reconcileShift(shiftId, codCollected);
       toast.success('Đối soát COD thành công', result.message || `Đã duyệt đối soát cho ${driverName}`);
       // Refresh data to reflect the updated reconciliation status
-      loadKpis();
+      await refreshKpis();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Không thể duyệt đối soát. Vui lòng thử lại.';
       toast.error('Đối soát thất bại', msg);
@@ -299,7 +322,10 @@ export default function ReportsPage() {
           {['7d', '30d', '90d'].map((r) => (
             <button
               key={r}
-              onClick={() => setDateRange(r)}
+              onClick={() => {
+                setLoading(true);
+                setDateRange(r);
+              }}
               className={cn(
                 'px-4 h-9 rounded-xl text-sm font-500 transition-all',
                 dateRange === r

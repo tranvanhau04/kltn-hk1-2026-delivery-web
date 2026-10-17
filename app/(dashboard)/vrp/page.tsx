@@ -3,8 +3,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import {
-  Zap, Package, CheckCircle, Route,
-  ChevronRight, X, AlertCircle, RefreshCw,
+  Zap, Package, CheckCircle,
+  ChevronRight, RefreshCw,
   Weight, Box, Send, MapPin, Truck, Phone,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/common/StatusBadge';
@@ -518,9 +518,11 @@ export default function VrpPage() {
     ? onlineDrivers
     : mockDrivers.filter((d) => d.currentShiftStatus !== 'OFFLINE');
 
-  const displayDepot = apiDepot
-    ? { id: apiDepot.id, name: apiDepot.name, address: apiDepot.address, latitude: apiDepot.latitude, longitude: apiDepot.longitude }
-    : mockDepots[0];
+  const displayDepot = useMemo(() => {
+    return apiDepot
+      ? { id: apiDepot.id, name: apiDepot.name, address: apiDepot.address, latitude: apiDepot.latitude, longitude: apiDepot.longitude }
+      : mockDepots[0];
+  }, [apiDepot]);
 
   const handleChangeDriver = useCallback(
     (routeIndex: number, newDriverId: string) => {
@@ -574,7 +576,7 @@ export default function VrpPage() {
         };
       });
     },
-    [availableDrivers]
+    [availableDrivers, toast]
   );
 
   const handleRunVRP = useCallback(async () => {

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Map, Plus, Trash2, AlertTriangle, X, Users,
-  RefreshCw, CheckCircle, AlertCircle, Loader2,
+  RefreshCw, AlertCircle, Loader2,
 } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { cn } from '@/lib/utils';
