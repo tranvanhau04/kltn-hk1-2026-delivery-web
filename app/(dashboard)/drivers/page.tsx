@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
 import type { Driver, VehicleType, DriverShiftStatus } from '@/types/domain';
 import { fetchDrivers, createUser, createDriver, updateDriverSpecs, updateShiftStatus } from '@/lib/api';
+import { useToast } from '@/context/ToastContext';
 import { cn } from '@/lib/utils';
 
 const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
@@ -216,6 +217,7 @@ function EditDriverModal({ driver, onClose, onSubmit }: {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DriversPage() {
+  const toast = useToast();
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [search, setSearch] = useState('');
   const [showAddDriver, setShowAddDriver] = useState(false);
@@ -375,9 +377,10 @@ export default function DriversPage() {
               });
               void loadDrivers();
               setShowAddDriver(false);
+              toast.success('Thêm tài xế thành công!', `Tài xế ${data.fullName} (${data.licensePlate}) đã sẵn sàng.`);
             } catch (err) {
               console.error('Lỗi tạo tài xế', err);
-              alert('Lỗi tạo tài xế: ' + (err instanceof Error ? err.message : 'Vui lòng thử lại'));
+              toast.error('Lỗi tạo tài xế', err instanceof Error ? err.message : 'Vui lòng thử lại');
             }
           }}
         />
@@ -401,9 +404,10 @@ export default function DriversPage() {
 
               void loadDrivers();
               setEditingDriver(null);
+              toast.success('Cập nhật thành công!', `Đã lưu thông số xe của ${editingDriver.fullName}.`);
             } catch (err) {
               console.error('Lỗi cập nhật tài xế', err);
-              alert('Lỗi cập nhật: ' + (err instanceof Error ? err.message : 'Vui lòng thử lại'));
+              toast.error('Lỗi cập nhật', err instanceof Error ? err.message : 'Vui lòng thử lại');
             }
           }}
         />

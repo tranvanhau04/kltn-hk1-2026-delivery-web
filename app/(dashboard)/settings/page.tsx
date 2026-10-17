@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Save, Building2, Sliders, Bell, AlertCircle, CheckCircle } from 'lucide-react';
+import { Save, Building2, Sliders, Bell, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/context/ToastContext';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
   const [isSaving, setIsSaving] = useState(false);
-  const [showToast, setShowToast] = useState(false);
+  const toast = useToast();
 
   const [form, setForm] = useState({
     companyName: 'IUH Logistics',
@@ -27,8 +28,7 @@ export default function SettingsPage() {
     // Simulate API call
     setTimeout(() => {
       setIsSaving(false);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      toast.success('Đã lưu cấu hình thành công!', 'Các thay đổi đã được áp dụng.');
     }, 800);
   };
 
@@ -216,14 +216,6 @@ export default function SettingsPage() {
           </form>
         </div>
       </div>
-
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-xl animate-slide-up">
-          <CheckCircle size={18} className="text-green-400" />
-          <span className="text-sm font-500">Đã lưu cấu hình thành công!</span>
-        </div>
-      )}
     </div>
   );
 }

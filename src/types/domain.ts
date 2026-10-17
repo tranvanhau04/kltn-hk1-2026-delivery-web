@@ -9,7 +9,13 @@ export type UserRole = 'ADMIN' | 'DISPATCHER' | 'DRIVER';
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'LOCKED';
 
 export type VehicleType = 'MOTORBIKE' | 'VAN_500KG' | 'TRUCK_1TON' | 'TRUCK_2TON';
-export type ShiftStatus = 'ACTIVE' | 'COMPLETED' | 'PENDING';
+export type ShiftStatus =
+  | 'OPEN'
+  | 'PENDING_SETTLEMENT'
+  | 'CLOSED'
+  | 'ACTIVE'
+  | 'COMPLETED'
+  | 'PENDING';
 export type DriverShiftStatus = 'OFFLINE' | 'ONLINE_READY' | 'BUSY';
 
 export type OrderStatus =
@@ -195,6 +201,35 @@ export interface Report {
   successfulOrders: number;
   totalCodCollected: number;
   createdAt: string;
+}
+
+/** API response from GET /reports/kpis */
+export interface ReportKpis {
+  totalOrders: number;
+  successOrders: number;
+  failedOrders: number;
+  successRate: number;
+  totalCodCollected: number;
+  weeklyOrderTrends: WeeklyTrendItem[];
+  shiftOverview: ShiftOverviewItem[];
+}
+
+export interface WeeklyTrendItem {
+  label: string; // 'T2', 'T3', ..., 'CN'
+  count: number;
+}
+
+export interface ShiftOverviewItem {
+  shiftId: string;
+  driverName: string;
+  licensePlate: string;
+  startTime: string;
+  endTime: string | null;
+  codCollected: number;
+  codSubmitted: number;
+  reconciliationStatus: 'RECONCILED' | 'PENDING';
+  reconciledBy: string | null;
+  reconciledAt: string | null;
 }
 
 export interface DriverPerformance {

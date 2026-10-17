@@ -15,6 +15,7 @@ import { useApp } from '@/context/AppContext';
 import { formatDateTime, formatCurrency, cn } from '@/lib/utils';
 import { fetchOrders, fetchZones, createOrder, type ApiZone } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/domain';
+import { useToast } from '@/context/ToastContext';
 import dynamic from 'next/dynamic';
 
 // Lazy-load modals to avoid SSR issues
@@ -472,6 +473,7 @@ const EXCEPTION_STATUSES: OrderStatus[] = ['FAILED', 'RESCHEDULED'];
 
 export default function OrdersPage() {
   useApp(); // kept for backward-compat (layout etc.)
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -517,7 +519,8 @@ export default function OrdersPage() {
       prev.map((o) => (o.id === orderId ? { ...o, latitude: lat, longitude: lng, isGeocoded: true } : o))
     );
     setRelocateOrder(null);
-  }, []);
+    toast.success('Đã cập nhật tọa độ', 'Vị trí đơn hàng đã được cập nhật thành công.');
+  }, [toast]);
 
   // Build tabs with counts from localOrders (real API data) — Issue #13 fix
   const tabsWithCounts = useMemo(() => {
@@ -627,9 +630,9 @@ export default function OrdersPage() {
       const createdOrder = await createOrder(data);
       setLocalOrders((prev) => [createdOrder, ...prev]);
       setShowNewOrder(false);
-      alert('Tạo đơn hàng thành công!');
+      toast.success('Tạo đơn hàng thành công!', `Mã đơn: ${createdOrder.code}`);
     } catch (err: unknown) {
-      alert('Lỗi: ' + (err as Error).message);
+      toast.error('Lỗi tạo đơn hàng', (err as Error).message);
     }
   };
 
