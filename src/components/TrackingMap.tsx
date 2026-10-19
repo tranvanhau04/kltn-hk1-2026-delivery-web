@@ -107,13 +107,15 @@ export default function TrackingMap({
     const token = getAdminToken();
     const socket = connectSocket(token);
 
-    setIsConnected(socket.connected);
-
     const onConnect = () => setIsConnected(true);
     const onDisconnect = () => setIsConnected(false);
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+
+    const initTimer = setTimeout(() => {
+      setIsConnected(socket.connected);
+    }, 0);
 
     // Lắng nghe sự kiện driver_location_updated từ gateway
     const unsubscribe = onDriverLocationUpdated((data: DriverLocationUpdate) => {
@@ -145,6 +147,7 @@ export default function TrackingMap({
     });
 
     return () => {
+      clearTimeout(initTimer);
       unsubscribe();
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);

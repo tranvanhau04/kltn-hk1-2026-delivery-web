@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * test-web-client.js — Task 9.2: Web Client Socket.io E2E Test
  *
