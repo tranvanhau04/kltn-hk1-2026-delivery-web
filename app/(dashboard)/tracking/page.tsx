@@ -12,8 +12,10 @@ import { mockDrivers, mockOrders } from '@/lib/mock-data';
 import { fetchLiveTracking, type ApiLiveDriver } from '@/lib/api';
 import type { Driver } from '@/types/domain';
 import { cn } from '@/lib/utils';
+import { connectSocket, onDriverLocationUpdated } from '@/lib/socketClient';
 
 const TrackingMapView = dynamic(() => import('@/components/map/TrackingMapView'), { ssr: false });
+const TrackingMap = dynamic(() => import('@/components/TrackingMap'), { ssr: false });
 
 // ─── Polyline Interpolation Helper ──────────────────────────────
 function moveAlongPolyline(
@@ -111,6 +113,58 @@ function useLiveTracking() {
     const t1 = setInterval(fetchPositions, 5000);
     return () => clearInterval(t1);
   }, [fetchPositions]);
+
+  // Realtime Socket.io Live Tracking
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1MDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3ODk4MjU1ODcsImV4cCI6MTgyMTM4MzE4N30.-nGTW1elOIaxLav_V2C6u6DdDjY3HPn8n_5bXc6gDbc';
+
+    connectSocket(token || devToken);
+
+    const unsubscribe = onDriverLocationUpdated((data) => {
+      setUsingRealApi(true);
+      setPositionSource((ps) => ({ ...ps, [data.driverId]: 'real' }));
+      setPositions((prev) => ({
+        ...prev,
+        [data.driverId]: { lat: data.latitude, lng: data.longitude },
+      }));
+      setLiveDrivers((prev) => {
+        const idx = prev.findIndex((d) => d.driverId === data.driverId);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = {
+            ...next[idx],
+            currentLat: data.latitude,
+            currentLng: data.longitude,
+            lastUpdated: String(data.timestamp || new Date().toISOString()),
+            positionUnknown: false,
+          };
+          driversRef.current = next;
+          return next;
+        }
+        const created: ApiLiveDriver = {
+          driverId: data.driverId,
+          fullName: data.fullName,
+          phone: '',
+          licensePlate: '',
+          vehicleType: 'MOTORBIKE',
+          currentShiftStatus: 'ONLINE_READY',
+          currentLat: data.latitude,
+          currentLng: data.longitude,
+          lastUpdated: String(data.timestamp || new Date().toISOString()),
+          positionUnknown: false,
+          activeRoute: null,
+        };
+        const next = [...prev, created];
+        driversRef.current = next;
+        return next;
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // Simulation Tick (every 100ms) — only for drivers with polylines but no live GPS
   useEffect(() => {
@@ -331,6 +385,7 @@ function DriverSlideOver({ driver, position, onClose, liveData }: {
 }
 
 export default function TrackingPage() {
+  const [viewMode, setViewMode] = useState<'rich' | 'leaflet'>('rich');
   const [search, setSearch] = useState('');
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const { positions, positionSource, polylines, liveDrivers, usingRealApi } = useLiveTracking();
@@ -353,6 +408,33 @@ export default function TrackingPage() {
           <Navigation size={18} className="animate-pulse-glow" />
           <span className="text-sm font-600 text-gray-800">Theo dõi thực time</span>
         </div>
+
+        {/* View mode toggle */}
+        <div className="flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-200">
+          <button
+            onClick={() => setViewMode('rich')}
+            className={cn(
+              'px-3 py-1 rounded-lg text-xs font-semibold transition-all',
+              viewMode === 'rich'
+                ? 'bg-white text-gray-800 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            Bản đồ chi tiết
+          </button>
+          <button
+            onClick={() => setViewMode('leaflet')}
+            className={cn(
+              'px-3 py-1 rounded-lg text-xs font-semibold transition-all',
+              viewMode === 'leaflet'
+                ? 'bg-white text-[#FA7070] shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            )}
+          >
+            Live Socket Map
+          </button>
+        </div>
+
         {/* GPS status — clearly distinguishes real GPS from polyline simulation */}
         {usingRealApi ? (
           <div className="flex items-center gap-2">
@@ -417,27 +499,34 @@ export default function TrackingPage() {
         </div>
       </div>
 
-      {/* Map + slide-over */}
-      <div className="relative flex-1 card overflow-hidden">
-        <TrackingMapView
-          drivers={filteredDrivers}
-          positions={positions}
-          positionSource={positionSource}
-          selectedDriverId={selectedDriver?.userId}
-          onDriverSelect={(driver) => setSelectedDriver(driver === selectedDriver ? null : driver)}
-          polylines={polylines}
-        />
-
-        {/* Slide-over panel */}
-        {selectedDriver && positions[selectedDriver.userId] && (
-          <DriverSlideOver
-            driver={selectedDriver}
-            position={positions[selectedDriver.userId]}
-            onClose={() => setSelectedDriver(null)}
-            liveData={liveDrivers.find((d) => d.driverId === selectedDriver.userId)}
+      {/* Map rendering based on viewMode */}
+      {viewMode === 'leaflet' ? (
+        <div className="relative flex-1 card overflow-hidden">
+          <TrackingMap className="w-full h-full" />
+        </div>
+      ) : (
+        /* Map + slide-over */
+        <div className="relative flex-1 card overflow-hidden">
+          <TrackingMapView
+            drivers={filteredDrivers}
+            positions={positions}
+            positionSource={positionSource}
+            selectedDriverId={selectedDriver?.userId}
+            onDriverSelect={(driver) => setSelectedDriver(driver === selectedDriver ? null : driver)}
+            polylines={polylines}
           />
-        )}
-      </div>
+
+          {/* Slide-over panel */}
+          {selectedDriver && positions[selectedDriver.userId] && (
+            <DriverSlideOver
+              driver={selectedDriver}
+              position={positions[selectedDriver.userId]}
+              onClose={() => setSelectedDriver(null)}
+              liveData={liveDrivers.find((d) => d.driverId === selectedDriver.userId)}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
