@@ -21,5 +21,7 @@ jobs:
       run: npm ci
     - name: Run Linter
       run: npm run lint
+    - name: TypeScript Type Check
+      run: npx tsc --noEmit
     - name: Build Project
       run: npm run build
