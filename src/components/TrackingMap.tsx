@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -22,16 +22,120 @@ export interface ActiveDriver {
   batteryLevel?: number | null;
   shiftId?: string | null;
   lastUpdated?: string | Date;
+  bearing?: number;
 }
 
 /**
- * Custom modern marker icon for drivers
+ * Calculates bearing angle (0 - 360 degrees) between two coordinates
  */
-function createDriverIcon(fullName: string, batteryLevel?: number | null) {
+function calculateBearing(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dLng = (lng2 - lng1) * (Math.PI / 180);
+  const lat1Rad = lat1 * (Math.PI / 180);
+  const lat2Rad = lat2 * (Math.PI / 180);
+  const y = Math.sin(dLng) * Math.cos(lat2Rad);
+  const x =
+    Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+    Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
+  const brng = (Math.atan2(y, x) * 180) / Math.PI;
+  return Math.round((brng + 360) % 360);
+}
+
+/**
+ * SmoothMarker — Task 12.1: Leaflet Marker Interpolation
+ * Glides smoothly between the old coordinate and new coordinate
+ * using requestAnimationFrame and ease-out cubic interpolation.
+ */
+interface SmoothMarkerProps {
+  position: [number, number];
+  icon: L.DivIcon | L.Icon;
+  children?: React.ReactNode;
+  duration?: number;
+}
+
+function SmoothMarker({ position, icon, children, duration = 1200 }: SmoothMarkerProps) {
+  const markerRef = useRef<L.Marker | null>(null);
+  const [currentPos, setCurrentPos] = useState<[number, number]>(position);
+  const currentPosRef = useRef<[number, number]>(position);
+  const animFrameRef = useRef<number | null>(null);
+
+  const targetLat = position[0];
+  const targetLng = position[1];
+
+  useEffect(() => {
+    const startLat = currentPosRef.current[0];
+    const startLng = currentPosRef.current[1];
+    const endLat = targetLat;
+    const endLng = targetLng;
+
+    const deltaLat = endLat - startLat;
+    const deltaLng = endLng - startLng;
+
+    // Skip animation if movement is negligible (< 10cm)
+    if (Math.abs(deltaLat) < 0.000001 && Math.abs(deltaLng) < 0.000001) {
+      return;
+    }
+
+    if (animFrameRef.current !== null) {
+      cancelAnimationFrame(animFrameRef.current);
+    }
+
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out cubic: 1 - (1 - t)^3
+      const ease = 1 - Math.pow(1 - progress, 3);
+
+      const nextLat = startLat + deltaLat * ease;
+      const nextLng = startLng + deltaLng * ease;
+
+      currentPosRef.current = [nextLat, nextLng];
+
+      if (markerRef.current) {
+        markerRef.current.setLatLng([nextLat, nextLng]);
+      }
+
+      if (progress < 1) {
+        animFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        currentPosRef.current = [endLat, endLng];
+        if (markerRef.current) {
+          markerRef.current.setLatLng([endLat, endLng]);
+        }
+        setCurrentPos([endLat, endLng]);
+      }
+    };
+
+    animFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
+    };
+  }, [targetLat, targetLng, duration]);
+
+  return (
+    <Marker ref={markerRef} position={currentPos} icon={icon}>
+      {children}
+    </Marker>
+  );
+}
+
+/**
+ * Custom modern marker icon for drivers with directional heading
+ */
+function createDriverIcon(fullName: string, batteryLevel?: number | null, bearing?: number) {
   const shortName = fullName.split(' ').slice(-2).join(' ');
   const batteryHtml =
     batteryLevel != null
       ? `<span style="display:inline-flex; align-items:center; font-weight:700; color:${batteryLevel <= 20 ? '#EF4444' : '#10B981'}; font-size:10px;">⚡${batteryLevel}%</span>`
+      : '';
+
+  const rotationStyle =
+    bearing != null
+      ? `transform: rotate(${bearing}deg); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);`
       : '';
 
   return L.divIcon({
@@ -52,6 +156,7 @@ function createDriverIcon(fullName: string, batteryLevel?: number | null) {
           background:linear-gradient(135deg, #FA7070 0%, #E11D48 100%);
           border:3px solid #FFFFFF; box-shadow:0 4px 12px rgba(225,29,72,0.45);
           display:flex; align-items:center; justify-content:center; color:white;
+          ${rotationStyle}
         ">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="1" y="3" width="15" height="13"></rect>
@@ -122,10 +227,17 @@ export default function TrackingMap({
       setActiveDrivers((prev) => {
         const index = prev.findIndex((d) => d.driverId === data.driverId);
         if (index >= 0) {
+          const oldDriver = prev[index];
+          let bearing = oldDriver.bearing;
+          if (oldDriver.latitude !== data.latitude || oldDriver.longitude !== data.longitude) {
+            bearing = calculateBearing(oldDriver.latitude, oldDriver.longitude, data.latitude, data.longitude);
+          }
+
           const updated = [...prev];
           updated[index] = {
             ...updated[index],
             ...data,
+            bearing,
             lastUpdated: data.timestamp || new Date(),
           };
           return updated;
@@ -140,6 +252,7 @@ export default function TrackingMap({
             longitude: data.longitude,
             batteryLevel: data.batteryLevel,
             shiftId: data.shiftId,
+            bearing: undefined,
             lastUpdated: data.timestamp || new Date(),
           },
         ];
@@ -157,6 +270,14 @@ export default function TrackingMap({
 
   return (
     <div className={`relative rounded-2xl overflow-hidden border border-gray-100 shadow-sm ${className}`}>
+      {/* CSS transitions for markers */}
+      <style>{`
+        .custom-driver-marker {
+          transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+          will-change: transform;
+        }
+      `}</style>
+
       {/* Status Bar Header */}
       <div className="absolute top-4 left-4 z-[1000] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-xl shadow-lg border border-gray-100 flex items-center gap-3">
         <div className="flex items-center gap-2">
@@ -188,10 +309,10 @@ export default function TrackingMap({
         />
 
         {activeDrivers.map((driver) => (
-          <Marker
+          <SmoothMarker
             key={driver.driverId}
             position={[driver.latitude, driver.longitude]}
-            icon={createDriverIcon(driver.fullName, driver.batteryLevel)}
+            icon={createDriverIcon(driver.fullName, driver.batteryLevel, driver.bearing)}
           >
             <Popup className="custom-driver-popup">
               <div className="p-1 min-w-[200px]">
@@ -232,7 +353,7 @@ export default function TrackingMap({
                 </div>
               </div>
             </Popup>
-          </Marker>
+          </SmoothMarker>
         ))}
       </MapContainer>
     </div>
