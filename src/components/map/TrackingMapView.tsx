@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline } from 'react-leaflet';
 import { divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -13,6 +13,83 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+interface SmoothMarkerProps {
+  position: [number, number];
+  icon: L.DivIcon | L.Icon;
+  children?: React.ReactNode;
+  eventHandlers?: L.LeafletEventHandlerFnMap;
+  duration?: number;
+}
+
+function SmoothMarker({ position, icon, children, eventHandlers, duration = 1200 }: SmoothMarkerProps) {
+  const markerRef = useRef<L.Marker | null>(null);
+  const [currentPos, setCurrentPos] = useState<[number, number]>(position);
+  const currentPosRef = useRef<[number, number]>(position);
+  const animFrameRef = useRef<number | null>(null);
+
+  const targetLat = position[0];
+  const targetLng = position[1];
+
+  useEffect(() => {
+    const startLat = currentPosRef.current[0];
+    const startLng = currentPosRef.current[1];
+    const endLat = targetLat;
+    const endLng = targetLng;
+
+    const deltaLat = endLat - startLat;
+    const deltaLng = endLng - startLng;
+
+    if (Math.abs(deltaLat) < 0.000001 && Math.abs(deltaLng) < 0.000001) {
+      return;
+    }
+
+    if (animFrameRef.current !== null) {
+      cancelAnimationFrame(animFrameRef.current);
+    }
+
+    const startTime = performance.now();
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+
+      const nextLat = startLat + deltaLat * ease;
+      const nextLng = startLng + deltaLng * ease;
+
+      currentPosRef.current = [nextLat, nextLng];
+
+      if (markerRef.current) {
+        markerRef.current.setLatLng([nextLat, nextLng]);
+      }
+
+      if (progress < 1) {
+        animFrameRef.current = requestAnimationFrame(step);
+      } else {
+        currentPosRef.current = [endLat, endLng];
+        if (markerRef.current) {
+          markerRef.current.setLatLng([endLat, endLng]);
+        }
+        setCurrentPos([endLat, endLng]);
+      }
+    };
+
+    animFrameRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
+    };
+  }, [targetLat, targetLng, duration]);
+
+  return (
+    <Marker ref={markerRef} position={currentPos} icon={icon} eventHandlers={eventHandlers}>
+      {children}
+    </Marker>
+  );
+}
 
 const STATUS_COLORS: Record<string, string> = {
   ONLINE_READY: '#22C55E',
@@ -153,7 +230,7 @@ export default function TrackingMapView({
                 pathOptions={{ color: '#3B82F6', fillColor: '#3B82F6', fillOpacity: 0.05, weight: 1, dashArray: '6 4' }}
               />
             )}
-              <Marker
+              <SmoothMarker
                 position={[pos.lat, pos.lng]}
                 icon={driverIcon(driver, isSelected, pos.heading)}
                 eventHandlers={{ click: () => onDriverSelect(driver) }}
@@ -179,7 +256,7 @@ export default function TrackingMapView({
                   )}
                 </div>
               </Popup>
-            </Marker>
+            </SmoothMarker>
           </React.Fragment>
         );
       })}
