@@ -13,7 +13,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
 import { useApp } from '@/context/AppContext';
 import { formatDateTime, formatCurrency, cn } from '@/lib/utils';
-import { fetchOrders, fetchZones, createOrder, type ApiZone } from '@/lib/api';
+import { fetchOrders, fetchZones, createOrder, fetchOrderPod, type ApiZone, type ApiPodData } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
 import dynamic from 'next/dynamic';
@@ -99,6 +99,31 @@ function OrderDetailModal({
 }) {
   const isDelivered = order.status === 'DELIVERED';
   const needsGeoReview = order.isGeocoded === false;
+
+  const [podData, setPodData] = useState<ApiPodData | null>(null);
+  const [podLoading, setPodLoading] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  // Fetch POD khi mở modal
+  useEffect(() => {
+    // Reset state khi đổi đơn hàng (tránh hiện ảnh đơn cũ)
+    setImgError(false);
+    setPodData(null);
+
+    if (order.status === 'DELIVERED' || order.status === 'FAILED') {
+      setPodLoading(true);
+      fetchOrderPod(order.id)
+        .then(setPodData)
+        .catch(() => setPodData(null))
+        .finally(() => setPodLoading(false));
+    }
+  }, [order.id, order.status]);
+
+  // Construct full photo URL từ ENV (không hardcode localhost)
+  const apiHost = process.env.NEXT_PUBLIC_API_URL
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, '')
+    : 'http://localhost:3001';
+  const fullPhotoUrl = podData?.photoUrl ? `${apiHost}${podData.photoUrl}` : null;
   return (
     <Modal
       isOpen
@@ -232,32 +257,55 @@ function OrderDetailModal({
           {/* Proof of Delivery */}
           <div>
             <h3 className="text-xs font-700 text-gray-400 uppercase tracking-wider mb-3">Bằng chứng giao hàng (POD)</h3>
-            {order.status === 'DELIVERED' ? (
+            {podLoading ? (
+              /* Skeleton shimmer khi đang load */
+              <div className="h-32 bg-gray-100 rounded-xl animate-pulse" />
+            ) : isDelivered && fullPhotoUrl && !imgError ? (
+              /* Ảnh POD thực tế */
               <div className="rounded-xl overflow-hidden border border-slate-100">
-                <div className="relative h-32 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                <div className="relative h-48 bg-gray-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="https://placehold.co/400x200/FFF0F0/FA7070?text=📷+POD+Photo"
+                    src={fullPhotoUrl}
                     alt="Proof of delivery"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
+                    loading="lazy"
+                    onError={() => setImgError(true)}
                   />
                 </div>
                 <div className="p-3 bg-green-50">
                   <div className="flex items-center gap-2 text-green-700">
                     <CheckCircle size={14} />
-                    <span className="text-xs font-600">Xác nhận giao hàng thành công</span>
+                    <span className="text-xs font-600">
+                      Xác nhận lúc {podData?.confirmedAt ? formatDateTime(podData.confirmedAt) : '—'}
+                    </span>
                   </div>
+                  {podData?.codCollected !== undefined && podData.codCollected > 0 && (
+                    <p className="text-xs text-green-600 mt-1">
+                      COD đã thu: {formatCurrency(podData.codCollected)}
+                    </p>
+                  )}
                 </div>
               </div>
+            ) : isDelivered && imgError ? (
+              /* Ảnh lỗi / không tải được */
+              <div className="flex flex-col items-center justify-center h-28 bg-red-50 rounded-xl border border-red-100 gap-2">
+                <AlertCircle size={24} className="text-red-300" />
+                <p className="text-xs text-red-400">Ảnh POD không tải được</p>
+              </div>
             ) : order.status === 'FAILED' ? (
+              /* Đơn thất bại */
               <div className="p-4 bg-red-50 rounded-xl border border-red-100">
                 <div className="flex items-center gap-2 text-red-600 mb-2">
                   <AlertCircle size={16} />
                   <span className="text-sm font-600">Giao hàng thất bại</span>
                 </div>
-                <p className="text-xs text-red-500">{order.notes ?? 'Không liên lạc được khách hàng'}</p>
+                <p className="text-xs text-red-500">
+                  {podData?.failureReason ?? order.notes ?? 'Không liên lạc được khách hàng'}
+                </p>
               </div>
             ) : (
+              /* Chưa giao */
               <div className="flex flex-col items-center justify-center h-28 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 gap-2">
                 <ImageIcon size={24} className="text-gray-300" />
                 <p className="text-xs text-gray-400">Chưa có ảnh POD</p>

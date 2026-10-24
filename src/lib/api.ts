@@ -24,6 +24,16 @@ export interface ApiOrder {
   codAmount: number;
   status: OrderStatus;
   createdAt: string;
+  driverName?: string;
+  driverId?: string;
+}
+
+export interface ApiPodData {
+  hasPod: boolean;
+  photoUrl?: string;
+  codCollected?: number;
+  failureReason?: string;
+  confirmedAt?: string;
 }
 
 export interface ApiDepot {
@@ -176,6 +186,11 @@ export async function createOrder(data: Partial<ApiOrder>): Promise<ApiOrder> {
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+/** Fetch POD data for a specific order */
+export async function fetchOrderPod(orderId: string): Promise<ApiPodData> {
+  return apiFetch<ApiPodData>(`/orders/${orderId}/pod`);
 }
 
 /** Fetch all unassigned (NEW) orders from the backend */
