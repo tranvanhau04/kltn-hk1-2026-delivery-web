@@ -99,25 +99,36 @@ function OrderDetailModal({
 }) {
   const isDelivered = order.status === 'DELIVERED';
   const needsGeoReview = order.isGeocoded === false;
+  const isEligibleForPod = order.status === 'DELIVERED' || order.status === 'FAILED';
 
   const [podData, setPodData] = useState<ApiPodData | null>(null);
-  const [podLoading, setPodLoading] = useState(false);
+  const [podLoading, setPodLoading] = useState(isEligibleForPod);
   const [imgError, setImgError] = useState(false);
 
   // Fetch POD khi mở modal
   useEffect(() => {
-    // Reset state khi đổi đơn hàng (tránh hiện ảnh đơn cũ)
-    setImgError(false);
-    setPodData(null);
+    let isCancelled = false;
 
-    if (order.status === 'DELIVERED' || order.status === 'FAILED') {
-      setPodLoading(true);
+    if (isEligibleForPod) {
       fetchOrderPod(order.id)
-        .then(setPodData)
-        .catch(() => setPodData(null))
-        .finally(() => setPodLoading(false));
+        .then((data) => {
+          if (!isCancelled) {
+            setPodData(data);
+            setPodLoading(false);
+          }
+        })
+        .catch(() => {
+          if (!isCancelled) {
+            setPodData(null);
+            setPodLoading(false);
+          }
+        });
     }
-  }, [order.id, order.status]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [order.id, isEligibleForPod]);
 
   // Construct full photo URL từ ENV (không hardcode localhost)
   const apiHost = process.env.NEXT_PUBLIC_API_URL
@@ -769,6 +780,7 @@ export default function OrdersPage() {
       {/* Order Detail Modal */}
       {selectedOrder && (
         <OrderDetailModal
+          key={selectedOrder.id}
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
           onOpenMap={() => { setShowMapForOrder(selectedOrder); setSelectedOrder(null); }}
