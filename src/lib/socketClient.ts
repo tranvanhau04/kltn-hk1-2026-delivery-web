@@ -53,11 +53,11 @@ export function connectSocket(token: string): Socket {
     console.log('[SocketClient] Connected to backend gateway, socket ID:', socket?.id);
   });
 
-  socket.on('disconnect', (reason) => {
+  socket.on('disconnect', (reason: string) => {
     console.log('[SocketClient] Disconnected from backend gateway:', reason);
   });
 
-  socket.on('connect_error', (error) => {
+  socket.on('connect_error', (error: Error) => {
     console.error('[SocketClient] Connection error:', error.message);
   });
 
