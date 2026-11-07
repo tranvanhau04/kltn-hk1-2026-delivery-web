@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Package,
@@ -62,7 +62,7 @@ export default function DashboardOverviewPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadDashboardData = useCallback(async () => {
+  const handleRefresh = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -80,11 +80,40 @@ export default function DashboardOverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    void loadDashboardData();
-  }, [loadDashboardData]);
+    let ignore = false;
+
+    async function loadInitialData() {
+      try {
+        const [kpiRes, ordersRes] = await Promise.all([
+          fetchReportKpis('week'),
+          fetchOrders({ limit: 5 }).catch(() => ({ data: [], total: 0 })),
+        ]);
+        if (!ignore) {
+          setKpis(kpiRes);
+          setRecentOrders(ordersRes.data || []);
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          console.error('Error fetching dashboard data:', err);
+          setError(
+            err instanceof Error ? err.message : 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.',
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadInitialData();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   // Transform weekly trends for Recharts AreaChart
   const chartData =
@@ -105,7 +134,6 @@ export default function DashboardOverviewPage() {
   const activeCouriers = kpis?.shiftOverview?.length ?? 0;
   const successRate = kpis ? `${kpis.successRate}%` : '0%';
   const totalCOD = kpis?.totalCodCollected ?? 0;
-  const isDataEmpty = !loading && totalOrders === 0 && recentOrders.length === 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -118,7 +146,7 @@ export default function DashboardOverviewPage() {
           </p>
         </div>
         <button
-          onClick={() => void loadDashboardData()}
+          onClick={() => void handleRefresh()}
           disabled={loading}
           className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 active:scale-95 transition-all shadow-sm disabled:opacity-50 w-fit"
         >
@@ -135,7 +163,7 @@ export default function DashboardOverviewPage() {
             <span>{error}</span>
           </div>
           <button
-            onClick={() => void loadDashboardData()}
+            onClick={() => void handleRefresh()}
             className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg font-medium text-xs transition-colors shrink-0"
           >
             Thử lại
