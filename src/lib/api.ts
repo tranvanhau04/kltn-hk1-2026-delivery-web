@@ -595,3 +595,31 @@ export async function downloadReportExcel(
   a.remove();
   window.URL.revokeObjectURL(objectUrl); // Avoid memory leak
 }
+
+/**
+ * GET /reports/export/orders — Export orders as Excel file (.xlsx) and return Blob
+ */
+export async function exportOrdersExcel(params?: {
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+}): Promise<Blob> {
+  const query = new URLSearchParams();
+  if (params?.startDate) query.append('startDate', params.startDate);
+  if (params?.endDate) query.append('endDate', params.endDate);
+  if (params?.status && params.status !== 'ALL') query.append('status', params.status);
+
+  const fullUrl = `${API_BASE}/reports/export/orders${query.toString() ? `?${query.toString()}` : ''}`;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(fullUrl, { headers });
+
+  if (!res.ok) {
+    throw new Error(`Lỗi xuất file Excel đơn hàng (${res.status})`);
+  }
+
+  return res.blob();
+}

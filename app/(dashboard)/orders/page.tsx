@@ -6,7 +6,8 @@ import {
   MapPin, Phone, User, Clock,
   CheckCircle, Truck, AlertCircle,
   Image as ImageIcon, Weight, Box,
-  FileText, DollarSign, Navigation
+  FileText, DollarSign, Navigation,
+  FileDown, Loader2
 } from 'lucide-react';
 import { DataTable, type ColumnDef, type FilterTab } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
@@ -14,7 +15,7 @@ import { Modal } from '@/components/common/Modal';
 import { CascadingRegionHubSelect } from '@/components/common/CascadingRegionHubSelect';
 import { useApp } from '@/context/AppContext';
 import { formatDateTime, formatCurrency, cn } from '@/lib/utils';
-import { fetchOrders, createOrder, fetchOrderPod, type ApiPodData } from '@/lib/api';
+import { fetchOrders, createOrder, fetchOrderPod, exportOrdersExcel, type ApiPodData } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
 import dynamic from 'next/dynamic';
@@ -542,6 +543,30 @@ export default function OrdersPage() {
   const [relocateOrder, setRelocateOrder] = useState<Order | null>(null);
   const [localOrders, setLocalOrders] = useState<Order[]>([]);
   const [showImportExcel, setShowImportExcel] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      const blob = await exportOrdersExcel({
+        status: activeFilter !== 'ALL' && activeFilter !== 'EXCEPTION' ? activeFilter : undefined,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `orders_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Xuất file Excel thành công!');
+    } catch (err) {
+      console.error('Export Excel failed:', err);
+      toast.error('Có lỗi xảy ra khi xuất file Excel');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Cascading Region -> Hub filter state
   const [selectedRegionId, setSelectedRegionId] = useState<string>('');
@@ -734,6 +759,19 @@ export default function OrdersPage() {
             id="btn-import-excel"
           >
             <Download size={15} /> Nhập Excel
+          </button>
+          <button
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="btn-secondary text-sm flex items-center gap-1.5"
+            id="btn-export-excel"
+          >
+            {isExporting ? (
+              <Loader2 size={15} className="animate-spin text-gray-500" />
+            ) : (
+              <FileDown size={15} className="text-gray-600" />
+            )}
+            <span>{isExporting ? 'Đang xuất...' : 'Xuất Excel'}</span>
           </button>
           <button
             onClick={() => setShowNewOrder(true)}

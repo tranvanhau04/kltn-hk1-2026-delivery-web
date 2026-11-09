@@ -145,13 +145,16 @@ export function Header() {
       </div>
 
       {/* Settings */}
-      <button
-        id="header-settings"
-        onClick={() => router.push('/settings')}
-        className="flex items-center justify-center w-9 h-9 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
-      >
-        <Settings size={18} />
-      </button>
+      {currentUser?.role === 'ADMIN' && (
+        <button
+          id="header-settings"
+          onClick={() => router.push('/settings')}
+          className="flex items-center justify-center w-9 h-9 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
+          title="Cài đặt hệ thống"
+        >
+          <Settings size={18} />
+        </button>
+      )}
 
       {/* Profile dropdown */}
       <div ref={profileRef} className="relative">
@@ -172,12 +175,14 @@ export function Header() {
 
         {showProfile && (
           <div className="absolute right-0 top-11 w-48 bg-white rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.12)] border border-slate-100 overflow-hidden animate-scale-in z-50 py-1.5">
-            <button
-              onClick={() => { router.push('/settings'); setShowProfile(false); }}
-              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              <Settings size={15} /> Cài đặt tài khoản
-            </button>
+            {currentUser?.role === 'ADMIN' && (
+              <button
+                onClick={() => { router.push('/settings'); setShowProfile(false); }}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                <Settings size={15} /> Cài đặt hệ thống
+              </button>
+            )}
             <div className="border-t border-slate-100 mx-2 my-1" />
             <button
               onClick={() => { logout(); router.replace('/login'); }}

@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import { Save, Building2, Sliders, Bell, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
+import { withRoleGuard } from '@/components/auth/withRoleGuard';
 
-export default function SettingsPage() {
+function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
   const [isSaving, setIsSaving] = useState(false);
   const toast = useToast();
@@ -215,3 +216,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+export default withRoleGuard(SettingsPage, ['ADMIN']);
