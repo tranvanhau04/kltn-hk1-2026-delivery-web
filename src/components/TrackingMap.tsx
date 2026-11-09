@@ -127,10 +127,20 @@ function SmoothMarker({ position, icon, children, duration = 1200, eventHandlers
 }
 
 /**
+ * Strips vehicle type annotations, license plates, and parentheses from driver name
+ * e.g. "Ngô Văn Tài (Xe máy 01)" -> "Ngô Văn Tài"
+ * e.g. "Đặng Minh Khôi (Xe tải 1 Tấn)" -> "Đặng Minh Khôi"
+ */
+function getDriverDisplayName(fullName: string): string {
+  if (!fullName) return 'Tài xế';
+  return fullName.replace(/\s*\(.*?\)/g, '').trim();
+}
+
+/**
  * Custom modern marker icon for drivers with directional heading and highlight
  */
 function createDriverIcon(fullName: string, batteryLevel?: number | null, bearing?: number, isSelected?: boolean) {
-  const shortName = fullName.split(' ').slice(-2).join(' ');
+  const driverName = getDriverDisplayName(fullName);
   const batteryHtml =
     batteryLevel != null
       ? `<span style="display:inline-flex; align-items:center; font-weight:700; color:${batteryLevel <= 20 ? '#EF4444' : '#10B981'}; font-size:10px;">⚡${batteryLevel}%</span>`
@@ -155,7 +165,7 @@ function createDriverIcon(fullName: string, batteryLevel?: number | null, bearin
           box-shadow:0 2px 8px rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.2);
           margin-bottom:4px; display:flex; align-items:center; gap:6px;
         ">
-          <span>${shortName}</span>
+          <span>${driverName}</span>
           ${batteryHtml}
         </div>
         <div style="
@@ -413,7 +423,7 @@ export default function TrackingMap({
               <Popup className="custom-driver-popup">
                 <div className="p-1 min-w-[210px]">
                   <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
-                    <h4 className="font-bold text-sm text-gray-900">{driver.fullName}</h4>
+                    <h4 className="font-bold text-sm text-gray-900">{getDriverDisplayName(driver.fullName)}</h4>
                     {driver.batteryLevel != null && (
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full font-semibold ${

@@ -58,11 +58,11 @@ export function withRoleGuard<P extends object>(
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">Quyền truy cập bị từ chối</h2>
             <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-              Khu vực điều phối tuyến đường VRP yêu cầu vai trò{' '}
+              Khu vực này yêu cầu quyền truy cập của vai trò{' '}
               <span className="font-semibold text-gray-800">
                 {allowedRoles.join(' hoặc ')}
               </span>
-              . Vai trò hiện tại của bạn ({userRole || 'DRIVER'}) không được phép thao tác.
+              . Vai trò hiện tại của bạn ({userRole || 'Chưa xác định'}) không được phép thao tác.
             </p>
             <div className="flex items-center gap-2 text-xs text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg mb-6">
               <Loader2 size={13} className="animate-spin" />

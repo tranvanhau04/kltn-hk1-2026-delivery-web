@@ -81,6 +81,8 @@ export interface Depot {
   address: string;
   latitude: number;
   longitude: number;
+  capacity?: number;
+  contactPhone?: string;
 }
 
 export type OverloadSeverity = 'NORMAL' | 'WARNING' | 'CRITICAL';
@@ -129,6 +131,9 @@ export interface Order {
   weightKg: number;
   volumeM3: number;
   codAmount: number;
+  senderName?: string;
+  senderPhone?: string;
+  deliveryFee?: number;
   status: OrderStatus;
   createdAt: string;
   // Denormalized for display

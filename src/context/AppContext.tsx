@@ -38,41 +38,127 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+const INITIAL_NOTIFICATIONS: Notification[] = [
+  {
+    id: 'n1',
+    message: 'Tài xế Ngô Văn Tài đã hoàn thành tuyến RT-GVA-01 (10/10 đơn hàng)',
+    type: 'success',
+    read: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+  },
+  {
+    id: 'n2',
+    message: 'Đơn hàng ORD-20261109-042 bị giao thất bại: Khách hàng hẹn lại ca chiều',
+    type: 'warning',
+    read: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+  },
+  {
+    id: 'n3',
+    message: 'Tối ưu hóa VRP thành công: 35 đơn hàng mới đã được phân tuyến cho 4 tài xế Hub Gò Vấp',
+    type: 'info',
+    read: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+  },
+  {
+    id: 'n4',
+    message: 'Cảnh báo quá tải: Khu vực Bình Thạnh đạt 118% tải trọng tối đa của đội xe',
+    type: 'error',
+    read: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 105).toISOString(),
+  },
+  {
+    id: 'n5',
+    message: 'Tài xế Phạm Hoàng Nam đã bắt đầu ca làm việc tại Hub 02 - Bình Thạnh',
+    type: 'info',
+    read: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 140).toISOString(),
+  },
+  {
+    id: 'n6',
+    message: 'Đối soát COD hoàn tất: 14.850.000đ đã được nộp cho Điều phối viên Lê Thu Hà',
+    type: 'success',
+    read: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 190).toISOString(),
+  },
+  {
+    id: 'n7',
+    message: 'Đơn hàng hỏa tốc ORD-20261109-001 vừa được tạo tại Quận 1 - Cần gán ngay',
+    type: 'warning',
+    read: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
+  },
+  {
+    id: 'n8',
+    message: 'Tài xế Vũ Quốc Bảo (Xe Van 500kg) đã rời kho Bến Thành với 18 kiện hàng cồng kềnh',
+    type: 'info',
+    read: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 320).toISOString(),
+  },
+  {
+    id: 'n9',
+    message: 'Hệ thống tự động cân bằng tải VRP giữa Hub 01 (Gò Vấp) và Hub 05 (Tân Bình)',
+    type: 'info',
+    read: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 420).toISOString(),
+  },
+  {
+    id: 'n10',
+    message: 'Báo cáo doanh thu & KPI tuần 45 đã sẵn sàng xuất ra định dạng Excel',
+    type: 'success',
+    read: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 540).toISOString(),
+  },
+  {
+    id: 'n11',
+    message: 'Tài xế Bùi Anh Tuấn đã cập nhật vị trí GPS realtime trên bản đồ',
+    type: 'info',
+    read: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 600).toISOString(),
+  },
+  {
+    id: 'n12',
+    message: 'Đơn hàng ORD-20261108-015 xác nhận POD ảnh chụp giao thành công 1.200.000đ COD',
+    type: 'success',
+    read: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 750).toISOString(),
+  },
+  {
+    id: 'n13',
+    message: 'Cảnh báo pin yếu: Thiết bị tài xế Đỗ Thành Đạt còn dưới 15%',
+    type: 'warning',
+    read: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 900).toISOString(),
+  },
+  {
+    id: 'n14',
+    message: 'Tài xế Lý Quốc Trọng đã hoàn thành giao hàng toàn tuyến xe tải 1.5 Tấn',
+    type: 'success',
+    read: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 1100).toISOString(),
+  },
+  {
+    id: 'n15',
+    message: 'Đơn hàng ORD-20261108-099 hủy bởi người gửi trước khi xuất kho',
+    type: 'error',
+    read: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 1300).toISOString(),
+  },
+  {
+    id: 'n16',
+    message: 'Hệ thống SmartExpress vừa hoàn tất đồng bộ hóa cơ sở dữ liệu quy mô lớn',
+    type: 'info',
+    read: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 1500).toISOString(),
+  },
+];
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 'n1',
-      message: '3 đơn hàng mới cần phân công hôm nay',
-      type: 'info',
-      read: false,
-      createdAt: "2026-09-12T06:00:00.000Z",
-    },
-    {
-      id: 'n2',
-      message: 'Tài xế Võ Thanh Hải đã hoàn thành tuyến đường RT-001',
-      type: 'success',
-      read: false,
-      createdAt: "2026-09-12T05:00:00.000Z",
-    },
-    {
-      id: 'n3',
-      message: 'Đơn SE240901005 giao thất bại – cần xử lý',
-      type: 'warning',
-      read: false,
-      createdAt: "2026-09-12T04:00:00.000Z",
-    },
-    {
-      id: 'n4',
-      message: 'Khu vực Bình Thạnh vượt tải (18/15 đơn)',
-      type: 'error',
-      read: true,
-      createdAt: "2026-09-12T03:00:00.000Z",
-    },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
 
   // Helper to persist auth in cookies & localStorage
   const persistAuth = (token: string, user: User, refreshToken?: string) => {

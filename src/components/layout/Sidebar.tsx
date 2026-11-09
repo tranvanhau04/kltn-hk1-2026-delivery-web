@@ -105,13 +105,15 @@ export function Sidebar() {
 
       {/* Bottom */}
       <div className="px-3 pb-5 pt-3 border-t border-slate-100 space-y-0.5 shrink-0">
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-500 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all"
-        >
-          <Settings size={18} className="text-gray-400" />
-          Cài đặt
-        </Link>
+        {currentUser?.role === 'ADMIN' && (
+          <Link
+            href="/settings"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-500 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all"
+          >
+            <Settings size={18} className="text-gray-400" />
+            Cài đặt
+          </Link>
+        )}
         <Link
           href="/support"
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-500 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all"
