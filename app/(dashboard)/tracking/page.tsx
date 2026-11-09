@@ -10,7 +10,6 @@ import {
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { fetchLiveTracking, fetchDriverActiveOrders, type ApiLiveDriver, type ApiOrder } from '@/lib/api';
 import type { Driver } from '@/types/domain';
-import { cn } from '@/lib/utils';
 import { connectSocket, onDriverLocationUpdated } from '@/lib/socketClient';
 
 const TrackingMap = dynamic(() => import('@/components/TrackingMap'), { ssr: false });
@@ -431,7 +430,6 @@ export default function TrackingPage() {
 
   // Count GPS sources for status bar
   const realGpsCount = Object.values(positionSource).filter(s => s === 'real').length;
-  const simCount = Object.values(positionSource).filter(s => s === 'simulated').length;
 
   return (
     <div className="flex flex-col gap-3 animate-fade-in" style={{ height: 'calc(100vh - 128px)' }}>

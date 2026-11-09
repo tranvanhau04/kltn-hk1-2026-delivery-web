@@ -34,7 +34,7 @@ export function withRoleGuard<P extends object>(
         }, 2200);
         return () => clearTimeout(timer);
       }
-    }, [isMounted, isLoading, isAuthenticated, currentUser, isAuthorized, router, redirectPath]);
+    }, [isMounted, isLoading, isAuthenticated, currentUser, isAuthorized, router]);
 
     // If still hydrating or checking session
     if (!isMounted || isLoading || !isAuthenticated) {

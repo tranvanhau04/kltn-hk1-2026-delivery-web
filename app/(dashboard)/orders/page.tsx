@@ -14,7 +14,7 @@ import { Modal } from '@/components/common/Modal';
 import { CascadingRegionHubSelect } from '@/components/common/CascadingRegionHubSelect';
 import { useApp } from '@/context/AppContext';
 import { formatDateTime, formatCurrency, cn } from '@/lib/utils';
-import { fetchOrders, fetchZones, createOrder, fetchOrderPod, type ApiZone, type ApiPodData } from '@/lib/api';
+import { fetchOrders, createOrder, fetchOrderPod, type ApiPodData } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
 import dynamic from 'next/dynamic';
@@ -677,11 +677,11 @@ export default function OrdersPage() {
       render: (v) => <StatusBadge status={v as OrderStatus} />,
     },
     {
-      key: 'depotId' as any,
+      key: 'depotId',
       header: 'Kho / Hub',
       render: (_v, row) => (
         <span className="text-xs font-500 text-gray-700 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-md inline-block max-w-[130px] truncate">
-          {(row as any).depot?.name || 'Hub 01 - Gò Vấp'}
+          {row.depot?.name || 'Hub 01 - Gò Vấp'}
         </span>
       ),
     },

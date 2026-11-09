@@ -28,9 +28,6 @@ import { useToast } from '@/context/ToastContext';
 
 const VrpMapView = dynamic(() => import('@/components/map/VrpMapView'), { ssr: false });
 
-// ─── VRP Route Colors ───────────────────────────────────────────
-const ROUTE_COLORS = ['#FA7070', '#6D28D9', '#1D4ED8', '#059669', '#D97706', '#DB2777'];
-
 // ─── Map API solution to frontend VrpSolution type ───────────────
 function mapApiSolutionToVrp(
   apiSolution: ApiVrpSolution,
