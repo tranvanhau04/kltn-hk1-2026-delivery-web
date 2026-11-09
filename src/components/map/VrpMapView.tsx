@@ -1,10 +1,18 @@
 'use client';
 
 import React from 'react';
-import { MapContainer, TileLayer, Polyline, Marker, Popup, CircleMarker } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, CircleMarker, useMap } from 'react-leaflet';
 import { divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Order, Depot } from '@/types/domain';
+
+function ChangeView({ center }: { center: [number, number] }) {
+  const map = useMap();
+  React.useEffect(() => {
+    map.setView(center, 13);
+  }, [center, map]);
+  return null;
+}
 
 // Fix Leaflet icon
 import L from 'leaflet';
@@ -71,6 +79,7 @@ export default function VrpMapView({ orders, solution, depot }: VrpMapViewProps)
 
   return (
     <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
+      <ChangeView center={center} />
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; OpenStreetMap'
@@ -101,8 +110,8 @@ export default function VrpMapView({ orders, solution, depot }: VrpMapViewProps)
       ))}
 
       {/* Routes */}
-      {solution?.routes.map((route) => (
-        <React.Fragment key={route.driver.fullName}>
+      {solution?.routes.map((route, routeIdx) => (
+        <React.Fragment key={`${route.driver.fullName}-${routeIdx}`}>
           {/* Polyline */}
           <Polyline
             positions={route.polyline && route.polyline.length > 0 ? route.polyline : buildPolyline(depot, route.stops)}
@@ -124,6 +133,7 @@ export default function VrpMapView({ orders, solution, depot }: VrpMapViewProps)
               <Popup>
                 <div style={{ fontSize: '13px' }}>
                   <strong style={{ color: route.color }}>#{i + 1} {stop.code}</strong><br />
+                  <span style={{ fontSize: '11px', color: '#4B5563' }}>Tài xế: {route.driver.fullName}</span><br />
                   {stop.receiverName}<br />
                   <small style={{ color: '#6B7280' }}>{stop.deliveryAddress}</small><br />
                   {stop.codAmount > 0 && (

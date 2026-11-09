@@ -5,8 +5,9 @@ import { Plus, Phone, Eye, Pencil } from 'lucide-react';
 import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
+import { CascadingRegionHubSelect } from '@/components/common/CascadingRegionHubSelect';
 import type { Driver, VehicleType, DriverShiftStatus } from '@/types/domain';
-import { fetchDrivers, createUser, createDriver, updateDriverSpecs, updateShiftStatus } from '@/lib/api';
+import { fetchDrivers, fetchDepots, createUser, createDriver, updateDriverSpecs, updateShiftStatus, type ApiDepot } from '@/lib/api';
 import { useToast } from '@/context/ToastContext';
 import { cn } from '@/lib/utils';
 
@@ -44,9 +45,20 @@ function DriverAvatarCell({ driver }: { driver: Driver }) {
 
 // ─── Add Driver Modal ─────────────────────────────────────────────────────────
 
-function AddDriverModal({ onClose, onSubmit }: {
+function AddDriverModal({ onClose, onSubmit, depots }: {
   onClose: () => void;
-  onSubmit: (driver: { fullName: string; phone: string; email: string; licensePlate: string; vehicleType: VehicleType; maxWeightKg: number; maxVolumeM3: number; currentShiftStatus: string; }) => void;
+  onSubmit: (driver: {
+    fullName: string;
+    phone: string;
+    email: string;
+    licensePlate: string;
+    vehicleType: VehicleType;
+    depotId?: string;
+    maxWeightKg: number;
+    maxVolumeM3: number;
+    currentShiftStatus: string;
+  }) => void;
+  depots: ApiDepot[];
 }) {
   const [form, setForm] = useState({
     fullName: '',
@@ -54,6 +66,7 @@ function AddDriverModal({ onClose, onSubmit }: {
     email: '',
     licensePlate: '',
     vehicleType: 'MOTORBIKE' as VehicleType,
+    depotId: depots[0]?.id || '',
     maxWeightKg: '',
     maxVolumeM3: '',
   });
@@ -78,6 +91,7 @@ function AddDriverModal({ onClose, onSubmit }: {
       email: form.email,
       licensePlate: form.licensePlate,
       vehicleType: form.vehicleType,
+      depotId: form.depotId || undefined,
       maxWeightKg: parseFloat(form.maxWeightKg) || 0,
       maxVolumeM3: parseFloat(form.maxVolumeM3) || 0,
       currentShiftStatus: 'OFFLINE', // Backend default
@@ -111,9 +125,27 @@ function AddDriverModal({ onClose, onSubmit }: {
             <input required value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="0901234567" className="input-base" id="driver-phone" />
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-500 text-gray-700 mb-1.5">Email</label>
-          <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="driver@iuhlogistics.vn" className="input-base" id="driver-email" />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-500 text-gray-700 mb-1.5">Email</label>
+            <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="driver@iuhlogistics.vn" className="input-base" id="driver-email" />
+          </div>
+          <div>
+            <label className="block text-sm font-500 text-gray-700 mb-1.5">Kho trực thuộc (Hub)</label>
+            <select
+              value={form.depotId}
+              onChange={(e) => setForm((f) => ({ ...f, depotId: e.target.value }))}
+              className="input-base"
+              id="driver-depot"
+            >
+              <option value="">-- Chưa gán kho --</option>
+              {depots.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-500 text-gray-700 mb-1.5">Biển số xe *</label>
@@ -148,14 +180,16 @@ function AddDriverModal({ onClose, onSubmit }: {
 
 // ─── Edit Driver Modal (Bug #7 fix) ──────────────────────────────────────────
 
-function EditDriverModal({ driver, onClose, onSubmit }: {
+function EditDriverModal({ driver, depots, onClose, onSubmit }: {
   driver: Driver;
+  depots: ApiDepot[];
   onClose: () => void;
-  onSubmit: (payload: { maxWeightKg: number; maxVolumeM3: number; currentShiftStatus: DriverShiftStatus }) => void;
+  onSubmit: (payload: { maxWeightKg: number; maxVolumeM3: number; currentShiftStatus: DriverShiftStatus; depotId?: string }) => void;
 }) {
   const [form, setForm] = useState({
     maxWeightKg: String(driver.maxWeightKg),
     maxVolumeM3: String(driver.maxVolumeM3),
+    depotId: driver.depotId || driver.depot?.id || '',
     currentShiftStatus: driver.currentShiftStatus,
   });
 
@@ -164,6 +198,7 @@ function EditDriverModal({ driver, onClose, onSubmit }: {
     onSubmit({
       maxWeightKg: parseFloat(form.maxWeightKg) || 0,
       maxVolumeM3: parseFloat(form.maxVolumeM3) || 0,
+      depotId: form.depotId || undefined,
       currentShiftStatus: form.currentShiftStatus as DriverShiftStatus,
     });
   };
@@ -183,6 +218,22 @@ function EditDriverModal({ driver, onClose, onSubmit }: {
       }
     >
       <form id="edit-driver-form" onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-500 text-gray-700 mb-1.5">Kho trực thuộc (Hub)</label>
+          <select
+            value={form.depotId}
+            onChange={(e) => setForm((f) => ({ ...f, depotId: e.target.value }))}
+            className="input-base"
+            id="edit-driver-depot"
+          >
+            <option value="">-- Chưa gán kho --</option>
+            {depots.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-500 text-gray-700 mb-1.5">Tải trọng (kg)</label>
@@ -219,14 +270,20 @@ function EditDriverModal({ driver, onClose, onSubmit }: {
 export default function DriversPage() {
   const toast = useToast();
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [depots, setDepots] = useState<ApiDepot[]>([]);
   const [search, setSearch] = useState('');
+  const [hubFilter, setHubFilter] = useState('');
   const [showAddDriver, setShowAddDriver] = useState(false);
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [filter, setFilter] = useState('ALL');
 
-  const loadDrivers = React.useCallback(async () => {
+  React.useEffect(() => {
+    fetchDepots().then(setDepots).catch(console.error);
+  }, []);
+
+  const loadDrivers = React.useCallback(async (hubId?: string) => {
     try {
-      const data = await fetchDrivers();
+      const data = await fetchDrivers(hubId || undefined);
       setDrivers(data);
     } catch (err) {
       console.error('Failed to load drivers', err);
@@ -235,8 +292,8 @@ export default function DriversPage() {
 
   React.useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadDrivers();
-  }, [loadDrivers]);
+    void loadDrivers(hubFilter);
+  }, [loadDrivers, hubFilter]);
 
   const filteredDrivers = drivers.filter((d) => {
     const matchSearch =
@@ -254,6 +311,20 @@ export default function DriversPage() {
       header: 'Tài xế',
       sortable: true,
       render: (_, row) => <DriverAvatarCell driver={row as Driver} />,
+    },
+    {
+      key: 'depotId',
+      header: 'Kho trực thuộc',
+      render: (_, row) => {
+        const d = row as Driver;
+        return d.depot ? (
+          <span className="text-xs font-600 text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg">
+            {d.depot.name}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400 italic">Chưa gán</span>
+        );
+      },
     },
     {
       key: 'licensePlate',
@@ -297,14 +368,23 @@ export default function DriversPage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-xl font-700 text-gray-900">Tài xế</h2>
           <p className="text-sm text-gray-400 mt-0.5">{drivers.length} tài xế trong hệ thống</p>
         </div>
-        <button onClick={() => setShowAddDriver(true)} className="btn-primary" id="btn-add-driver">
-          <Plus size={15} /> Thêm tài xế
-        </button>
+        <div className="flex items-center flex-wrap gap-2.5">
+          <CascadingRegionHubSelect
+            selectedHubId={hubFilter}
+            onHubChange={(hubId) => setHubFilter(hubId)}
+            allowAllRegions
+            allowAllHubs
+            size="sm"
+          />
+          <button onClick={() => setShowAddDriver(true)} className="btn-primary" id="btn-add-driver">
+            <Plus size={15} /> Thêm tài xế
+          </button>
+        </div>
       </div>
 
       {/* Quick stats — aligned with backend: OFFLINE / ONLINE_READY / BUSY */}
@@ -359,6 +439,7 @@ export default function DriversPage() {
       {/* Add Driver Modal */}
       {showAddDriver && (
         <AddDriverModal
+          depots={depots}
           onClose={() => setShowAddDriver(false)}
           onSubmit={async (data) => {
             try {
@@ -372,10 +453,11 @@ export default function DriversPage() {
               await createDriver(user.id, {
                 licensePlate: data.licensePlate,
                 vehicleType: data.vehicleType,
+                depotId: data.depotId,
                 maxWeightKg: data.maxWeightKg,
                 maxVolumeM3: data.maxVolumeM3,
               });
-              void loadDrivers();
+              void loadDrivers(hubFilter);
               setShowAddDriver(false);
               toast.success('Thêm tài xế thành công!', `Tài xế ${data.fullName} (${data.licensePlate}) đã sẵn sàng.`);
             } catch (err) {
@@ -390,19 +472,21 @@ export default function DriversPage() {
       {editingDriver && (
         <EditDriverModal
           driver={editingDriver}
+          depots={depots}
           onClose={() => setEditingDriver(null)}
           onSubmit={async (payload) => {
             try {
-              // Call API to update vehicle specs (does not accept shift status)
+              // Call API to update vehicle specs and depot assignment
               await updateDriverSpecs(editingDriver.userId, {
                 maxWeightKg: payload.maxWeightKg,
                 maxVolumeM3: payload.maxVolumeM3,
+                depotId: payload.depotId,
               });
               
               // Call API to update shift status
               await updateShiftStatus(editingDriver.userId, payload.currentShiftStatus);
 
-              void loadDrivers();
+              void loadDrivers(hubFilter);
               setEditingDriver(null);
               toast.success('Cập nhật thành công!', `Đã lưu thông số xe của ${editingDriver.fullName}.`);
             } catch (err) {

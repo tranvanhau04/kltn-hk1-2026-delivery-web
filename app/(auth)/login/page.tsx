@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Zap, Package, Route, Navigation, Mail, Lock, ArrowRight, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -101,7 +101,7 @@ const FEATURES = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useApp();
+  const { login, isAuthenticated, isLoading } = useApp();
   const [email, setEmail] = useState('admin@smartexpress.vn');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -109,11 +109,16 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
 
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace('/orders');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
     const ok = await login(email, password);
     setLoading(false);
     if (ok) {

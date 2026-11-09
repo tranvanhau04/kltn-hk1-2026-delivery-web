@@ -5,16 +5,14 @@ import dynamic from 'next/dynamic';
 import {
   Search, Navigation, Phone, MessageSquare,
   MapPin, X,
-  Activity,
+  Activity, User, Loader2,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { mockDrivers, mockOrders } from '@/lib/mock-data';
-import { fetchLiveTracking, type ApiLiveDriver } from '@/lib/api';
+import { fetchLiveTracking, fetchDriverActiveOrders, type ApiLiveDriver, type ApiOrder } from '@/lib/api';
 import type { Driver } from '@/types/domain';
 import { cn } from '@/lib/utils';
 import { connectSocket, onDriverLocationUpdated } from '@/lib/socketClient';
 
-const TrackingMapView = dynamic(() => import('@/components/map/TrackingMapView'), { ssr: false });
 const TrackingMap = dynamic(() => import('@/components/TrackingMap'), { ssr: false });
 
 // ─── Polyline Interpolation Helper ──────────────────────────────
@@ -82,14 +80,14 @@ function useLiveTracking() {
   const fetchPositions = useCallback(async () => {
     try {
       const data = await fetchLiveTracking();
-      if (data.length === 0) throw new Error('No live drivers');
+      const list = Array.isArray(data) ? data : [];
       
-      setLiveDrivers(data);
-      driversRef.current = data;
+      setLiveDrivers(list);
+      driversRef.current = list;
       setUsingRealApi(true);
 
       const newPolylines: typeof polylines = [];
-      data.forEach((d, idx) => {
+      list.forEach((d, idx) => {
         if (d.activeRoute?.polyline?.length) {
           newPolylines.push({
             driverId: d.driverId,
@@ -103,23 +101,29 @@ function useLiveTracking() {
       polylinesRef.current = newPolylines;
     } catch {
       setUsingRealApi(false);
-      // Mock drivers will be used as fallback by mergeDriverData
+      setLiveDrivers([]);
+      driversRef.current = [];
+      setPolylines([]);
+      polylinesRef.current = [];
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // API Polling — every 5 seconds
   useEffect(() => {
-    // fetchPositions();
+    fetchPositions();
     const t1 = setInterval(fetchPositions, 5000);
     return () => clearInterval(t1);
   }, [fetchPositions]);
 
   // Realtime Socket.io Live Tracking
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const devToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1MDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3ODk4MjU1ODcsImV4cCI6MTgyMTM4MzE4N30.-nGTW1elOIaxLav_V2C6u6DdDjY3HPn8n_5bXc6gDbc';
+    let token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!token && typeof document !== 'undefined') {
+      const cookieMatch = document.cookie.match(/(?:^|;\s*)(?:accessToken|token)=([^;]+)/);
+      if (cookieMatch) token = decodeURIComponent(cookieMatch[1]);
+    }
 
-    connectSocket(token || devToken);
+    connectSocket(token || '');
 
     const unsubscribe = onDriverLocationUpdated((data) => {
       setUsingRealApi(true);
@@ -179,18 +183,18 @@ function useLiveTracking() {
         const next = { ...prev };
         let changed = false;
 
-        const currentDrivers = usingRealApi ? driversRef.current : mockDrivers;
+        const currentDrivers = driversRef.current;
 
         currentDrivers.forEach(d => {
-          const did = usingRealApi ? (d as ApiLiveDriver).driverId : (d as Driver).userId;
-          const dLive = d as ApiLiveDriver;
+          const did = d.driverId;
+          const dLive = d;
 
           // Priority 1: Real GPS
           const isRealGps =
             !dLive.positionUnknown &&
             dLive.lastUpdated &&
             dLive.currentLat != null &&
-            dLive.currentLng != null; // Bypassed 60s time check for testing (timezone issues)
+            dLive.currentLng != null;
 
           if (isRealGps && dLive.currentLat != null && dLive.currentLng != null) {
             next[did] = { lat: dLive.currentLat, lng: dLive.currentLng };
@@ -213,17 +217,7 @@ function useLiveTracking() {
             return;
           }
 
-          // Priority 3: Driver has no route and no GPS history — fallback to mock location for testing
-          const mockDriver = mockDrivers.find(m => m.userId === did);
-          if (mockDriver && mockDriver.currentLat != null && mockDriver.currentLng != null) {
-
-            next[did] = { lat: mockDriver.currentLat, lng: mockDriver.currentLng };
-            setPositionSource(ps => ps[did] === 'simulated' ? ps : { ...ps, [did]: 'simulated' });
-            changed = true;
-            return;
-          }
-
-          // Priority 4: No location data at all
+          // Priority 3: No location data at all
           if (next[did]) {
             delete next[did];
             changed = true;
@@ -240,29 +234,26 @@ function useLiveTracking() {
   return { positions, positionSource, polylines, liveDrivers, usingRealApi };
 }
 
-// ─── Merge live driver data with mock driver structure ────────────
+// ─── Merge live driver data with driver domain structure ────────────
 function mergeDriverData(liveDrivers: ApiLiveDriver[]): Driver[] {
-  if (liveDrivers.length === 0) return mockDrivers;
+  if (liveDrivers.length === 0) return [];
 
   return liveDrivers.map((ld) => {
-    const mock = mockDrivers.find((m) => m.userId === ld.driverId);
     return {
       userId: ld.driverId,
       fullName: ld.fullName,
       phone: ld.phone,
-      email: mock?.email ?? '',
+      email: '',
       licensePlate: ld.licensePlate,
-      vehicleType: (ld.vehicleType || mock?.vehicleType || 'MOTORBIKE') as Driver['vehicleType'],
-      maxWeightKg: mock?.maxWeightKg ?? 50,
-      maxVolumeM3: mock?.maxVolumeM3 ?? 0.2,
+      vehicleType: (ld.vehicleType || 'MOTORBIKE') as Driver['vehicleType'],
+      maxWeightKg: 50,
+      maxVolumeM3: 0.2,
       currentShiftStatus: (ld.currentShiftStatus === 'BUSY' || ld.currentShiftStatus === 'ONLINE_READY'
         ? 'ON_DUTY'
-        : ld.currentShiftStatus === 'OFFLINE'
-          ? 'OFF_DUTY'
-          : mock?.currentShiftStatus ?? 'OFF_DUTY') as Driver['currentShiftStatus'],
-      currentLat: ld.currentLat ?? mock?.currentLat,
-      currentLng: ld.currentLng ?? mock?.currentLng,
-      currentSpeedKmh: mock?.currentSpeedKmh,
+        : 'OFF_DUTY') as Driver['currentShiftStatus'],
+      currentLat: ld.currentLat ?? undefined,
+      currentLng: ld.currentLng ?? undefined,
+      currentSpeedKmh: undefined,
     };
   });
 }
@@ -273,8 +264,33 @@ function DriverSlideOver({ driver, position, onClose, liveData }: {
   onClose: () => void;
   liveData?: ApiLiveDriver;
 }) {
-  const nextOrder = mockOrders.find((o) => o.driverId === driver.userId && o.status === 'IN_TRANSIT') ??
-                    mockOrders.find((o) => o.driverId === driver.userId && o.status === 'ASSIGNED');
+  const [activeStops, setActiveStops] = useState<ApiOrder[]>([]);
+  const [loadingStops, setLoadingStops] = useState<boolean>(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadStops() {
+      if (!driver?.userId) return;
+      try {
+        setLoadingStops(true);
+        const orders = await fetchDriverActiveOrders(driver.userId);
+        if (isMounted) setActiveStops(orders);
+      } catch (err) {
+        console.error('Failed to fetch driver active orders:', err);
+        if (isMounted) setActiveStops([]);
+      } finally {
+        if (isMounted) setLoadingStops(false);
+      }
+    }
+    loadStops();
+    return () => {
+      isMounted = false;
+    };
+  }, [driver.userId]);
+
+  const nextOrder = activeStops.find((o) => o.status === 'IN_TRANSIT') ??
+                    activeStops.find((o) => o.status === 'ASSIGNED') ??
+                    activeStops[0];
 
   return (
     <div className="absolute top-4 right-4 w-72 z-[1000] animate-slide-right max-h-[calc(100vh-160px)] flex flex-col">
@@ -328,16 +344,21 @@ function DriverSlideOver({ driver, position, onClose, liveData }: {
         {/* Next Stop */}
         <div className="p-4 border-b border-slate-100 shrink-0">
           <p className="text-xs font-700 text-gray-400 uppercase tracking-wide mb-3">Điểm dừng tiếp theo</p>
-          {nextOrder ? (
+          {loadingStops ? (
+            <div className="flex items-center gap-2 text-xs text-gray-400 p-2">
+              <Loader2 size={13} className="animate-spin text-[#FA7070]" />
+              <span>Đang tải thông tin...</span>
+            </div>
+          ) : nextOrder ? (
             <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
               <div className="flex items-center gap-2 mb-1">
                 <MapPin size={13} className="text-blue-500 shrink-0" />
-                <span className="text-xs font-600 text-blue-700">{nextOrder.receiverName}</span>
+                <span className="text-xs font-600 text-blue-700">{nextOrder.code} - {nextOrder.receiverName}</span>
               </div>
-              <p className="text-[11px] text-blue-500 ml-5">{nextOrder.deliveryAddress}</p>
-              {nextOrder.codAmount > 0 && (
+              <p className="text-[11px] text-blue-500 ml-5 truncate">{nextOrder.deliveryAddress}</p>
+              {Number(nextOrder.codAmount) > 0 && (
                 <p className="text-[11px] text-green-600 ml-5 mt-1 font-500">
-                  COD: {nextOrder.codAmount.toLocaleString('vi-VN')}đ
+                  COD: {Number(nextOrder.codAmount).toLocaleString('vi-VN')}đ
                 </p>
               )}
             </div>
@@ -348,20 +369,33 @@ function DriverSlideOver({ driver, position, onClose, liveData }: {
 
         {/* Order list */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          <p className="text-xs font-700 text-gray-400 uppercase tracking-wide mb-2">Tất cả điểm giao</p>
-          {mockOrders
-            .filter((o) => o.driverId === driver.userId)
-            .map((order, i) => (
-              <div key={order.id} className="flex items-center gap-2 p-2 rounded-xl bg-gray-50">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-700 text-gray-400 uppercase tracking-wide">Tất cả điểm giao</p>
+            {activeStops.length > 0 && (
+              <span className="text-[11px] font-600 text-gray-500">({activeStops.length})</span>
+            )}
+          </div>
+          {loadingStops ? (
+            <div className="flex items-center justify-center p-6 text-xs text-gray-400 gap-2">
+              <Loader2 size={14} className="animate-spin text-[#FA7070]" />
+              <span>Đang tải danh sách điểm giao...</span>
+            </div>
+          ) : activeStops.length > 0 ? (
+            activeStops.map((order, i) => (
+              <div key={order.id} className="flex items-center gap-2 p-2 rounded-xl bg-gray-50 border border-slate-100">
                 <div className="w-5 h-5 rounded-full bg-[#FA7070]/10 flex items-center justify-center text-[#FA7070] text-[10px] font-700 shrink-0">
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-500 text-gray-700 truncate">{order.receiverName}</p>
+                  <p className="text-xs font-600 text-gray-800 truncate">{order.code} - {order.receiverName}</p>
+                  <p className="text-[10px] text-gray-500 truncate">{order.deliveryAddress}</p>
                   <StatusBadge status={order.status} className="text-[9px] mt-0.5" />
                 </div>
               </div>
-            ))}
+            ))
+          ) : (
+            <p className="text-xs text-gray-400 italic text-center p-3">Chưa có điểm giao được phân công</p>
+          )}
         </div>
 
         {/* Actions */}
@@ -385,7 +419,6 @@ function DriverSlideOver({ driver, position, onClose, liveData }: {
 }
 
 export default function TrackingPage() {
-  const [viewMode, setViewMode] = useState<'rich' | 'leaflet'>('rich');
   const [search, setSearch] = useState('');
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const { positions, positionSource, polylines, liveDrivers, usingRealApi } = useLiveTracking();
@@ -401,132 +434,121 @@ export default function TrackingPage() {
   const simCount = Object.values(positionSource).filter(s => s === 'simulated').length;
 
   return (
-    <div className="flex flex-col gap-4 animate-fade-in" style={{ height: 'calc(100vh - 128px)' }}>
+    <div className="flex flex-col gap-3 animate-fade-in" style={{ height: 'calc(100vh - 128px)' }}>
       {/* Top bar */}
-      <div className="card px-4 py-3 flex items-center gap-4 shrink-0">
+      <div className="card px-4 py-2.5 flex items-center gap-3 shrink-0">
         <div className="flex items-center gap-2 text-[#FA7070]">
           <Navigation size={18} className="animate-pulse-glow" />
-          <span className="text-sm font-600 text-gray-800">Theo dõi thực time</span>
+          <span className="text-sm font-700 text-gray-800">Theo dõi trực tiếp (Live Tracking)</span>
         </div>
 
-        {/* View mode toggle */}
-        <div className="flex items-center bg-gray-100 p-0.5 rounded-xl border border-gray-200">
-          <button
-            onClick={() => setViewMode('rich')}
-            className={cn(
-              'px-3 py-1 rounded-lg text-xs font-semibold transition-all',
-              viewMode === 'rich'
-                ? 'bg-white text-gray-800 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            )}
-          >
-            Bản đồ chi tiết
-          </button>
-          <button
-            onClick={() => setViewMode('leaflet')}
-            className={cn(
-              'px-3 py-1 rounded-lg text-xs font-semibold transition-all',
-              viewMode === 'leaflet'
-                ? 'bg-white text-[#FA7070] shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            )}
-          >
-            Live Socket Map
-          </button>
-        </div>
-
-        {/* GPS status — clearly distinguishes real GPS from polyline simulation */}
+        {/* Realtime Status Indicator */}
         {usingRealApi ? (
           <div className="flex items-center gap-2">
-            {realGpsCount > 0 && (
-              <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full text-green-700 bg-green-50">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                {realGpsCount} GPS thực
+            {realGpsCount > 0 ? (
+              <div className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full text-emerald-700 bg-emerald-50 font-600 border border-emerald-200/60 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                {realGpsCount} GPS trực tuyến
               </div>
-            )}
-            {simCount > 0 && (
-              <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full text-blue-600 bg-blue-50">
-                <span className="w-2 h-2 rounded-full bg-blue-400" />
-                {simCount} Mô phỏng lộ trình
-              </div>
-            )}
-            {realGpsCount === 0 && simCount === 0 && (
-              <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full text-gray-500 bg-gray-50">
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full text-gray-500 bg-gray-50 border border-gray-200">
                 <span className="w-2 h-2 rounded-full bg-gray-400" />
-                Chờ GPS...
+                Chờ tín hiệu GPS...
               </div>
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full text-amber-600 bg-amber-50">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            {activeDrivers.filter((d) => d.currentShiftStatus === 'ONLINE_READY').length} tài xế (demo)
+          <div className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full text-gray-500 bg-gray-50 border border-gray-200">
+            <span className="w-2 h-2 rounded-full bg-gray-400" />
+            Không có tín hiệu GPS
           </div>
         )}
-        <div className="ml-auto relative flex items-center w-56">
+
+        {/* Search */}
+        <div className="ml-auto relative flex items-center w-52 sm:w-60">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm tài xế, biển số..."
-            className="input-base pl-10 h-9 text-sm w-full"
+            className="input-base pl-10 h-9 text-xs sm:text-sm w-full"
             id="tracking-search"
           />
         </div>
 
-        {/* Driver quick-select */}
-        <div className="flex items-center gap-2">
-          {filteredDrivers.slice(0, 5).map((driver) => (
-            <button
-              key={driver.userId}
-              onClick={() => setSelectedDriver(driver === selectedDriver ? null : driver)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-500 border transition-all',
-                selectedDriver?.userId === driver.userId
-                  ? 'border-[#FA7070] bg-[#FFF0F0] text-[#FA7070]'
-                  : 'border-slate-100 text-gray-600 hover:border-slate-200 hover:bg-gray-50'
-              )}
-              id={`track-driver-${driver.userId}`}
+        {/* Driver selector dropdown */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <label
+            htmlFor="driver-select"
+            className="text-xs font-600 text-gray-500 whitespace-nowrap flex items-center gap-1 cursor-pointer"
+          >
+            <User size={14} className="text-[#FA7070] shrink-0" />
+            <span className="hidden sm:inline">Tài xế:</span>
+          </label>
+          <div className="relative">
+            <select
+              id="driver-select"
+              value={selectedDriver?.userId || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (!val) {
+                  setSelectedDriver(null);
+                } else {
+                  const d = allDrivers.find((item) => item.userId === val);
+                  setSelectedDriver(d || null);
+                }
+              }}
+              className="bg-white border border-gray-300 text-gray-800 font-600 text-xs rounded-xl focus:ring-2 focus:ring-[#FA7070]/30 focus:border-[#FA7070] cursor-pointer shadow-2xs hover:border-gray-400 transition-colors h-9 pl-3 pr-8 min-w-[170px] max-w-[240px] truncate"
+              aria-label="Chọn tài xế cần theo dõi"
             >
-              <span className={cn(
-                'w-2 h-2 rounded-full',
-                driver.currentShiftStatus === 'ONLINE_READY' ? 'bg-green-500' :
-                driver.currentShiftStatus === 'BUSY' ? 'bg-blue-500' : 'bg-gray-400'
-              )} />
-              {driver.fullName.replace(/\s*\(.*\)/, '').split(' ').slice(-2).join(' ')}
-            </button>
-          ))}
+              <option value="">Tất cả tài xế ({activeDrivers.length})</option>
+              {filteredDrivers.map((driver) => {
+                const hasGps = positions[driver.userId] !== undefined;
+                const statusEmoji =
+                  driver.currentShiftStatus === 'ONLINE_READY'
+                    ? '🟢'
+                    : driver.currentShiftStatus === 'BUSY'
+                    ? '🔵'
+                    : '⚪';
+                return (
+                  <option key={driver.userId} value={driver.userId}>
+                    {statusEmoji} {driver.fullName} {driver.licensePlate ? `(${driver.licensePlate})` : ''} {hasGps ? '📍' : ''}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Map rendering based on viewMode */}
-      {viewMode === 'leaflet' ? (
-        <div className="relative flex-1 card overflow-hidden">
-          <TrackingMap className="w-full h-full" />
-        </div>
-      ) : (
-        /* Map + slide-over */
-        <div className="relative flex-1 card overflow-hidden">
-          <TrackingMapView
-            drivers={filteredDrivers}
-            positions={positions}
-            positionSource={positionSource}
-            selectedDriverId={selectedDriver?.userId}
-            onDriverSelect={(driver) => setSelectedDriver(driver === selectedDriver ? null : driver)}
-            polylines={polylines}
-          />
+      {/* Unified Live Tracking Map */}
+      <div className="relative flex-1 card overflow-hidden">
+        <TrackingMap
+          className="w-full h-full min-h-[500px]"
+          selectedDriverId={selectedDriver?.userId}
+          onDriverSelect={(driverId) => {
+            if (!driverId) {
+              setSelectedDriver(null);
+            } else {
+              const found = allDrivers.find((d) => d.userId === driverId);
+              setSelectedDriver(found || null);
+            }
+          }}
+          drivers={filteredDrivers}
+          polylines={polylines}
+          liveDrivers={liveDrivers}
+        />
 
-          {/* Slide-over panel */}
-          {selectedDriver && positions[selectedDriver.userId] && (
-            <DriverSlideOver
-              driver={selectedDriver}
-              position={positions[selectedDriver.userId]}
-              onClose={() => setSelectedDriver(null)}
-              liveData={liveDrivers.find((d) => d.driverId === selectedDriver.userId)}
-            />
-          )}
-        </div>
-      )}
+        {/* Slide-over panel for selected driver details */}
+        {selectedDriver && positions[selectedDriver.userId] && (
+          <DriverSlideOver
+            driver={selectedDriver}
+            position={positions[selectedDriver.userId]}
+            onClose={() => setSelectedDriver(null)}
+            liveData={liveDrivers.find((d) => d.driverId === selectedDriver.userId)}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import React, {
   useContext,
   useReducer,
   useCallback,
+  useMemo,
   useEffect,
   useRef,
 } from 'react';
@@ -139,16 +140,20 @@ export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) throw new Error('useToast must be used within ToastProvider');
 
-  return {
-    success: (title: string, message?: string) =>
-      ctx.addToast({ type: 'success', title, message }),
-    error: (title: string, message?: string) =>
-      ctx.addToast({ type: 'error', title, message }),
-    warning: (title: string, message?: string) =>
-      ctx.addToast({ type: 'warning', title, message }),
-    info: (title: string, message?: string) =>
-      ctx.addToast({ type: 'info', title, message }),
-  };
+  const { addToast } = ctx;
+  return useMemo(
+    () => ({
+      success: (title: string, message?: string) =>
+        addToast({ type: 'success', title, message }),
+      error: (title: string, message?: string) =>
+        addToast({ type: 'error', title, message }),
+      warning: (title: string, message?: string) =>
+        addToast({ type: 'warning', title, message }),
+      info: (title: string, message?: string) =>
+        addToast({ type: 'info', title, message }),
+    }),
+    [addToast],
+  );
 }
 
 // ─── Imperative emit (for use outside React tree, e.g., api.ts) ────────────────
