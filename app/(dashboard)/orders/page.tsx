@@ -11,9 +11,10 @@ import {
 import { DataTable, type ColumnDef, type FilterTab } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
+import { CascadingRegionHubSelect } from '@/components/common/CascadingRegionHubSelect';
 import { useApp } from '@/context/AppContext';
 import { formatDateTime, formatCurrency, cn } from '@/lib/utils';
-import { fetchOrders, fetchZones, createOrder, fetchOrderPod, type ApiZone, type ApiPodData } from '@/lib/api';
+import { fetchOrders, createOrder, fetchOrderPod, type ApiPodData } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
 import dynamic from 'next/dynamic';
@@ -542,30 +543,29 @@ export default function OrdersPage() {
   const [localOrders, setLocalOrders] = useState<Order[]>([]);
   const [showImportExcel, setShowImportExcel] = useState(false);
 
-  // Zone filter state — Bug #11 fix
-  const [zones, setZones] = useState<ApiZone[]>([]);
-  const [zoneFilter, setZoneFilter] = useState<string>('');
+  // Cascading Region -> Hub filter state
+  const [selectedRegionId, setSelectedRegionId] = useState<string>('');
+  const [selectedHubId, setSelectedHubId] = useState<string>('');
   
   const loadOrders = useCallback(async () => {
     try {
+      const filterParams: { hubId?: string; regionId?: string } = selectedHubId
+        ? { hubId: selectedHubId }
+        : selectedRegionId
+        ? { regionId: selectedRegionId }
+        : {};
+
       const res = await fetchOrders({
         status: activeFilter !== 'ALL' && activeFilter !== 'EXCEPTION' ? activeFilter : activeFilter === 'EXCEPTION' ? EXCEPTION_STATUSES : undefined,
         search: search || undefined,
-        zoneId: zoneFilter || undefined, // Bug #11 fix: pass zone filter
+        ...filterParams,
         limit: 100,
       });
       setLocalOrders(res.data);
     } catch (err) {
       console.error(err instanceof Error ? err.message : 'Lỗi tải đơn hàng');
     }
-  }, [activeFilter, search, zoneFilter]);
-
-  // Load zones for the filter dropdown — Bug #11 fix
-  useEffect(() => {
-    fetchZones()
-      .then((data) => setZones(data))
-      .catch(() => setZones([]));
-  }, []);
+  }, [activeFilter, search, selectedHubId, selectedRegionId]);
 
   React.useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -677,6 +677,15 @@ export default function OrdersPage() {
       render: (v) => <StatusBadge status={v as OrderStatus} />,
     },
     {
+      key: 'depotId',
+      header: 'Kho / Hub',
+      render: (_v, row) => (
+        <span className="text-xs font-500 text-gray-700 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-md inline-block max-w-[130px] truncate">
+          {row.depot?.name || 'Hub 01 - Gò Vấp'}
+        </span>
+      ),
+    },
+    {
       key: 'createdAt',
       header: 'Ngày tạo',
       sortable: true,
@@ -703,22 +712,22 @@ export default function OrdersPage() {
           <h2 className="text-xl font-700 text-gray-900">Đơn hàng</h2>
           <p className="text-sm text-gray-400 mt-0.5">{localOrders.length} tổng số đơn hàng</p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Zone filter dropdown — Bug #11 fix */}
-          {zones.length > 0 && (
-            <select
-              id="zone-filter"
-              value={zoneFilter}
-              onChange={(e) => setZoneFilter(e.target.value)}
-              className="input-base text-sm h-9 py-0 pr-8 max-w-[180px]"
-              aria-label="Lọc theo khu vực"
-            >
-              <option value="">Tất cả khu vực</option>
-              {zones.map((z) => (
-                <option key={z.id} value={z.id}>{z.name}</option>
-              ))}
-            </select>
-          )}
+        <div className="flex items-center flex-wrap gap-2.5">
+          {/* Cascading Region -> Hub Selector */}
+          <CascadingRegionHubSelect
+            selectedRegionId={selectedRegionId}
+            selectedHubId={selectedHubId}
+            onRegionChange={(regionId) => {
+              setSelectedRegionId(regionId);
+              setSelectedHubId('');
+            }}
+            onHubChange={(hubId) => {
+              setSelectedHubId(hubId);
+            }}
+            allowAllHubs
+            size="sm"
+          />
+
           <button
             onClick={() => setShowImportExcel(true)}
             className="btn-secondary text-sm"

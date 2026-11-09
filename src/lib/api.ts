@@ -9,11 +9,13 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-import type { OrderStatus, Driver, User } from '@/types/domain';
+import type { OrderStatus, Driver, User, Region } from '@/types/domain';
 
 export interface ApiOrder {
   id: string;
   code: string;
+  depotId?: string;
+  depot?: ApiDepot;
   receiverName: string;
   receiverPhone: string;
   deliveryAddress: string;
@@ -38,6 +40,8 @@ export interface ApiPodData {
 
 export interface ApiDepot {
   id: string;
+  regionId?: string;
+  region?: Region;
   name: string;
   address: string;
   latitude: number;
@@ -101,15 +105,14 @@ export interface ApiLiveDriver {
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const fullUrl = `${API_BASE}${path}`;
   
-  // Retrieve token from localStorage if available
+  // Retrieve token from localStorage if available (or cookie fallback)
   let token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  
-  // Fallback dev token for testing if no token is found
-  if (!token && process.env.NODE_ENV === 'development') {
-    token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1MDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3ODk4MjU1ODcsImV4cCI6MTgyMTM4MzE4N30.-nGTW1elOIaxLav_V2C6u6DdDjY3HPn8n_5bXc6gDbc';
+  if (!token && typeof document !== 'undefined') {
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)(?:accessToken|token)=([^;]+)/);
+    if (cookieMatch) token = decodeURIComponent(cookieMatch[1]);
   }
 
   const headers: Record<string, string> = {
@@ -129,7 +132,10 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     if (res.status === 401 && typeof window !== 'undefined') {
       // Auto-redirect to login on token expiry — Bug #8 fix
       localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('iuh_user');
+      document.cookie = 'accessToken=; path=/; max-age=0; SameSite=Lax';
+      document.cookie = 'iuh_user=; path=/; max-age=0; SameSite=Lax';
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = '/login';
       // Throw so callers don't try to process undefined data
@@ -158,26 +164,42 @@ export async function resetPassword(token: string, newPassword: string, email: s
 
 // ─── API Functions ────────────────────────────────────────────────────────────
 
-/** Fetch all depots from the backend */
-export async function fetchDepots(): Promise<ApiDepot[]> {
-  return apiFetch<ApiDepot[]>('/depots');
+/** Fetch all regions from the backend */
+export async function fetchRegions(): Promise<Region[]> {
+  return apiFetch<Region[]>('/regions');
+}
+
+/** Fetch depots from the backend, optionally filtered by region */
+export async function fetchDepots(regionId?: string): Promise<ApiDepot[]> {
+  const query = regionId ? `?regionId=${encodeURIComponent(regionId)}` : '';
+  return apiFetch<ApiDepot[]>(`/depots${query}`);
 }
 
 /** Fetch all orders from the backend */
-export async function fetchOrders(query?: { status?: string | string[], zoneId?: string, search?: string, page?: number, limit?: number }): Promise<{ data: ApiOrder[], total: number }> {
+export async function fetchOrders(query?: {
+  status?: string | string[];
+  zoneId?: string;
+  hubId?: string;
+  regionId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ data: ApiOrder[]; total: number }> {
   const params = new URLSearchParams();
   if (query) {
     if (query.status) {
-      if (Array.isArray(query.status)) query.status.forEach(s => params.append('status', s));
+      if (Array.isArray(query.status)) query.status.forEach((s) => params.append('status', s));
       else params.append('status', query.status);
     }
+    if (query.regionId) params.append('regionId', query.regionId);
+    if (query.hubId) params.append('hubId', query.hubId);
     if (query.zoneId) params.append('zoneId', query.zoneId);
     if (query.search) params.append('search', query.search);
     if (query.page) params.append('page', String(query.page));
     if (query.limit) params.append('limit', String(query.limit));
   }
   const qs = params.toString();
-  return apiFetch<{ data: ApiOrder[], total: number }>(`/orders${qs ? `?${qs}` : ''}`);
+  return apiFetch<{ data: ApiOrder[]; total: number }>(`/orders${qs ? `?${qs}` : ''}`);
 }
 
 /** Create a new order */
@@ -193,9 +215,13 @@ export async function fetchOrderPod(orderId: string): Promise<ApiPodData> {
   return apiFetch<ApiPodData>(`/orders/${orderId}/pod`);
 }
 
-/** Fetch all unassigned (NEW) orders from the backend */
-export async function fetchOrderPool(): Promise<ApiOrder[]> {
-  return apiFetch<ApiOrder[]>('/orders/pool');
+/** Fetch all unassigned (NEW) orders from the backend, optionally filtered by hub or region */
+export async function fetchOrderPool(hubId?: string, regionId?: string): Promise<ApiOrder[]> {
+  const params = new URLSearchParams();
+  if (hubId) params.append('hubId', hubId);
+  if (regionId) params.append('regionId', regionId);
+  const qs = params.toString();
+  return apiFetch<ApiOrder[]>(`/orders/pool${qs ? `?${qs}` : ''}`);
 }
 
 /** Run VRP optimization on selected orders/drivers */
@@ -237,11 +263,43 @@ export async function fetchLiveTracking(): Promise<ApiLiveDriver[]> {
   return apiFetch<ApiLiveDriver[]>('/tracking/live');
 }
 
-/** Fetch all drivers from the backend */
-export async function fetchDrivers(): Promise<Driver[]> {
-  const res = await apiFetch<{ data: unknown[] }>('/drivers?limit=100');
+/**
+ * GET /tracking/driver/:driverId/route-today
+ * Fetches the active delivery route and assigned orders/stops for a driver.
+ */
+export async function fetchDriverActiveOrders(driverId: string): Promise<ApiOrder[]> {
+  try {
+    const res = await apiFetch<{
+      success: boolean;
+      route?: unknown;
+      stops?: Array<{ id: string; sequenceNo: number; status: string; order?: ApiOrder }>;
+      orders?: ApiOrder[];
+    }>(`/tracking/driver/${driverId}/route-today`);
+
+    if (res.orders && res.orders.length > 0) {
+      return res.orders;
+    }
+    if (res.stops && res.stops.length > 0) {
+      return res.stops.filter((s) => s.order).map((s) => s.order as ApiOrder);
+    }
+  } catch {
+    // Fallback: try /orders/driver/:driverId/today
+    try {
+      const orders = await apiFetch<ApiOrder[]>(`/orders/driver/${driverId}/today`);
+      if (Array.isArray(orders)) return orders;
+    } catch {
+      // no active orders
+    }
+  }
+  return [];
+}
+
+/** Fetch all drivers from the backend, optionally filtered by hub */
+export async function fetchDrivers(hubId?: string): Promise<Driver[]> {
+  const query = hubId ? `&hubId=${encodeURIComponent(hubId)}` : '';
+  const res = await apiFetch<{ data: unknown[] }>(`/drivers?limit=100${query}`);
   type RawDriver = Driver & { user?: { fullName?: string; phone?: string; email?: string } };
-  return (res.data as RawDriver[]).map(d => ({
+  return (res.data as RawDriver[]).map((d) => ({
     ...d,
     fullName: d.user?.fullName || '',
     phone: d.user?.phone || '',
@@ -249,11 +307,17 @@ export async function fetchDrivers(): Promise<Driver[]> {
   }));
 }
 
-/** Fetch online drivers (ONLINE_READY) from the backend */
-export async function fetchOnlineDrivers(): Promise<Driver[]> {
-  const res = await apiFetch<{ data: unknown[] }>('/drivers?currentShiftStatus=ONLINE_READY&limit=100');
+/** Fetch online drivers (ONLINE_READY) from the backend, optionally filtered by hub or region */
+export async function fetchOnlineDrivers(hubId?: string, regionId?: string): Promise<Driver[]> {
+  const params = new URLSearchParams();
+  params.append('currentShiftStatus', 'ONLINE_READY');
+  params.append('limit', '100');
+  if (hubId) params.append('hubId', hubId);
+  if (regionId) params.append('regionId', regionId);
+  const qs = params.toString();
+  const res = await apiFetch<{ data: unknown[] }>(`/drivers?${qs}`);
   type RawDriver = Driver & { user?: { fullName?: string; phone?: string; email?: string } };
-  return (res.data as RawDriver[]).map(d => ({
+  return (res.data as RawDriver[]).map((d) => ({
     ...d,
     fullName: d.user?.fullName || '',
     phone: d.user?.phone || '',
@@ -354,6 +418,21 @@ export async function patchOrderCoordinates(
   });
 }
 
+/**
+ * PATCH /orders/:id/status
+ * Updates the status of an order and persists to the database.
+ */
+export async function updateOrderStatusApi(
+  orderId: string,
+  status: OrderStatus,
+  note?: string,
+): Promise<ApiOrder> {
+  return apiFetch<ApiOrder>(`/orders/${orderId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, note }),
+  });
+}
+
 // ─── Zones ────────────────────────────────────────────────────────────────────
 
 export interface ApiZoneMetrics {
@@ -434,6 +513,24 @@ export async function unassignDriverFromZone(
 // ─── Reports ──────────────────────────────────────────────────────────────────
 
 import type { ReportKpis } from '@/types/domain';
+
+export interface DashboardStats {
+  totalOrders: number;
+  activeDrivers: number;
+  totalCOD: number;
+  successRate: number;
+  chartData: Array<{
+    day: string;
+    orders: number;
+    delivered: number;
+    failed: number;
+  }>;
+}
+
+/** GET /reports/dashboard — Realtime dashboard summary metrics & charts */
+export async function fetchDashboardStats(): Promise<DashboardStats> {
+  return apiFetch<DashboardStats>('/reports/dashboard');
+}
 
 /** GET /reports/kpis — KPI metrics, weekly trends, shift reconciliation overview */
 export async function fetchReportKpis(

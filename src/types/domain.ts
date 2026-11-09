@@ -36,8 +36,8 @@ export interface User {
   id: string;
   fullName: string;
   email: string;
-  phone: string;
-  passwordHash: string;
+  phone?: string;
+  passwordHash?: string;
   role: UserRole;
   status: UserStatus;
   createdAt: string; // ISO datetime
@@ -45,6 +45,8 @@ export interface User {
 
 export interface Driver {
   userId: string; // FK → USER.id
+  depotId?: string; // FK → DEPOT.id
+  depot?: Depot;
   licensePlate: string;
   vehicleType: VehicleType;
   maxWeightKg: number;
@@ -61,8 +63,20 @@ export interface Driver {
   currentSpeedKmh?: number;
 }
 
+export interface Region {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  hubs?: Depot[];
+}
+
 export interface Depot {
   id: string;
+  regionId?: string;
+  region?: Region;
   name: string;
   address: string;
   latitude: number;
@@ -105,6 +119,8 @@ export interface Order {
   code: string;
   dispatcherId?: string; // FK → USER.id
   zoneId?: string; // FK → ZONE.id (nullable)
+  depotId?: string; // FK → DEPOT.id (nullable)
+  depot?: Depot;
   receiverName: string;
   receiverPhone: string;
   deliveryAddress: string;
@@ -255,6 +271,11 @@ export interface VrpSolution {
 
 export interface VrpRoute {
   driver: Driver;
+  driverId?: string;
+  driverName?: string;
+  vehicleType?: string;
+  licensePlate?: string;
+  maxWeightAllowedKg?: number;
   stops: Order[];
   totalDistanceKm: number;
   totalEstimatedTimeMin: number;

@@ -5,75 +5,35 @@ import dynamic from 'next/dynamic';
 import {
   Zap, Package, CheckCircle,
   ChevronRight, RefreshCw,
-  Weight, Box, Send, MapPin, Truck, Phone,
+  Weight, Box, Send, MapPin, Truck, Phone, Loader2,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/common/StatusBadge';
+import { CascadingRegionHubSelect } from '@/components/common/CascadingRegionHubSelect';
 import { useApp } from '@/context/AppContext';
-import { mockDrivers, mockDepots } from '@/lib/mock-data';
 import { formatCurrency, cn } from '@/lib/utils';
+import { withRoleGuard } from '@/components/auth/withRoleGuard';
 import {
   fetchOrderPool,
   fetchDepots,
   fetchOnlineDrivers,
   runVRPOptimize,
   confirmVRPDispatch,
+  apiFetch,
   type ApiVrpSolution,
   type ApiOrder,
   type ApiDepot,
 } from '@/lib/api';
-import type { Order, Driver, Depot, VrpSolution, VrpRoute } from '@/types/domain';
+import type { Order, Driver, Depot, VrpSolution, VrpRoute, Region } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
 
 const VrpMapView = dynamic(() => import('@/components/map/VrpMapView'), { ssr: false });
 
-// ─── VRP Route Colors ───────────────────────────────────────────
-const ROUTE_COLORS = ['#FA7070', '#6D28D9', '#1D4ED8', '#059669', '#D97706', '#DB2777'];
-
-// ─── Mock VRP Solver (fallback when API is unreachable) ──────────
-function solveVRP(orders: Order[], drivers: Driver[]): VrpSolution {
-  const availableDrivers = drivers.filter((d) => d.currentShiftStatus !== 'OFFLINE');
-  const routes: VrpRoute[] = [];
-  let orderIdx = 0;
-
-  for (let i = 0; i < Math.min(availableDrivers.length, 3) && orderIdx < orders.length; i++) {
-    const driver = availableDrivers[i];
-    const driverOrders: Order[] = [];
-    let totalWeight = 0;
-
-    while (orderIdx < orders.length && totalWeight + (orders[orderIdx].weightKg ?? 0) <= driver.maxWeightKg) {
-      totalWeight += orders[orderIdx].weightKg ?? 0;
-      driverOrders.push(orders[orderIdx]);
-      orderIdx++;
-    }
-
-    if (driverOrders.length > 0) {
-      routes.push({
-        driver,
-        stops: driverOrders,
-        totalDistanceKm: Math.round((8 + driverOrders.length * 3.5) * 10) / 10,
-        totalEstimatedTimeMin: Math.round((20 + driverOrders.length * 12)),
-        totalWeightKg: totalWeight,
-        totalVolM3: driverOrders.reduce((s, o) => s + o.volumeM3, 0),
-        color: ROUTE_COLORS[i % ROUTE_COLORS.length],
-        polyline: [],
-      });
-    }
-  }
-
-  return {
-    routes,
-    totalDistanceKm: routes.reduce((s, r) => s + r.totalDistanceKm, 0),
-    totalOrders: orders.length,
-    optimizationTimeMs: 850 + Math.random() * 400,
-  };
-}
-
 // ─── Map API solution to frontend VrpSolution type ───────────────
 function mapApiSolutionToVrp(
   apiSolution: ApiVrpSolution,
-  driverPool?: Driver[]
+  driverPool?: Driver[],
 ): VrpSolution & { _api: ApiVrpSolution } {
-  const driversToSearch = driverPool && driverPool.length > 0 ? driverPool : mockDrivers;
+  const driversToSearch = driverPool || [];
 
   const routes: VrpRoute[] = apiSolution.routes.map((r) => {
     const matchedDriver = driversToSearch.find((d) => d.userId === r.driverId) ?? {
@@ -130,6 +90,14 @@ function mapApiOrderToOrder(o: ApiOrder): Order {
   return {
     id: o.id,
     code: o.code,
+    depotId: o.depotId,
+    depot: o.depot ? {
+      id: o.depot.id,
+      name: o.depot.name,
+      address: o.depot.address,
+      latitude: Number(o.depot.latitude),
+      longitude: Number(o.depot.longitude),
+    } : undefined,
     dispatcherId: '',
     receiverName: o.receiverName,
     receiverPhone: o.receiverPhone,
@@ -163,7 +131,7 @@ function EmptyState({ onSelectAll, hasOrders }: { onSelectAll: () => void; hasOr
         <p className="text-sm text-gray-500 leading-relaxed">
           {hasOrders
             ? 'Vui lòng chọn ít nhất một đơn hàng từ danh sách bên trái để bắt đầu tính toán lộ trình tối ưu.'
-            : 'Hiện tại hệ thống chưa ghi nhận đơn hàng mới nào phù hợp để lập tuyến giao hàng.'}
+            : 'Hiện tại hệ thống chưa ghi nhận đơn hàng mới nào phù hợp với bộ lọc hiện tại để lập tuyến giao hàng.'}
         </p>
       </div>
       {hasOrders && (
@@ -203,10 +171,9 @@ function VrpLoadingOverlay({ orderCount }: { orderCount: number }) {
   }, []);
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-white/85 backdrop-blur-md rounded-2xl animate-fade-in select-none">
-      <div className="max-w-md w-full bg-white/95 rounded-2xl p-6 shadow-xl border border-gray-100 flex flex-col items-center">
-        {/* Animated Icon */}
-        <div className="relative mb-4">
+    <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-gray-100 flex flex-col items-center animate-fade-in select-none">
+      {/* Animated Icon */}
+      <div className="relative mb-4">
           <div className="w-16 h-16 rounded-full border-4 border-[#FA7070]/20 border-t-[#FA7070] animate-spin-slow flex items-center justify-center" />
           <div className="absolute inset-0 flex items-center justify-center">
             <Zap size={22} className="text-[#FA7070] animate-pulse" />
@@ -268,7 +235,6 @@ function VrpLoadingOverlay({ orderCount }: { orderCount: number }) {
           <span>Ước tính: ~3-8s</span>
         </div>
       </div>
-    </div>
   );
 }
 
@@ -462,49 +428,75 @@ function RouteSummaryCard({
 }
 
 // ─── Main VRP Page ─────────────────────────────────────────────
-export default function VrpPage() {
-  const { orders: ctxOrders, selectedOrderIds, toggleOrderSelection, clearSelection, setSelectedOrderIds } = useApp();
+function VrpPage() {
+  const { selectedOrderIds, toggleOrderSelection, clearSelection, setSelectedOrderIds } = useApp();
   const toast = useToast();
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
   const [solution, setSolution] = useState<(VrpSolution & { _api?: ApiVrpSolution }) | null>(null);
-  const [apiOrders, setApiOrders] = useState<Order[] | null>(null);
-  const [apiDepot, setApiDepot] = useState<ApiDepot | null>(null);
-  const [onlineDrivers, setOnlineDrivers] = useState<Driver[] | null>(null);
-  const [usingRealApi, setUsingRealApi] = useState(false);
+  const [orderPool, setOrderPool] = useState<Order[]>([]);
+  const [depots, setDepots] = useState<ApiDepot[]>([]);
+  const [selectedRegionId, setSelectedRegionId] = useState<string>('');
+  const [selectedHubId, setSelectedHubId] = useState<string>('');
+  const [onlineDrivers, setOnlineDrivers] = useState<Driver[]>([]);
 
-  // Fetch real orders, depots, and online drivers from backend on mount
+  // Helper to load order pool and online drivers: defaults to all, or filtered by region, then by hub
+  const loadData = useCallback(async (regionId?: string, hubId?: string) => {
+    setIsLoadingData(true);
+    try {
+      const [ordersData, driversData] = await Promise.all([
+        fetchOrderPool(hubId || undefined, !hubId && regionId ? regionId : undefined),
+        fetchOnlineDrivers(hubId || undefined, !hubId && regionId ? regionId : undefined),
+      ]);
+      setOrderPool(ordersData.map(mapApiOrderToOrder));
+      setOnlineDrivers(driversData);
+    } catch (err: unknown) {
+      console.error('API fetch failed:', err);
+      toast.error(
+        'Lỗi kết nối máy chủ',
+        (err as Error).message || 'Không thể tải dữ liệu đơn hàng và tài xế từ API.',
+      );
+      setOrderPool([]);
+      setOnlineDrivers([]);
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [toast]);
+
+  // Load data whenever selectedRegionId or selectedHubId changes
   useEffect(() => {
-    fetchOrderPool()
-      .then((data) => {
-        setApiOrders(data.map(mapApiOrderToOrder));
-        setUsingRealApi(true);
-      })
-      .catch(() => {
-        // Fallback to mock data silently on network failure
-        setApiOrders(null);
-        setUsingRealApi(false);
-      });
+    void loadData(selectedRegionId, selectedHubId);
+  }, [selectedRegionId, selectedHubId, loadData]);
 
-    fetchDepots()
-      .then((depots) => {
-        if (depots.length > 0) setApiDepot(depots[0]);
-      })
-      .catch(() => setApiDepot(null));
+  // Handle Cascading Hub/Depot dropdown change
+  const handleHubChange = useCallback(
+    (newHubId: string, depot?: ApiDepot) => {
+      setSelectedHubId(newHubId);
+      if (depot) {
+        setDepots((prev) => {
+          const exists = prev.some((d) => d.id === depot.id);
+          return exists ? prev.map((d) => (d.id === depot.id ? depot : d)) : [depot, ...prev];
+        });
+      }
+      setSolution(null);
+      clearSelection();
+    },
+    [clearSelection]
+  );
 
-    fetchOnlineDrivers()
-      .then((drivers) => {
-        // Real API call succeeded (can be empty array [] if no driver is currently online)
-        setOnlineDrivers(drivers);
-      })
-      .catch(() => {
-        // Fallback to mockDrivers ONLY on API error / network failure
-        setOnlineDrivers(mockDrivers.filter((d) => d.currentShiftStatus !== 'OFFLINE'));
-      });
-  }, []);
+  const handleRegionChange = useCallback(
+    (newRegionId: string) => {
+      setSelectedRegionId(newRegionId);
+      setSelectedHubId('');
+      setSolution(null);
+      clearSelection();
+    },
+    [clearSelection]
+  );
 
-  const displayOrders = apiOrders ?? ctxOrders.filter((o) => o.status === 'NEW');
-  const newOrders = displayOrders;
+  const newOrders = orderPool;
+  const availableDrivers = onlineDrivers;
   const selectedOrders = useMemo(
     () => newOrders.filter((o) => selectedOrderIds.includes(o.id)),
     [newOrders, selectedOrderIds]
@@ -514,42 +506,89 @@ export default function VrpPage() {
     setSelectedOrderIds(newOrders.map((o) => o.id));
   }, [newOrders, setSelectedOrderIds]);
 
-  const availableDrivers = onlineDrivers !== null
-    ? onlineDrivers
-    : mockDrivers.filter((d) => d.currentShiftStatus !== 'OFFLINE');
+  const displayDepot = useMemo<Depot>(() => {
+    const found = depots.find((d) => d.id === selectedHubId);
+    if (found) {
+      return {
+        id: found.id,
+        name: found.name,
+        address: found.address,
+        latitude: Number(found.latitude),
+        longitude: Number(found.longitude),
+      };
+    }
+    // If user selected orders, prefer the depot of selected orders
+    const orderWithDepot = selectedOrders.find((o) => o.depot);
+    if (orderWithDepot?.depot) {
+      return orderWithDepot.depot;
+    }
+    // Fallback to first known depot
+    if (depots.length > 0) {
+      return {
+        id: depots[0].id,
+        name: depots[0].name,
+        address: depots[0].address,
+        latitude: Number(depots[0].latitude),
+        longitude: Number(depots[0].longitude),
+      };
+    }
+    return {
+      id: selectedHubId || '',
+      name: 'Kho điều phối',
+      address: '',
+      latitude: 10.822,
+      longitude: 106.687,
+    };
+  }, [depots, selectedHubId, selectedOrders]);
 
-  const displayDepot = useMemo(() => {
-    return apiDepot
-      ? { id: apiDepot.id, name: apiDepot.name, address: apiDepot.address, latitude: apiDepot.latitude, longitude: apiDepot.longitude }
-      : mockDepots[0];
-  }, [apiDepot]);
-
-  const handleChangeDriver = useCallback(
+  const handleDriverChange = useCallback(
     (routeIndex: number, newDriverId: string) => {
       const newDriver = availableDrivers.find((d) => d.userId === newDriverId);
       if (!newDriver) return;
 
-      setSolution((prev) => {
-        if (!prev) return null;
-        const updatedRoutes = [...prev.routes];
-        const currentRoute = updatedRoutes[routeIndex];
-        if (!currentRoute) return prev;
+      const currentRoute = solution?.routes[routeIndex];
 
+      // STEP 2: Prevent Accidental Duplication (UI Warning)
+      const isAlreadyAssigned = solution?.routes.some(
+        (r, idx) => idx !== routeIndex && (r.driver?.userId === newDriverId || r.driverId === newDriverId)
+      );
+
+      if (isAlreadyAssigned) {
+        toast.warning(
+          'Cảnh báo trùng tài xế',
+          'Cảnh báo: Tài xế này đang được gán cho một tuyến khác trong lần điều phối này!',
+        );
+      }
+
+      if (currentRoute) {
         if (currentRoute.totalWeightKg > newDriver.maxWeightKg) {
           toast.warning(
             'Cảnh báo quá tải',
             `Tải trọng tuyến (${currentRoute.totalWeightKg.toFixed(1)}kg) vượt quá sức chở của ${newDriver.fullName} (${newDriver.maxWeightKg}kg)`,
           );
-        } else {
+        } else if (!isAlreadyAssigned) {
           toast.info(
             'Đã đổi tài xế',
             `Tuyến ${routeIndex + 1} chuyển sang ${newDriver.fullName}`,
           );
         }
+      }
 
+      setSolution((prev) => {
+        if (!prev) return null;
+        const updatedRoutes = [...prev.routes];
+        const routeToUpdate = updatedRoutes[routeIndex];
+        if (!routeToUpdate) return prev;
+
+        // STEP 1: Update specific route in routes state array with all new driver properties
         updatedRoutes[routeIndex] = {
-          ...currentRoute,
+          ...routeToUpdate,
           driver: newDriver,
+          driverId: newDriver.userId,
+          driverName: newDriver.fullName,
+          vehicleType: newDriver.vehicleType,
+          licensePlate: newDriver.licensePlate,
+          maxWeightAllowedKg: newDriver.maxWeightKg,
         };
 
         // CRITICAL: Synchronize _api solution so confirmVRPDispatch sends the correct driverId to DB
@@ -576,81 +615,131 @@ export default function VrpPage() {
         };
       });
     },
-    [availableDrivers, toast]
+    [availableDrivers, solution, toast]
   );
 
+  const handleChangeDriver = handleDriverChange;
+
   const handleRunVRP = useCallback(async () => {
-    if (selectedOrders.length === 0) return;
+    if (selectedOrders.length === 0 || isOptimizing) return;
+
+    // Check if selected orders span multiple different depots
+    const distinctDepotIds = Array.from(
+      new Set(selectedOrders.map((o) => o.depotId).filter(Boolean)),
+    );
+    if (distinctDepotIds.length > 1) {
+      toast.warning(
+        'Đơn hàng thuộc nhiều kho khác nhau',
+        'Các đơn hàng đã chọn thuộc nhiều Kho khác nhau. Vui lòng chọn một Kho cụ thể ở thanh bộ lọc để tối ưu hóa tuyến đường cho từng kho riêng biệt.',
+      );
+      return;
+    }
+
+    const targetDepotId = selectedHubId || (distinctDepotIds.length === 1 ? distinctDepotIds[0] : displayDepot?.id);
+
+    if (!targetDepotId) {
+      toast.warning('Chưa chọn Hub', 'Vui lòng chọn Kho điều phối hợp lệ.');
+      return;
+    }
     setSolution(null);
     setIsOptimizing(true);
 
     try {
-      if (usingRealApi) {
-        const driverIds = availableDrivers.map((d) => d.userId);
-        const result = await runVRPOptimize(
-          selectedOrders.map((o) => o.id),
-          displayDepot?.id,
-          driverIds.length > 0 ? driverIds : undefined
-        );
-        setSolution(mapApiSolutionToVrp(result, availableDrivers));
-      } else {
-        // Fallback mock solver with artificial delay
-        await new Promise((r) => setTimeout(r, 2000));
-        setSolution(solveVRP(selectedOrders, availableDrivers));
-      }
-    } catch {
-      // If API call fails mid-way, fallback to mock
-      await new Promise((r) => setTimeout(r, 500));
-      setSolution(solveVRP(selectedOrders, availableDrivers));
+      // Filter drivers that match target depot or have no depot restriction
+      const eligibleDrivers = availableDrivers.filter(
+        (d) => !targetDepotId || !d.depotId || d.depotId === targetDepotId,
+      );
+      const driverPool = eligibleDrivers.length > 0 ? eligibleDrivers : availableDrivers;
+      const driverIds = driverPool.map((d) => d.userId);
+
+      const result = await runVRPOptimize(
+        selectedOrders.map((o) => o.id),
+        targetDepotId,
+        driverIds.length > 0 ? driverIds : undefined
+      );
+      setSolution(mapApiSolutionToVrp(result, driverPool));
+      toast.success(
+        'Tối ưu hóa hoàn tất!',
+        `Đã lập thành công ${result.routes.length} tuyến giao hàng.`,
+      );
+    } catch (err: unknown) {
+      console.error('VRP optimize API error:', err);
+      toast.error(
+        'Lỗi tối ưu hóa tuyến đường',
+        (err as Error).message || 'Máy chủ VRP gặp sự cố khi giải toán.',
+      );
     } finally {
       setIsOptimizing(false);
     }
-  }, [selectedOrders, availableDrivers, usingRealApi, displayDepot]);
+  }, [selectedOrders, availableDrivers, displayDepot, isOptimizing, selectedHubId, toast]);
 
   const handleConfirm = useCallback(async () => {
-    if (!solution) return;
+    if (!solution || solution.routes.length === 0) return;
     setIsConfirming(true);
     try {
-      if (solution._api) {
-        await confirmVRPDispatch(solution._api);
-        toast.success(
-          'Điều phối thành công!',
-          `Đã điều phối ${solution.routes.length} tuyến tới các tài xế.`,
-        );
-        setSolution(null);
-        clearSelection();
-        // Refresh order pool
-        const fresh = await fetchOrderPool().catch(() => null);
-        if (fresh) setApiOrders(fresh.map(mapApiOrderToOrder));
-      } else {
-        toast.success('Đã xác nhận phân công', 'Chế độ demo hoàn tất.');
-        setSolution(null);
-        clearSelection();
-      }
-    } catch {
-      toast.error('Xác nhận thất bại', 'Vui lòng thử lại.');
+      // Build payload strictly from updated solution.routes so manual overrides are guaranteed
+      const targetDepotId = solution._api?.depot?.id || displayDepot.id;
+      const routesToConfirm = solution.routes.map((r) => ({
+        depotId: targetDepotId,
+        driverId: r.driver.userId || r.driverId || '',
+        stops: r.stops.map((s, idx) => ({
+          orderId: s.id,
+          sequenceNo: idx + 1,
+          latitude: s.latitude,
+          longitude: s.longitude,
+        })),
+        totalDistanceKm: r.totalDistanceKm,
+        totalEstimatedTimeMin: r.totalEstimatedTimeMin,
+        polyline: r.polyline || [],
+      }));
+
+      await apiFetch<{ message: string; routeIds: string[] }>('/vrp/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ routes: routesToConfirm }),
+      });
+
+      toast.success(
+        'Điều phối thành công!',
+        `Đã điều phối ${solution.routes.length} tuyến tới các tài xế.`,
+      );
+      setSolution(null);
+      clearSelection();
+      // Refresh order pool and drivers for current selection
+      await loadData(selectedRegionId, selectedHubId);
+    } catch (err: unknown) {
+      console.error('Confirm dispatch error:', err);
+      toast.error(
+        'Xác nhận điều phối thất bại',
+        (err as Error).message || 'Vui lòng kiểm tra lại.',
+      );
     } finally {
       setIsConfirming(false);
     }
-  }, [solution, clearSelection, toast]);
+  }, [solution, displayDepot, clearSelection, toast, loadData, selectedRegionId, selectedHubId]);
 
   return (
-    <div className="flex gap-5 h-full animate-fade-in min-h-0" style={{ minHeight: 'calc(100vh - 128px)' }}>
+    <div className="flex gap-5 h-full animate-fade-in min-h-0 relative" style={{ minHeight: 'calc(100vh - 128px)' }}>
+      {/* ── Visual Loading State Overlay for OR-Tools / VRP Optimization ── */}
+      {isOptimizing && (
+        <div className="fixed inset-0 z-[9999] bg-gray-900/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in select-none">
+          <VrpLoadingOverlay orderCount={selectedOrders.length} />
+        </div>
+      )}
 
       {/* ── Left Panel ── */}
-      <div className="w-72 shrink-0 flex flex-col gap-4 max-h-[calc(100vh-140px)] overflow-y-auto">
-        {/* API status indicator */}
-        <div className={cn(
-          'flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-500',
-          usingRealApi ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-        )}>
-          <span className={cn('w-2 h-2 rounded-full', usingRealApi ? 'bg-green-500' : 'bg-amber-500')} />
-          {usingRealApi ? `🟢 ${newOrders.length} đơn mới` : '🟡 Chế độ demo (không có API)'}
+      <div className="w-72 shrink-0 flex flex-col gap-3 h-[calc(100vh-140px)] min-h-0">
+        {/* Real-time Hub Data status indicator */}
+        <div className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-600 bg-emerald-50 text-emerald-800 border border-emerald-100 shrink-0">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {isLoadingData ? 'Đang tải...' : 'Dữ liệu thời gian thực'}
+          </span>
+          <span className="font-mono text-emerald-700">{newOrders.length} đơn</span>
         </div>
 
         {/* Orders Pool */}
-        <div className="card flex-1 flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-slate-100 shrink-0">
+        <div className="card flex-[3_3_0%] flex flex-col min-h-0 overflow-hidden">
+          <div className="p-3.5 border-b border-slate-100 shrink-0">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-700 text-gray-900">Đơn hàng chờ phân công</h3>
               <button
@@ -669,7 +758,7 @@ export default function VrpPage() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+          <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-1.5">
             {newOrders.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-8 text-center text-gray-400">
                 <Package size={28} className="opacity-30" />
@@ -699,9 +788,19 @@ export default function VrpPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
-                          <span className="font-mono text-xs font-600 text-[#FA7070]">{order.code}</span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-mono text-xs font-600 text-[#FA7070]">{order.code}</span>
+                            {order.depot && (
+                              <span
+                                className="text-[9px] font-600 text-blue-700 bg-blue-50 px-1 py-0.5 rounded truncate max-w-[90px]"
+                                title={order.depot.name}
+                              >
+                                {order.depot.name}
+                              </span>
+                            )}
+                          </div>
                           {order.codAmount > 0 && (
-                            <span className="text-[10px] text-green-600 font-500">
+                            <span className="text-[10px] text-green-600 font-500 shrink-0">
                               {formatCurrency(order.codAmount)}
                             </span>
                           )}
@@ -722,14 +821,14 @@ export default function VrpPage() {
         </div>
 
         {/* Available Fleet */}
-        <div className="card p-4">
-          <div className="flex items-center justify-between mb-3">
+        <div className="card flex-[2_2_0%] flex flex-col min-h-0 overflow-hidden">
+          <div className="p-3.5 border-b border-slate-100 shrink-0 flex items-center justify-between">
             <h3 className="text-sm font-700 text-gray-900">Đội xe khả dụng</h3>
             <span className="text-[11px] font-600 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
               {availableDrivers.length} online
             </span>
           </div>
-          <div className="space-y-2">
+          <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-2">
             {availableDrivers.length === 0 ? (
               <div className="p-4 text-center text-xs text-gray-400 bg-gray-50 rounded-xl">
                 Không có tài xế nào đang sẵn sàng
@@ -742,7 +841,9 @@ export default function VrpPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-600 text-gray-700 truncate">{driver.fullName}</p>
-                    <p className="text-[10px] text-gray-400">{driver.maxWeightKg}kg · {driver.licensePlate || 'N/A'}</p>
+                    <p className="text-[10px] text-gray-400 truncate">
+                      {driver.depot ? `${driver.depot.name} · ` : ''}{driver.maxWeightKg}kg · {driver.licensePlate || 'N/A'}
+                    </p>
                   </div>
                   <StatusBadge status={driver.currentShiftStatus} showDot={false} className="text-[9px] px-1.5 py-0.5" />
                 </div>
@@ -754,15 +855,28 @@ export default function VrpPage() {
 
       {/* ── Center Map ── */}
       <div className="flex-1 flex flex-col gap-4">
-        {/* Run VRP Button */}
-        <div className="card p-4 flex items-center gap-4 shrink-0">
-          <div className="flex-1">
-            <p className="text-sm font-600 text-gray-800">Tối ưu hóa tuyến đường</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {selectedOrderIds.length} đơn hàng · {availableDrivers.length} tài xế · Depot: {displayDepot.name}
-            </p>
+        {/* Run VRP Button & Multi-Hub Dropdown */}
+        <div className="card px-4 py-3 flex flex-wrap items-center justify-between gap-4 shrink-0 min-h-[60px]">
+          <div className="flex items-center gap-4 flex-wrap min-h-[40px]">
+            {/* Cascading Region -> Hub Selector: Default All, filter Region then Hub */}
+            <CascadingRegionHubSelect
+              selectedRegionId={selectedRegionId}
+              selectedHubId={selectedHubId}
+              onRegionChange={handleRegionChange}
+              onHubChange={handleHubChange}
+              allowAllRegions={true}
+              allowAllHubs={true}
+              size="md"
+            />
+
+            <div className="border-l border-gray-200 pl-4 py-1 hidden sm:flex flex-col justify-center">
+              <p className="text-sm font-700 text-gray-800">Tối ưu hóa tuyến đường</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                <span className="font-semibold text-gray-700">{selectedOrderIds.length}</span>/{newOrders.length} đơn đã chọn · <span className="font-semibold text-emerald-600">{availableDrivers.length}</span> tài xế online
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {solution && (
               <button
                 onClick={() => { setSolution(null); clearSelection(); }}
@@ -794,19 +908,22 @@ export default function VrpPage() {
               onClick={handleRunVRP}
               disabled={selectedOrderIds.length === 0 || isOptimizing}
               className={cn(
-                'btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed',
-                selectedOrderIds.length === 0 && 'opacity-40'
+                'btn-primary text-sm flex items-center gap-2 transition-all duration-200 shadow-sm',
+                (selectedOrderIds.length === 0 || isOptimizing) && 'opacity-50 cursor-not-allowed pointer-events-none'
               )}
               id="btn-run-vrp"
+              aria-label="Tối ưu hóa tuyến đường (Optimize Routes)"
+              aria-busy={isOptimizing}
             >
               {isOptimizing ? (
                 <>
-                  <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin-slow" />
-                  Đang tính toán...
+                  <Loader2 size={16} className="animate-spin text-white" />
+                  <span>Đang tính toán tuyến đường (Optimizing)...</span>
                 </>
               ) : (
                 <>
-                  <Zap size={15} /> Chạy VRP Optimization
+                  <Zap size={15} />
+                  <span>Tối ưu hóa tuyến đường (Optimize Routes)</span>
                 </>
               )}
             </button>
@@ -815,8 +932,6 @@ export default function VrpPage() {
 
         {/* Map area */}
         <div className="relative flex-1 card overflow-hidden" style={{ minHeight: '400px' }}>
-          {isOptimizing && <VrpLoadingOverlay orderCount={selectedOrders.length} />}
-
           {!solution && !isOptimizing && selectedOrders.length === 0 ? (
             <EmptyState onSelectAll={handleSelectAllNew} hasOrders={newOrders.length > 0} />
           ) : (
@@ -870,3 +985,5 @@ export default function VrpPage() {
     </div>
   );
 }
+
+export default withRoleGuard(VrpPage, ['ADMIN', 'DISPATCHER']);

@@ -24,12 +24,8 @@ export default function SettingsPage() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSaving(false);
-      toast.success('Đã lưu cấu hình thành công!', 'Các thay đổi đã được áp dụng.');
-    }, 800);
+    setIsSaving(false);
+    toast.success('Đã lưu cấu hình thành công!', 'Các thay đổi đã được áp dụng.');
   };
 
   const tabs = [

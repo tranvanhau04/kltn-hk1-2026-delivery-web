@@ -63,10 +63,10 @@ export default function SupportPage() {
   const handleSubmitTicket = (e: React.FormEvent) => {
     e.preventDefault();
     setTicketSent(true);
+    setForm({ subject: '', priority: 'normal', description: '' });
     setTimeout(() => {
       setTicketSent(false);
-      setForm({ subject: '', priority: 'normal', description: '' });
-    }, 4000);
+    }, 500);
   };
 
   return (
