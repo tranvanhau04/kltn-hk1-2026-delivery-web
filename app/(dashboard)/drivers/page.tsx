@@ -388,7 +388,6 @@ export default function DriversPage() {
   }, []);
 
   React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDrivers(hubFilter);
   }, [loadDrivers, hubFilter]);
 

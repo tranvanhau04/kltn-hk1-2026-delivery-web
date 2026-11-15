@@ -22,7 +22,6 @@ function ResetPasswordForm() {
 
   useEffect(() => {
     if (!token) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError('Đường dẫn không hợp lệ hoặc đã hết hạn.');
     }
   }, [token]);

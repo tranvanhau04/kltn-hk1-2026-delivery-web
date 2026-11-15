@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { Printer, X, Package, MapPin, Phone, User, Calendar, ShieldCheck } from 'lucide-react';
+import { Printer, X, Package, MapPin, Phone, User, ShieldCheck } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import type { Order } from '@/types/domain';
 

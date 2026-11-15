@@ -370,9 +370,9 @@ export async function updateShiftStatus(userId: string, currentShiftStatus: stri
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export async function fetchUsers(): Promise<User[]> {
-  const res = await apiFetch<any>('/users?limit=100');
+  const res = await apiFetch<User[] | { data?: User[] }>('/users?limit=100');
   if (Array.isArray(res)) return res;
-  if (res && Array.isArray(res.data)) return res.data;
+  if (res && 'data' in res && Array.isArray(res.data)) return res.data;
   return [];
 }
 

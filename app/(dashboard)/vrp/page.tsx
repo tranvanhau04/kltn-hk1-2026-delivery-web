@@ -15,16 +15,14 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { withRoleGuard } from '@/components/auth/withRoleGuard';
 import {
   fetchOrderPool,
-  fetchDepots,
   fetchOnlineDrivers,
   runVRPOptimize,
-  confirmVRPDispatch,
   apiFetch,
   type ApiVrpSolution,
   type ApiOrder,
   type ApiDepot,
 } from '@/lib/api';
-import type { Order, Driver, Depot, VrpSolution, VrpRoute, Region } from '@/types/domain';
+import type { Order, Driver, Depot, VrpSolution, VrpRoute } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
 
 const VrpMapView = dynamic(() => import('@/components/map/VrpMapView'), { ssr: false });
