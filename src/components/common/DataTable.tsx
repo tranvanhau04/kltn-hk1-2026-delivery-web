@@ -40,6 +40,10 @@ interface DataTableProps<T extends object> {
   className?: string;
   getRowKey?: (row: T) => string;
   filterKey?: keyof T;
+  serverPagination?: boolean;
+  currentPage?: number;
+  totalItems?: number;
+  onPageChange?: (page: number) => void;
 }
 
 type SortDir = 'asc' | 'desc' | null;
@@ -62,10 +66,16 @@ export function DataTable<T extends object>({
   className,
   getRowKey,
   filterKey,
+  serverPagination = false,
+  currentPage = 1,
+  totalItems,
+  onPageChange,
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>(null);
   const [page, setPage] = useState(1);
+
+  const activePage = serverPagination ? currentPage : page;
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -75,14 +85,18 @@ export function DataTable<T extends object>({
       setSortKey(key);
       setSortDir('asc');
     }
-    setPage(1);
+    if (serverPagination) {
+      onPageChange?.(1);
+    } else {
+      setPage(1);
+    }
   };
 
   const processed = useMemo(() => {
     let result = [...data];
 
-    // Filter by tab
-    if (activeFilter && activeFilter !== 'ALL' && filterKey) {
+    // Filter by tab (client-side only if not server-filtered)
+    if (!serverPagination && activeFilter && activeFilter !== 'ALL' && filterKey) {
       result = result.filter((row) => String((row as Record<string, unknown>)[filterKey as string]) === activeFilter);
     }
 
@@ -97,10 +111,36 @@ export function DataTable<T extends object>({
     }
 
     return result;
-  }, [data, activeFilter, filterKey, sortKey, sortDir]);
+  }, [data, activeFilter, filterKey, sortKey, sortDir, serverPagination]);
 
-  const totalPages = Math.max(1, Math.ceil(processed.length / pageSize));
-  const paginated = processed.slice((page - 1) * pageSize, page * pageSize);
+  const activeTotal = serverPagination ? (totalItems !== undefined ? totalItems : data.length) : processed.length;
+  const totalPages = Math.max(1, Math.ceil(activeTotal / pageSize));
+  const displayRows = serverPagination ? processed : processed.slice((page - 1) * pageSize, page * pageSize);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    if (serverPagination) {
+      onPageChange?.(newPage);
+    } else {
+      setPage(newPage);
+    }
+  };
+
+  const pageNumbers = useMemo(() => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (activePage <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages);
+      } else if (activePage >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', activePage - 1, activePage, activePage + 1, '...', totalPages);
+      }
+    }
+    return pages;
+  }, [totalPages, activePage]);
 
   const getCellValue = (row: T, key: string): unknown => {
     const r = row as Record<string, unknown>;
@@ -212,7 +252,7 @@ export function DataTable<T extends object>({
                   ))}
                 </tr>
               ))
-            ) : paginated.length === 0 ? (
+            ) : displayRows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + (rowActions ? 1 : 0)} className="px-4 py-16 text-center text-gray-400">
                   <div className="flex flex-col items-center gap-2">
@@ -222,7 +262,7 @@ export function DataTable<T extends object>({
                 </td>
               </tr>
             ) : (
-              paginated.map((row, ri) => (
+              displayRows.map((row, ri) => (
                 <tr
                   key={getRowKey ? getRowKey(row) : ri}
                   className={cn(
@@ -264,37 +304,46 @@ export function DataTable<T extends object>({
       {/* Pagination */}
       <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 shrink-0">
         <p className="text-xs text-gray-400">
-          Hiển thị {Math.min((page - 1) * pageSize + 1, processed.length)}–{Math.min(page * pageSize, processed.length)} / {processed.length} bản ghi
+          Hiển thị {activeTotal === 0 ? 0 : (activePage - 1) * pageSize + 1}–{Math.min(activePage * pageSize, activeTotal)} / {activeTotal} bản ghi
         </p>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
+            onClick={() => handlePageChange(activePage - 1)}
+            disabled={activePage === 1}
             className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Trang trước"
           >
             <ChevronLeft size={16} />
           </button>
-          {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-            const p = i + 1;
+          {pageNumbers.map((p, idx) => {
+            if (p === '...') {
+              return (
+                <span key={`ellipsis-${idx}`} className="w-8 h-8 flex items-center justify-center text-xs text-gray-400 select-none">
+                  ...
+                </span>
+              );
+            }
+            const pageNum = Number(p);
             return (
               <button
-                key={p}
-                onClick={() => setPage(p)}
+                key={pageNum}
+                onClick={() => handlePageChange(pageNum)}
                 className={cn(
                   'w-8 h-8 rounded-lg text-sm font-500 transition-colors',
-                  page === p
-                    ? 'bg-[#FA7070] text-white'
+                  activePage === pageNum
+                    ? 'bg-[#FA7070] text-white shadow-xs'
                     : 'text-gray-500 hover:bg-gray-100'
                 )}
               >
-                {p}
+                {pageNum}
               </button>
             );
           })}
           <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
+            onClick={() => handlePageChange(activePage + 1)}
+            disabled={activePage === totalPages}
             className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="Trang sau"
           >
             <ChevronRight size={16} />
           </button>

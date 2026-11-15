@@ -103,7 +103,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, isAuthenticated, isLoading } = useApp();
   const [email, setEmail] = useState('admin@smartexpress.vn');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('123456');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -298,10 +298,44 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Hint */}
-            <div className="mt-5 p-3 bg-blue-50 rounded-xl">
-              <p className="text-xs text-blue-600 font-500">Tài khoản Admin mặc định:</p>
-              <p className="text-xs text-blue-500 mt-0.5">admin@smartexpress.vn / 123456</p>
+            {/* Quick Demo Accounts */}
+            <div className="mt-5 p-3.5 bg-slate-50 border border-slate-100 rounded-2xl">
+              <p className="text-xs font-600 text-gray-700 mb-2">Đăng nhập nhanh tài khoản mẫu:</p>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('admin@smartexpress.vn');
+                    setPassword('123456');
+                  }}
+                  className="px-2 py-1.5 text-[11px] font-600 bg-white border border-slate-200 hover:border-[#FA7070] hover:text-[#FA7070] rounded-xl text-gray-700 transition-colors shadow-2xs"
+                  id="btn-quick-admin"
+                >
+                  👑 Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('dieupoi01@smartexpress.vn');
+                    setPassword('123456');
+                  }}
+                  className="px-2 py-1.5 text-[11px] font-600 bg-white border border-slate-200 hover:border-violet-500 hover:text-violet-600 rounded-xl text-gray-700 transition-colors shadow-2xs"
+                  id="btn-quick-dispatcher"
+                >
+                  ⚡ Điều phối
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('driver01@smartexpress.vn');
+                    setPassword('123456');
+                  }}
+                  className="px-2 py-1.5 text-[11px] font-600 bg-white border border-slate-200 hover:border-emerald-500 hover:text-emerald-600 rounded-xl text-gray-700 transition-colors shadow-2xs"
+                  id="btn-quick-driver"
+                >
+                  🚚 Tài xế
+                </button>
+              </div>
             </div>
           </div>
 

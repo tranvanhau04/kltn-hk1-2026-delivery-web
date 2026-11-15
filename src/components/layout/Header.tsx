@@ -79,17 +79,35 @@ export function Header() {
       </div>
 
       {/* Global Search */}
-      <div className="relative hidden md:flex items-center w-60">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (search.trim()) {
+            router.push(`/orders?search=${encodeURIComponent(search.trim())}`);
+          }
+        }}
+        className="relative hidden md:flex items-center w-64"
+      >
         <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tìm đơn hàng, tài xế..."
-          className="input-base pl-10 h-9 text-sm w-full"
+          placeholder="Tìm đơn hàng, tài xế (Enter)..."
+          className="input-base pl-10 pr-7 h-9 text-xs w-full focus:ring-2 focus:ring-[#FA7070]/20"
           id="header-global-search"
         />
-      </div>
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch('')}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm font-bold"
+            title="Xóa tìm kiếm"
+          >
+            ×
+          </button>
+        )}
+      </form>
 
       {/* Notifications */}
       <div ref={notifsRef} className="relative">

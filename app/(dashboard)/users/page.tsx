@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Mail, Phone, Shield, UserCheck, Pencil, Truck } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Mail, Phone, Shield, UserCheck, Pencil, Truck, Lock } from 'lucide-react';
 import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
 import { fetchUsers, createUser, updateUserStatus, forgotPassword } from '@/lib/api';
 import type { User, UserRole } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
+import { useApp } from '@/context/AppContext';
 import { formatDateTime, cn } from '@/lib/utils';
 
 const ROLE_CONFIG: Record<UserRole, { label: string; className: string }> = {
@@ -103,24 +105,50 @@ function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit:
 
 export default function UsersPage() {
   const toast = useToast();
+  const { currentUser } = useApp();
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
   const [showInvite, setShowInvite] = useState(false);
   const [filter, setFilter] = useState('ALL');
+  const [loading, setLoading] = useState(true);
 
   const loadUsers = React.useCallback(async () => {
+    if (currentUser && currentUser.role !== 'ADMIN') return;
+    setLoading(true);
     try {
       const data = await fetchUsers();
-      setUsers(data);
+      setUsers(data || []);
     } catch (error) {
       console.error('Failed to load users', error);
+      toast.error('Lỗi kết nối máy chủ', 'Không thể tải danh sách người dùng. Vui lòng kiểm tra lại backend.');
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [toast, currentUser]);
 
   React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadUsers();
   }, [loadUsers]);
+
+  // Role Guard: Only ADMIN can view and manage users
+  if (currentUser && currentUser.role !== 'ADMIN') {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center card bg-white space-y-4 my-8">
+        <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center shadow-xs">
+          <Lock size={32} />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-lg font-700 text-gray-900">Quyền truy cập bị từ chối (403 Forbidden)</h3>
+          <p className="text-sm text-gray-500 max-w-md mx-auto">
+            Tài khoản của bạn hiện tại có vai trò <span className="font-600 text-gray-700">{currentUser.role === 'DISPATCHER' ? 'Điều phối viên (Dispatcher)' : currentUser.role}</span>. Phân hệ Quản lý người dùng hệ thống chỉ được cấp quyền cho Quản trị viên (ADMIN).
+          </p>
+        </div>
+        <Link href="/dashboard" className="btn-primary text-sm">
+          Quay lại Bảng điều khiển
+        </Link>
+      </div>
+    );
+  }
 
   const toggleUserStatus = async (user: User) => {
     try {
@@ -217,7 +245,7 @@ export default function UsersPage() {
             </div>
             <div>
               <p className="text-2xl font-700 text-gray-900">
-                {users.filter((u) => u.role === r.role).length}
+                {loading ? '...' : users.filter((u) => u.role === r.role).length}
               </p>
               <p className="text-xs text-gray-500">{r.label}</p>
             </div>
@@ -228,6 +256,7 @@ export default function UsersPage() {
       <DataTable
         data={filteredUsers}
         columns={columns}
+        loading={loading}
         filterTabs={[
           { label: 'Tất cả', value: 'ALL', count: users.length },
           { label: 'Quản trị viên', value: 'ADMIN', count: users.filter((u) => u.role === 'ADMIN').length },

@@ -92,29 +92,33 @@ export default function DashboardOverviewPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Tổng đơn hàng"
-          value={loading ? '...' : totalOrders}
+          value={totalOrders}
           trend={12}
+          loading={loading}
           icon={<Package size={18} className="text-[#FA7070]" />}
           iconBg="bg-[#FFF0F0]"
         />
         <StatCard
           title="Tài xế hoạt động"
-          value={loading ? '...' : activeCouriers}
+          value={activeCouriers}
           trend={2}
+          loading={loading}
           icon={<Truck size={18} className="text-blue-500" />}
           iconBg="bg-blue-50"
         />
         <StatCard
           title="Giao thành công"
-          value={loading ? '...' : successRate}
+          value={successRate}
           trend={1.5}
+          loading={loading}
           icon={<CheckCircle size={18} className="text-green-500" />}
           iconBg="bg-green-50"
         />
         <StatCard
           title="COD Đã thu"
-          value={loading ? '...' : formatCurrency(totalCOD)}
+          value={formatCurrency(totalCOD)}
           trend={5}
+          loading={loading}
           icon={<DollarSign size={18} className="text-amber-500" />}
           iconBg="bg-amber-50"
         />
@@ -132,9 +136,13 @@ export default function DashboardOverviewPage() {
             </div>
             <div className="flex-1 min-h-0 flex items-center justify-center">
               {loading ? (
-                <div className="flex items-center gap-2 text-gray-400 text-xs">
-                  <Loader2 size={18} className="animate-spin text-[#FA7070]" />
-                  <span>Đang tải biểu đồ...</span>
+                <div className="w-full h-full flex flex-col justify-end gap-3 p-4 animate-pulse">
+                  <div className="flex items-end gap-3 h-48 w-full justify-between">
+                    {[40, 65, 45, 85, 60, 75, 95].map((h, i) => (
+                      <div key={i} className="flex-1 bg-slate-100 rounded-t-xl" style={{ height: `${h}%` }} />
+                    ))}
+                  </div>
+                  <div className="h-3 bg-slate-100 rounded-md w-full" />
                 </div>
               ) : chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
