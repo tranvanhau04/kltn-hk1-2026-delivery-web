@@ -202,10 +202,28 @@ export async function fetchOrders(query?: {
   return apiFetch<{ data: ApiOrder[]; total: number }>(`/orders${qs ? `?${qs}` : ''}`);
 }
 
+export async function fetchOrderStatusCounts(query?: {
+  hubId?: string;
+  regionId?: string;
+}): Promise<Record<string, number>> {
+  const params = new URLSearchParams();
+  if (query?.hubId) params.append('hubId', query.hubId);
+  if (query?.regionId) params.append('regionId', query.regionId);
+  const qs = params.toString();
+  return apiFetch<Record<string, number>>(`/orders/stats/counts${qs ? `?${qs}` : ''}`);
+}
+
 /** Create a new order */
 export async function createOrder(data: Partial<ApiOrder>): Promise<ApiOrder> {
   return apiFetch<ApiOrder>('/orders', {
     method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateOrder(id: string, data: Partial<ApiOrder>): Promise<ApiOrder> {
+  return apiFetch<ApiOrder>(`/orders/${id}`, {
+    method: 'PATCH',
     body: JSON.stringify(data),
   });
 }
@@ -352,8 +370,10 @@ export async function updateShiftStatus(userId: string, currentShiftStatus: stri
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export async function fetchUsers(): Promise<User[]> {
-  const res = await apiFetch<{ data: User[] }>('/users?limit=100');
-  return res.data;
+  const res = await apiFetch<any>('/users?limit=100');
+  if (Array.isArray(res)) return res;
+  if (res && Array.isArray(res.data)) return res.data;
+  return [];
 }
 
 export interface CreateUserPayload {

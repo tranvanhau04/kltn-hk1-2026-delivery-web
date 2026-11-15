@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Search, Navigation, Phone, MessageSquare,
@@ -73,6 +73,7 @@ function useLiveTracking() {
   const simStateRef = useRef<Record<string, { distance: number }>>({});
   const driversRef = useRef<ApiLiveDriver[]>([]);
   const polylinesRef = useRef<{ driverId: string; path: [number, number][]; color: string }[]>([]);
+  const lastSocketUpdateRef = useRef<Record<string, number>>({});
 
   const COLORS = ['#FA7070', '#6D28D9', '#1D4ED8', '#059669', '#D97706', '#DB2777'];
 
@@ -114,7 +115,7 @@ function useLiveTracking() {
     return () => clearInterval(t1);
   }, [fetchPositions]);
 
-  // Realtime Socket.io Live Tracking
+  // Realtime Socket.io Live Tracking with throttle protection
   useEffect(() => {
     let token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!token && typeof document !== 'undefined') {
@@ -125,8 +126,15 @@ function useLiveTracking() {
     connectSocket(token || '');
 
     const unsubscribe = onDriverLocationUpdated((data) => {
+      const now = Date.now();
+      const last = lastSocketUpdateRef.current[data.driverId] || 0;
+      if (now - last < 800) {
+        return; // Throttle excessive socket bursts under 800ms
+      }
+      lastSocketUpdateRef.current[data.driverId] = now;
+
       setUsingRealApi(true);
-      setPositionSource((ps) => ({ ...ps, [data.driverId]: 'real' }));
+      setPositionSource((ps) => (ps[data.driverId] === 'real' ? ps : { ...ps, [data.driverId]: 'real' }));
       setPositions((prev) => ({
         ...prev,
         [data.driverId]: { lat: data.latitude, lng: data.longitude },
@@ -169,7 +177,7 @@ function useLiveTracking() {
     };
   }, []);
 
-  // Simulation Tick (every 100ms) — only for drivers with polylines but no live GPS
+  // Simulation Tick (every 1200ms, synchronized with Leaflet SmoothMarker 1200ms interpolation)
   useEffect(() => {
     let lastTime = performance.now();
     
@@ -196,9 +204,11 @@ function useLiveTracking() {
             dLive.currentLng != null;
 
           if (isRealGps && dLive.currentLat != null && dLive.currentLng != null) {
-            next[did] = { lat: dLive.currentLat, lng: dLive.currentLng };
+            if (!next[did] || next[did].lat !== dLive.currentLat || next[did].lng !== dLive.currentLng) {
+              next[did] = { lat: dLive.currentLat, lng: dLive.currentLng };
+              changed = true;
+            }
             setPositionSource(ps => ps[did] === 'real' ? ps : { ...ps, [did]: 'real' });
-            changed = true;
             return;
           }
 
@@ -225,7 +235,7 @@ function useLiveTracking() {
 
         return changed ? next : prev;
       });
-    }, 100);
+    }, 1200);
 
     return () => clearInterval(t2);
   }, [usingRealApi]);
@@ -234,10 +244,14 @@ function useLiveTracking() {
 }
 
 // ─── Merge live driver data with driver domain structure ────────────
-function mergeDriverData(liveDrivers: ApiLiveDriver[]): Driver[] {
+function mergeDriverData(
+  liveDrivers: ApiLiveDriver[],
+  positions?: Record<string, { lat: number; lng: number; heading?: number }>
+): Driver[] {
   if (liveDrivers.length === 0) return [];
 
   return liveDrivers.map((ld) => {
+    const pos = positions?.[ld.driverId];
     return {
       userId: ld.driverId,
       fullName: ld.fullName,
@@ -250,8 +264,8 @@ function mergeDriverData(liveDrivers: ApiLiveDriver[]): Driver[] {
       currentShiftStatus: (ld.currentShiftStatus === 'BUSY' || ld.currentShiftStatus === 'ONLINE_READY'
         ? 'ON_DUTY'
         : 'OFF_DUTY') as Driver['currentShiftStatus'],
-      currentLat: ld.currentLat ?? undefined,
-      currentLng: ld.currentLng ?? undefined,
+      currentLat: pos ? pos.lat : (ld.currentLat ?? undefined),
+      currentLng: pos ? pos.lng : (ld.currentLng ?? undefined),
       currentSpeedKmh: undefined,
     };
   });
@@ -422,10 +436,17 @@ export default function TrackingPage() {
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const { positions, positionSource, polylines, liveDrivers, usingRealApi } = useLiveTracking();
 
-  const allDrivers = mergeDriverData(liveDrivers);
-  const activeDrivers = allDrivers.filter((d) => d.currentShiftStatus !== 'OFFLINE');
-  const filteredDrivers = activeDrivers.filter((d) =>
-    !search || d.fullName.toLowerCase().includes(search.toLowerCase()) || d.licensePlate.toLowerCase().includes(search.toLowerCase())
+  const allDrivers = useMemo(() => mergeDriverData(liveDrivers, positions), [liveDrivers, positions]);
+  const activeDrivers = useMemo(() => allDrivers.filter((d) => d.currentShiftStatus !== 'OFFLINE'), [allDrivers]);
+  const filteredDrivers = useMemo(
+    () =>
+      activeDrivers.filter(
+        (d) =>
+          !search ||
+          d.fullName.toLowerCase().includes(search.toLowerCase()) ||
+          d.licensePlate.toLowerCase().includes(search.toLowerCase())
+      ),
+    [activeDrivers, search]
   );
 
   // Count GPS sources for status bar

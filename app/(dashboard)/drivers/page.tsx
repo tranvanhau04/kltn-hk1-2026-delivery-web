@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Phone, Eye, Pencil } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Plus, Phone, Eye, Pencil, Navigation } from 'lucide-react';
 import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
@@ -265,6 +266,101 @@ function EditDriverModal({ driver, depots, onClose, onSubmit }: {
   );
 }
 
+// ─── Driver Detail Modal ──────────────────────────────────────────────────────
+
+function DriverDetailModal({
+  driver,
+  onClose,
+  onEdit,
+}: {
+  driver: Driver;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  const router = useRouter();
+  const depotName = driver.depot?.name || 'Chưa gán kho';
+
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Hồ sơ tài xế — ${driver.fullName}`}
+      subtitle={`Biển số: ${driver.licensePlate}`}
+      size="md"
+      footer={
+        <>
+          <button onClick={onClose} className="btn-secondary">Đóng</button>
+          <button
+            onClick={() => {
+              onClose();
+              router.push('/tracking');
+            }}
+            className="btn-secondary flex items-center gap-1.5"
+          >
+            <Navigation size={14} className="text-[#FA7070]" />
+            Giám sát trực tiếp
+          </button>
+          <button
+            onClick={() => {
+              onClose();
+              onEdit();
+            }}
+            className="btn-primary flex items-center gap-1.5"
+          >
+            <Pencil size={14} />
+            Chỉnh sửa thông số
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {/* Top Header Card */}
+        <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl border border-red-100">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FA7070] to-[#8B2626] flex items-center justify-center text-white font-bold text-xl shadow-md shrink-0">
+            {driver.fullName.charAt(0)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-gray-900 truncate">{driver.fullName}</h3>
+              <StatusBadge status={driver.currentShiftStatus} />
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">{driver.email || 'Chưa cập nhật email'}</p>
+            <p className="text-xs font-semibold text-gray-700 mt-1 flex items-center gap-1">
+              <Phone size={12} className="text-gray-400" />
+              {driver.phone || 'Chưa có SĐT'}
+            </p>
+          </div>
+        </div>
+
+        {/* Vehicle and Capacity Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
+            <span className="text-[11px] font-500 text-gray-400 block mb-1">Phương tiện</span>
+            <p className="text-sm font-semibold text-gray-800">{VEHICLE_TYPE_LABELS[driver.vehicleType]}</p>
+            <span className="text-xs font-mono font-medium text-gray-500 mt-0.5 block">{driver.licensePlate}</span>
+          </div>
+
+          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
+            <span className="text-[11px] font-500 text-gray-400 block mb-1">Kho trực thuộc (Depot)</span>
+            <p className="text-sm font-semibold text-gray-800 truncate">{depotName}</p>
+            <span className="text-xs text-gray-500 mt-0.5 block">{driver.depot?.address || 'Khu vực TP.HCM'}</span>
+          </div>
+
+          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
+            <span className="text-[11px] font-500 text-gray-400 block mb-1">Tải trọng tối đa</span>
+            <p className="text-base font-bold text-gray-900">{driver.maxWeightKg} <span className="text-xs font-normal text-gray-500">kg</span></p>
+          </div>
+
+          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
+            <span className="text-[11px] font-500 text-gray-400 block mb-1">Thể tích thùng xe</span>
+            <p className="text-base font-bold text-gray-900">{driver.maxVolumeM3} <span className="text-xs font-normal text-gray-500">m³</span></p>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DriversPage() {
@@ -275,6 +371,7 @@ export default function DriversPage() {
   const [hubFilter, setHubFilter] = useState('');
   const [showAddDriver, setShowAddDriver] = useState(false);
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [filter, setFilter] = useState('ALL');
 
   React.useEffect(() => {
@@ -418,9 +515,15 @@ export default function DriversPage() {
         onSearchChange={setSearch}
         searchPlaceholder="Tìm tên, biển số, SĐT..."
         getRowKey={(row) => row.userId}
+        onRowClick={(row) => setSelectedDriver(row as Driver)}
         rowActions={(row) => (
           <>
-            <button className="flex items-center justify-center w-7 h-7 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors" title="Xem chi tiết">
+            <button
+              onClick={(e) => { e.stopPropagation(); setSelectedDriver(row as Driver); }}
+              className="flex items-center justify-center w-7 h-7 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"
+              title="Xem chi tiết"
+              id={`btn-view-driver-${(row as Driver).userId}`}
+            >
               <Eye size={14} />
             </button>
             {/* Pencil now opens EditDriverModal — Bug #7 fix */}
@@ -493,6 +596,19 @@ export default function DriversPage() {
               console.error('Lỗi cập nhật tài xế', err);
               toast.error('Lỗi cập nhật', err instanceof Error ? err.message : 'Vui lòng thử lại');
             }
+          }}
+        />
+      )}
+
+      {/* Driver Detail Modal */}
+      {selectedDriver && (
+        <DriverDetailModal
+          driver={selectedDriver}
+          onClose={() => setSelectedDriver(null)}
+          onEdit={() => {
+            const target = selectedDriver;
+            setSelectedDriver(null);
+            setEditingDriver(target);
           }}
         />
       )}

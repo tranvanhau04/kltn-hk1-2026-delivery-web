@@ -247,10 +247,31 @@ export default function TrackingMap({
       return;
     }
     setActiveDrivers((prev) => {
+      // Avoid recreating array if coordinates and drivers haven't changed
+      let hasChanged = prev.length !== drivers.length;
+      if (!hasChanged) {
+        for (const d of drivers) {
+          const ex = prev.find((item) => item.driverId === d.userId);
+          if (
+            !ex ||
+            Math.abs(ex.latitude - (d.currentLat ?? 0)) > 0.00001 ||
+            Math.abs(ex.longitude - (d.currentLng ?? 0)) > 0.00001
+          ) {
+            hasChanged = true;
+            break;
+          }
+        }
+      }
+      if (!hasChanged) return prev; // Avoid triggering re-render
+
       const next: ActiveDriver[] = [];
       drivers.forEach((d) => {
         if (d.currentLat != null && d.currentLng != null) {
           const existing = prev.find((item) => item.driverId === d.userId);
+          let bearing = existing?.bearing;
+          if (existing && (existing.latitude !== d.currentLat || existing.longitude !== d.currentLng)) {
+            bearing = calculateBearing(existing.latitude, existing.longitude, d.currentLat, d.currentLng);
+          }
           next.push({
             driverId: d.userId,
             fullName: d.fullName,
@@ -258,7 +279,7 @@ export default function TrackingMap({
             longitude: d.currentLng,
             batteryLevel: existing?.batteryLevel ?? 95,
             shiftId: existing?.shiftId,
-            bearing: existing?.bearing,
+            bearing,
             lastUpdated: existing?.lastUpdated ?? new Date(),
           });
         }
