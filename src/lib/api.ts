@@ -72,6 +72,8 @@ export interface ApiVrpRouteResult {
   totalEstimatedTimeMin: number;
   totalWeightKg: number;
   polyline: [number, number][];
+  estimatedFuelLiters?: number;
+  estimatedFuelCostVnd?: number;
 }
 
 export interface ApiVrpSolution {
@@ -80,6 +82,8 @@ export interface ApiVrpSolution {
   totalOrders: number;
   optimizationTimeMs: number;
   depot: ApiDepot;
+  totalFuelLiters?: number;
+  totalFuelCostVnd?: number;
 }
 
 export interface ApiLiveDriver {
@@ -261,6 +265,62 @@ export async function confirmVRPDispatch(solution: ApiVrpSolution): Promise<{ me
 /** Fetch live driver positions + active route polylines */
 export async function fetchLiveTracking(): Promise<ApiLiveDriver[]> {
   return apiFetch<ApiLiveDriver[]>('/tracking/live');
+}
+
+export interface ApiRouteStop {
+  id: string;
+  routeId: string;
+  orderId: string;
+  sequenceNo: number;
+  status: string; // 'PENDING' | 'ARRIVED' | 'COMPLETED' | 'FAILED' | 'SKIPPED'
+  arrivedAt?: string | null;
+  order: {
+    id: string;
+    code: string;
+    receiverName: string;
+    receiverPhone: string;
+    deliveryAddress: string;
+    latitude: number;
+    longitude: number;
+    lat?: number;
+    lng?: number;
+    codAmount: number;
+    status: string;
+    createdAt?: string;
+  } | null;
+}
+
+export interface ApiDriverRouteTodayResponse {
+  success: boolean;
+  message?: string;
+  route: {
+    id: string;
+    driverId: string;
+    routeDate: string;
+    totalDistanceKm: number;
+    totalEstimatedTimeMin: number;
+    status: string;
+    polyline: [number, number][];
+  } | null;
+  stops: ApiRouteStop[];
+  orders: ApiOrder[];
+}
+
+/**
+ * GET /tracking/driver/:driverId/route-today
+ * Fetches the full active delivery route details, stops sequence and polyline for a driver.
+ */
+export async function fetchDriverRouteToday(driverId: string): Promise<ApiDriverRouteTodayResponse | null> {
+  try {
+    const res = await apiFetch<ApiDriverRouteTodayResponse>(`/tracking/driver/${driverId}/route-today`);
+    if (res && res.success) {
+      return res;
+    }
+    return null;
+  } catch (err) {
+    console.warn(`[api] fetchDriverRouteToday failed for driver ${driverId}:`, err);
+    return null;
+  }
 }
 
 /**

@@ -8,9 +8,17 @@ import {
   Activity, User, Loader2,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { fetchLiveTracking, fetchDriverActiveOrders, type ApiLiveDriver, type ApiOrder } from '@/lib/api';
+import { fetchLiveTracking, fetchDriverActiveOrders, fetchDriverRouteToday, type ApiLiveDriver, type ApiOrder, type ApiDriverRouteTodayResponse } from '@/lib/api';
 import type { Driver } from '@/types/domain';
 import { connectSocket, onDriverLocationUpdated } from '@/lib/socketClient';
+
+const VEHICLE_LABELS: Record<string, string> = {
+  MOTORBIKE: '🏍️ Xe máy',
+  VAN_500KG: '🚐 Xe tải 500kg',
+  TRUCK_1TON: '🚛 Xe tải 1 tấn',
+  'TRUCK_1.5TON': '🚛 Xe tải 1.5 tấn',
+  TRUCK_2TON: '🚛 Xe tải 2 tấn',
+};
 
 const TrackingMap = dynamic(() => import('@/components/TrackingMap'), { ssr: false });
 
@@ -81,8 +89,22 @@ function useLiveTracking() {
       const data = await fetchLiveTracking();
       const list = Array.isArray(data) ? data : [];
       
-      setLiveDrivers(list);
-      driversRef.current = list;
+      const mergedList = list.map((d) => {
+        const existing = driversRef.current.find((p) => p.driverId === d.driverId);
+        if (existing && !existing.positionUnknown && (d.positionUnknown || !d.currentLat)) {
+          return {
+            ...d,
+            currentLat: existing.currentLat,
+            currentLng: existing.currentLng,
+            positionUnknown: false,
+            lastUpdated: existing.lastUpdated,
+          };
+        }
+        return d;
+      });
+
+      setLiveDrivers(mergedList);
+      driversRef.current = mergedList;
       setUsingRealApi(true);
 
       const newPolylines: typeof polylines = [];
@@ -125,6 +147,7 @@ function useLiveTracking() {
     connectSocket(token || '');
 
     const unsubscribe = onDriverLocationUpdated((data) => {
+      console.log('💻 Web Received:', data);
       setUsingRealApi(true);
       setPositionSource((ps) => ({ ...ps, [data.driverId]: 'real' }));
       setPositions((prev) => ({
@@ -305,7 +328,7 @@ function DriverSlideOver({ driver, position, onClose, liveData }: {
             </button>
           </div>
           <h3 className="text-white font-700 text-base">{driver.fullName}</h3>
-          <p className="text-white/70 text-xs mt-0.5">{driver.licensePlate} · {driver.vehicleType.replace(/_/g, ' ')}</p>
+          <p className="text-white/70 text-xs mt-0.5">{driver.licensePlate} · {VEHICLE_LABELS[driver.vehicleType] || driver.vehicleType.replace(/_/g, ' ')}</p>
           <div className="mt-3 flex items-center gap-2">
             <StatusBadge status={driver.currentShiftStatus} className="text-[11px]" />
           </div>
@@ -420,13 +443,71 @@ function DriverSlideOver({ driver, position, onClose, liveData }: {
 export default function TrackingPage() {
   const [search, setSearch] = useState('');
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [selectedDriverRoute, setSelectedDriverRoute] = useState<ApiDriverRouteTodayResponse | null>(null);
+
+  // Poll full route details when a driver is selected, auto-updating next stops as orders are delivered
+  useEffect(() => {
+    let isMounted = true;
+    if (!selectedDriver?.userId) {
+      setSelectedDriverRoute(null);
+      return;
+    }
+
+    async function loadRoute() {
+      try {
+        const routeData = await fetchDriverRouteToday(selectedDriver!.userId);
+        if (isMounted) {
+          setSelectedDriverRoute(routeData);
+        }
+      } catch (err) {
+        console.warn('Failed to load selected driver route:', err);
+        if (isMounted) setSelectedDriverRoute(null);
+      }
+    }
+
+    loadRoute();
+    const interval = setInterval(loadRoute, 4000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [selectedDriver?.userId]);
   const { positions, positionSource, polylines, liveDrivers, usingRealApi } = useLiveTracking();
 
-  const allDrivers = mergeDriverData(liveDrivers);
-  const activeDrivers = allDrivers.filter((d) => d.currentShiftStatus !== 'OFFLINE');
-  const filteredDrivers = activeDrivers.filter((d) =>
+  const allDrivers = React.useMemo(() => mergeDriverData(liveDrivers), [liveDrivers]);
+  const activeDrivers = React.useMemo(() => allDrivers.filter((d) => d.currentShiftStatus !== 'OFFLINE'), [allDrivers]);
+  const filteredDrivers = React.useMemo(() => activeDrivers.filter((d) =>
     !search || d.fullName.toLowerCase().includes(search.toLowerCase()) || d.licensePlate.toLowerCase().includes(search.toLowerCase())
-  );
+  ), [activeDrivers, search]);
+
+  // Ensure dropdown contains the selected driver even if excluded by search filter
+  const dropdownDrivers = React.useMemo(() => {
+    if (selectedDriver && !filteredDrivers.some((d) => d.userId === selectedDriver.userId)) {
+      return [selectedDriver, ...filteredDrivers];
+    }
+    return filteredDrivers;
+  }, [selectedDriver, filteredDrivers]);
+
+  // Unified driver selection handler shared between Marker clicks and Dropdown
+  const handleSelectDriver = useCallback((driverId: string | null) => {
+    if (!driverId) {
+      setSelectedDriver(null);
+    } else {
+      const found =
+        allDrivers.find((d) => String(d.userId) === String(driverId)) ||
+        allDrivers.find((d) => String((d as any).driverId) === String(driverId));
+      if (found) {
+        setSelectedDriver(found);
+      } else {
+        const liveFound = liveDrivers.find((d) => String(d.driverId) === String(driverId));
+        if (liveFound) {
+          const merged = mergeDriverData([liveFound])[0];
+          setSelectedDriver(merged);
+        }
+      }
+    }
+  }, [allDrivers, liveDrivers]);
 
   // Count GPS sources for status bar
   const realGpsCount = Object.values(positionSource).filter(s => s === 'real').length;
@@ -487,20 +568,12 @@ export default function TrackingPage() {
             <select
               id="driver-select"
               value={selectedDriver?.userId || ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (!val) {
-                  setSelectedDriver(null);
-                } else {
-                  const d = allDrivers.find((item) => item.userId === val);
-                  setSelectedDriver(d || null);
-                }
-              }}
+              onChange={(e) => handleSelectDriver(e.target.value || null)}
               className="bg-white border border-gray-300 text-gray-800 font-600 text-xs rounded-xl focus:ring-2 focus:ring-[#FA7070]/30 focus:border-[#FA7070] cursor-pointer shadow-2xs hover:border-gray-400 transition-colors h-9 pl-3 pr-8 min-w-[170px] max-w-[240px] truncate"
               aria-label="Chọn tài xế cần theo dõi"
             >
               <option value="">Tất cả tài xế ({activeDrivers.length})</option>
-              {filteredDrivers.map((driver) => {
+              {dropdownDrivers.map((driver) => {
                 const hasGps = positions[driver.userId] !== undefined;
                 const statusEmoji =
                   driver.currentShiftStatus === 'ONLINE_READY'
@@ -510,7 +583,7 @@ export default function TrackingPage() {
                     : '⚪';
                 return (
                   <option key={driver.userId} value={driver.userId}>
-                    {statusEmoji} {driver.fullName} {driver.licensePlate ? `(${driver.licensePlate})` : ''} {hasGps ? '📍' : ''}
+                    {statusEmoji} {driver.vehicleType === 'MOTORBIKE' ? '🏍️' : '🚛'} {driver.fullName} {driver.licensePlate ? `(${driver.licensePlate})` : ''} {hasGps ? '📍' : ''}
                   </option>
                 );
               })}
@@ -524,25 +597,19 @@ export default function TrackingPage() {
         <TrackingMap
           className="w-full h-full min-h-[500px]"
           selectedDriverId={selectedDriver?.userId}
-          onDriverSelect={(driverId) => {
-            if (!driverId) {
-              setSelectedDriver(null);
-            } else {
-              const found = allDrivers.find((d) => d.userId === driverId);
-              setSelectedDriver(found || null);
-            }
-          }}
+          selectedDriverRoute={selectedDriverRoute}
+          onDriverSelect={handleSelectDriver}
           drivers={filteredDrivers}
           polylines={polylines}
           liveDrivers={liveDrivers}
         />
 
         {/* Slide-over panel for selected driver details */}
-        {selectedDriver && positions[selectedDriver.userId] && (
+        {selectedDriver && (positions[selectedDriver.userId] || (selectedDriver.currentLat != null && selectedDriver.currentLng != null)) && (
           <DriverSlideOver
             driver={selectedDriver}
-            position={positions[selectedDriver.userId]}
-            onClose={() => setSelectedDriver(null)}
+            position={positions[selectedDriver.userId] || { lat: selectedDriver.currentLat!, lng: selectedDriver.currentLng! }}
+            onClose={() => handleSelectDriver(null)}
             liveData={liveDrivers.find((d) => d.driverId === selectedDriver.userId)}
           />
         )}
