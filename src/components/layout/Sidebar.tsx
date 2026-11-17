@@ -39,6 +39,13 @@ export function Sidebar() {
     router.replace('/login');
   };
 
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.href === '/users') {
+      return currentUser?.role === 'ADMIN';
+    }
+    return true;
+  });
+
   return (
     <aside className="sidebar flex flex-col bg-white border-r border-slate-100 h-full overflow-hidden">
       {/* Brand */}
@@ -72,7 +79,7 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 overflow-y-auto space-y-0.5">
         <p className="px-2 pb-2 text-[10px] font-700 text-gray-400 uppercase tracking-widest">Menu chính</p>
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link

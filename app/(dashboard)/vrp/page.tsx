@@ -6,6 +6,7 @@ import {
   Zap, Package, CheckCircle,
   ChevronRight, RefreshCw,
   Weight, Box, Send, MapPin, Truck, Phone, Loader2,
+  ChevronUp, ChevronDown, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { CascadingRegionHubSelect } from '@/components/common/CascadingRegionHubSelect';
@@ -14,16 +15,14 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { withRoleGuard } from '@/components/auth/withRoleGuard';
 import {
   fetchOrderPool,
-  fetchDepots,
   fetchOnlineDrivers,
   runVRPOptimize,
-  confirmVRPDispatch,
   apiFetch,
   type ApiVrpSolution,
   type ApiOrder,
   type ApiDepot,
 } from '@/lib/api';
-import type { Order, Driver, Depot, VrpSolution, VrpRoute, Region } from '@/types/domain';
+import type { Order, Driver, Depot, VrpSolution, VrpRoute } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
 
 const VrpMapView = dynamic(() => import('@/components/map/VrpMapView'), { ssr: false });
@@ -247,6 +246,7 @@ interface RouteSummaryCardProps {
   onChangeDriver: (routeIndex: number, newDriverId: string) => void;
   fuelLiters?: number;
   fuelCostVnd?: number;
+  onMoveStop?: (routeIndex: number, stopIndex: number, direction: 'up' | 'down') => void;
 }
 
 function RouteSummaryCard({
@@ -257,6 +257,7 @@ function RouteSummaryCard({
   onChangeDriver,
   fuelLiters,
   fuelCostVnd,
+  onMoveStop,
 }: RouteSummaryCardProps) {
   const [open, setOpen] = useState(false);
   const isOverweight = route.driver?.maxWeightKg ? route.totalWeightKg > route.driver.maxWeightKg : false;
@@ -388,9 +389,33 @@ function RouteSummaryCard({
                       <span className="font-600 text-xs text-gray-800 truncate">
                         {stop.receiverName}
                       </span>
-                      <span className="font-mono text-[9px] font-600 text-[#FA7070] bg-[#FFF0F0] px-1 rounded shrink-0">
-                        {stop.code}
-                      </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="font-mono text-[9px] font-600 text-[#FA7070] bg-[#FFF0F0] px-1 rounded">
+                          {stop.code}
+                        </span>
+                        {onMoveStop && (
+                          <div className="flex items-center bg-gray-100 rounded-md p-0.5 ml-1">
+                            <button
+                              type="button"
+                              disabled={si === 0}
+                              onClick={(e) => { e.stopPropagation(); onMoveStop(routeIndex, si, 'up'); }}
+                              className="text-gray-500 hover:text-black disabled:opacity-20 p-0.5 transition-colors"
+                              title="Đổi thứ tự lên trước"
+                            >
+                              <ChevronUp size={11} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={si === route.stops.length - 1}
+                              onClick={(e) => { e.stopPropagation(); onMoveStop(routeIndex, si, 'down'); }}
+                              className="text-gray-500 hover:text-black disabled:opacity-20 p-0.5 transition-colors"
+                              title="Đổi thứ tự xuống sau"
+                            >
+                              <ChevronDown size={11} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <p className="text-[10px] text-gray-400 truncate flex items-center gap-1">
                       <MapPin size={9} className="shrink-0" /> {stop.deliveryAddress}
@@ -445,6 +470,32 @@ function VrpPage() {
   const [selectedRegionId, setSelectedRegionId] = useState<string>('');
   const [selectedHubId, setSelectedHubId] = useState<string>('');
   const [onlineDrivers, setOnlineDrivers] = useState<Driver[]>([]);
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
+
+  const handleMoveStop = useCallback(
+    (routeIndex: number, stopIndex: number, direction: 'up' | 'down') => {
+      setSolution((prev) => {
+        if (!prev) return null;
+        const targetIndex = direction === 'up' ? stopIndex - 1 : stopIndex + 1;
+        const route = prev.routes[routeIndex];
+        if (!route || targetIndex < 0 || targetIndex >= route.stops.length) return prev;
+
+        const newStops = [...route.stops];
+        const temp = newStops[stopIndex];
+        newStops[stopIndex] = newStops[targetIndex];
+        newStops[targetIndex] = temp;
+
+        const updatedRoutes = [...prev.routes];
+        updatedRoutes[routeIndex] = { ...route, stops: newStops };
+
+        return {
+          ...prev,
+          routes: updatedRoutes,
+        };
+      });
+    },
+    []
+  );
 
   // Helper to load order pool and online drivers: defaults to all, or filtered by region, then by hub
   const loadData = useCallback(async (regionId?: string, hubId?: string) => {
@@ -732,18 +783,29 @@ function VrpPage() {
       )}
 
       {/* ── Left Panel ── */}
-      <div className="w-72 shrink-0 flex flex-col gap-3 h-[calc(100vh-140px)] min-h-0">
-        {/* Real-time Hub Data status indicator */}
-        <div className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-600 bg-emerald-50 text-emerald-800 border border-emerald-100 shrink-0">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            {isLoadingData ? 'Đang tải...' : 'Dữ liệu thời gian thực'}
-          </span>
-          <span className="font-mono text-emerald-700">{newOrders.length} đơn</span>
-        </div>
+      {isLeftPanelOpen ? (
+        <div className="w-72 shrink-0 flex flex-col gap-3 h-[calc(100vh-140px)] min-h-0 transition-all duration-300">
+          {/* Real-time Hub Data status indicator */}
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-600 bg-emerald-50 text-emerald-800 border border-emerald-100 shrink-0">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              {isLoadingData ? 'Đang tải...' : 'Dữ liệu thời gian thực'}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-emerald-700">{newOrders.length} đơn</span>
+              <button
+                type="button"
+                onClick={() => setIsLeftPanelOpen(false)}
+                className="text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/60 p-1 rounded-lg transition-colors"
+                title="Thu gọn panel để mở rộng bản đồ"
+              >
+                <PanelLeftClose size={14} />
+              </button>
+            </div>
+          </div>
 
-        {/* Orders Pool */}
-        <div className="card flex-[3_3_0%] flex flex-col min-h-0 overflow-hidden">
+          {/* Orders Pool */}
+          <div className="card flex-[3_3_0%] flex flex-col min-h-0 overflow-hidden">
           <div className="p-3.5 border-b border-slate-100 shrink-0">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-700 text-gray-900">Đơn hàng chờ phân công</h3>
@@ -857,6 +919,29 @@ function VrpPage() {
           </div>
         </div>
       </div>
+      ) : (
+        <div className="w-12 shrink-0 flex flex-col items-center py-3 bg-white rounded-2xl border border-slate-100 shadow-xs h-[calc(100vh-140px)] gap-4 transition-all duration-300">
+          <button
+            type="button"
+            onClick={() => setIsLeftPanelOpen(true)}
+            className="w-8 h-8 rounded-xl bg-gray-50 hover:bg-[#FFF0F0] hover:text-[#FA7070] flex items-center justify-center text-gray-600 transition-colors"
+            title="Mở rộng danh sách đơn hàng & tài xế"
+          >
+            <PanelLeftOpen size={16} />
+          </button>
+          <div className="w-6 h-px bg-slate-100" />
+          <div className="flex flex-col items-center gap-1 text-[11px] font-bold text-gray-500" title="Đơn đã chọn">
+            <Package size={16} className="text-[#FA7070]" />
+            <span className="font-mono">{selectedOrderIds.length}</span>
+            <span className="text-[9px] text-gray-400">/{newOrders.length}</span>
+          </div>
+          <div className="w-6 h-px bg-slate-100" />
+          <div className="flex flex-col items-center gap-1 text-[11px] font-bold text-emerald-600" title="Tài xế online">
+            <Truck size={16} />
+            <span className="font-mono">{availableDrivers.length}</span>
+          </div>
+        </div>
+      )}
 
       {/* ── Center Map ── */}
       <div className="flex-1 flex flex-col gap-4">
@@ -996,6 +1081,7 @@ function VrpPage() {
               onChangeDriver={handleChangeDriver}
               fuelLiters={solution._api?.routes[idx]?.estimatedFuelLiters}
               fuelCostVnd={solution._api?.routes[idx]?.estimatedFuelCostVnd}
+              onMoveStop={handleMoveStop}
             />
           ))}
         </div>

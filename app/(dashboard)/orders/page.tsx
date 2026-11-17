@@ -7,7 +7,7 @@ import {
   CheckCircle, Truck, AlertCircle,
   Image as ImageIcon, Weight, Box,
   FileText, DollarSign, Navigation,
-  FileDown, Loader2
+  FileDown, Loader2, Printer
 } from 'lucide-react';
 import { DataTable, type ColumnDef, type FilterTab } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
@@ -15,14 +15,17 @@ import { Modal } from '@/components/common/Modal';
 import { CascadingRegionHubSelect } from '@/components/common/CascadingRegionHubSelect';
 import { useApp } from '@/context/AppContext';
 import { formatDateTime, formatCurrency, cn } from '@/lib/utils';
-import { fetchOrders, createOrder, fetchOrderPod, exportOrdersExcel, type ApiPodData } from '@/lib/api';
+import { fetchOrders, fetchOrderStatusCounts, createOrder, updateOrder, fetchOrderPod, exportOrdersExcel, type ApiPodData } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
+import { useDebounce } from '@/hooks/useDebounce';
 import dynamic from 'next/dynamic';
 
 // Lazy-load modals to avoid SSR issues
 const MapPickerModal = dynamic(() => import('@/components/map/MapPickerModal'), { ssr: false });
 const ImportExcelModal = dynamic(() => import('@/components/orders/ImportExcelModal'), { ssr: false });
+const WaybillModal = dynamic(() => import('@/components/orders/WaybillModal').then((m) => m.WaybillModal), { ssr: false });
+const EditOrderModal = dynamic(() => import('@/components/orders/EditOrderModal').then((m) => m.EditOrderModal), { ssr: false });
 
 // ─── Delivery Progress Stepper ───────────────────────────────────
 const STEPS: { key: OrderStatus[]; label: string; icon: React.ReactNode }[] = [
@@ -93,11 +96,13 @@ function OrderDetailModal({
   onClose,
   onOpenMap,
   onRelocate,
+  onPrint,
 }: {
   order: Order;
   onClose: () => void;
   onOpenMap: () => void;
   onRelocate: () => void;
+  onPrint?: () => void;
 }) {
   const isDelivered = order.status === 'DELIVERED';
   const needsGeoReview = order.isGeocoded === false;
@@ -132,11 +137,15 @@ function OrderDetailModal({
     };
   }, [order.id, isEligibleForPod]);
 
-  // Construct full photo URL từ ENV (không hardcode localhost)
+  // Construct full photo URL: Nếu đã là URL tuyệt đối (S3 Presigned URL) thì dùng trực tiếp
   const apiHost = process.env.NEXT_PUBLIC_API_URL
     ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, '')
     : 'http://localhost:3001';
-  const fullPhotoUrl = podData?.photoUrl ? `${apiHost}${podData.photoUrl}` : null;
+  const fullPhotoUrl = podData?.photoUrl
+    ? (podData.photoUrl.startsWith('http://') || podData.photoUrl.startsWith('https://')
+        ? podData.photoUrl
+        : `${apiHost}${podData.photoUrl}`)
+    : null;
   return (
     <Modal
       isOpen
@@ -147,6 +156,15 @@ function OrderDetailModal({
       footer={
         <>
           <button onClick={onClose} className="btn-secondary">Đóng</button>
+          {onPrint && (
+            <button
+              onClick={onPrint}
+              className="btn-secondary text-sm flex items-center gap-1.5"
+              id="btn-print-detail-order"
+            >
+              <Printer size={15} className="text-gray-600" /> In phiếu gửi
+            </button>
+          )}
           {!isDelivered && (
             <button onClick={onRelocate} className="btn-secondary text-sm" id="btn-relocate-order">
               <Navigation size={15} /> Định vị lại
@@ -536,14 +554,37 @@ export default function OrdersPage() {
   useApp(); // kept for backward-compat (layout etc.)
   const toast = useToast();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 350);
   const [activeFilter, setActiveFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(15);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [showMapForOrder, setShowMapForOrder] = useState<Order | null>(null);
   const [relocateOrder, setRelocateOrder] = useState<Order | null>(null);
   const [localOrders, setLocalOrders] = useState<Order[]>([]);
   const [showImportExcel, setShowImportExcel] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  const handleUpdateOrder = async (data: Partial<Order>) => {
+    if (!editingOrder) return;
+    try {
+      const updated = await updateOrder(editingOrder.id, data);
+      setLocalOrders((prev) =>
+        prev.map((o) => (o.id === editingOrder.id ? { ...o, ...updated } : o))
+      );
+      toast.success('Cập nhật đơn hàng thành công!', `Mã đơn ${updated.code} đã được lưu.`);
+      setEditingOrder(null);
+    } catch (err: unknown) {
+      toast.error('Lỗi cập nhật đơn hàng', (err as Error).message);
+      throw err;
+    }
+  };
 
   const handleExportExcel = async () => {
     try {
@@ -574,26 +615,47 @@ export default function OrdersPage() {
   
   const loadOrders = useCallback(async () => {
     try {
+      setLoading(true);
       const filterParams: { hubId?: string; regionId?: string } = selectedHubId
         ? { hubId: selectedHubId }
         : selectedRegionId
         ? { regionId: selectedRegionId }
         : {};
 
-      const res = await fetchOrders({
-        status: activeFilter !== 'ALL' && activeFilter !== 'EXCEPTION' ? activeFilter : activeFilter === 'EXCEPTION' ? EXCEPTION_STATUSES : undefined,
-        search: search || undefined,
-        ...filterParams,
-        limit: 100,
-      });
+      const [res, counts] = await Promise.all([
+        fetchOrders({
+          status:
+            activeFilter !== 'ALL' && activeFilter !== 'EXCEPTION'
+              ? activeFilter
+              : activeFilter === 'EXCEPTION'
+              ? EXCEPTION_STATUSES
+              : undefined,
+          search: debouncedSearch || undefined,
+          ...filterParams,
+          page,
+          limit: pageSize,
+        }),
+        fetchOrderStatusCounts(filterParams).catch(() => ({})),
+      ]);
+
       setLocalOrders(res.data);
+      setTotalOrders(res.total);
+      if (counts && Object.keys(counts).length > 0) {
+        setStatusCounts(counts);
+      }
     } catch (err) {
       console.error(err instanceof Error ? err.message : 'Lỗi tải đơn hàng');
+    } finally {
+      setLoading(false);
     }
-  }, [activeFilter, search, selectedHubId, selectedRegionId]);
+  }, [activeFilter, debouncedSearch, selectedHubId, selectedRegionId, page, pageSize]);
 
-  React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, activeFilter, selectedRegionId, selectedHubId]);
+
+  useEffect(() => {
     void loadOrders();
   }, [loadOrders]);
 
@@ -606,39 +668,23 @@ export default function OrdersPage() {
     toast.success('Đã cập nhật tọa độ', 'Vị trí đơn hàng đã được cập nhật thành công.');
   }, [toast]);
 
-  // Build tabs with counts from localOrders (real API data) — Issue #13 fix
+  // Build tabs with counts from real API database counts
   const tabsWithCounts = useMemo(() => {
-    return STATUS_FILTER_TABS.map((tab) => ({
-      ...tab,
-      count: tab.value === 'ALL'
-        ? localOrders.length
-        : tab.value === 'EXCEPTION'
-        ? localOrders.filter((o) => EXCEPTION_STATUSES.includes(o.status)).length
-        : localOrders.filter((o) => o.status === tab.value).length,
-    }));
-  }, [localOrders]);
-
-  // Apply search + filter
-  const filteredOrders = useMemo(() => {
-    let res = localOrders;
-    if (activeFilter !== 'ALL' && activeFilter !== 'EXCEPTION') {
-      res = res.filter((o) => o.status === activeFilter);
-    } else if (activeFilter === 'EXCEPTION') {
-      res = res.filter((o) => EXCEPTION_STATUSES.includes(o.status));
-    }
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      res = res.filter(
-        (o) =>
-          o.code.toLowerCase().includes(q) ||
-          o.receiverName.toLowerCase().includes(q) ||
-          o.receiverPhone.includes(q) ||
-          o.deliveryAddress.toLowerCase().includes(q) ||
-          (o.driverName ?? '').toLowerCase().includes(q)
-      );
-    }
-    return res;
-  }, [localOrders, activeFilter, search]);
+    return STATUS_FILTER_TABS.map((tab) => {
+      let count: number | undefined;
+      if (tab.value === 'ALL') {
+        count = statusCounts['ALL'] ?? totalOrders;
+      } else if (tab.value === 'EXCEPTION') {
+        count = (statusCounts['FAILED'] ?? 0) + (statusCounts['RESCHEDULED'] ?? 0);
+      } else {
+        count = statusCounts[tab.value];
+      }
+      return {
+        ...tab,
+        count,
+      };
+    });
+  }, [statusCounts, totalOrders]);
 
   const columns: ColumnDef<Order>[] = [
     {
@@ -735,7 +781,11 @@ export default function OrdersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-700 text-gray-900">Đơn hàng</h2>
-          <p className="text-sm text-gray-400 mt-0.5">{localOrders.length} tổng số đơn hàng</p>
+          <p className="text-sm text-gray-400 mt-0.5">
+            {totalOrders > 0
+              ? `Hiển thị ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalOrders)} trong tổng số ${totalOrders} đơn hàng`
+              : '0 đơn hàng'}
+          </p>
         </div>
         <div className="flex items-center flex-wrap gap-2.5">
           {/* Cascading Region -> Hub Selector */}
@@ -785,15 +835,20 @@ export default function OrdersPage() {
 
       {/* Data Table */}
       <DataTable
-        data={filteredOrders}
+        data={localOrders}
         columns={columns}
         filterTabs={tabsWithCounts}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Tìm mã đơn, tên khách, địa chỉ..."
-        pageSize={10}
+        searchPlaceholder="Tìm mã đơn, tên khách, SĐT..."
+        pageSize={pageSize}
+        serverPagination
+        currentPage={page}
+        totalItems={totalOrders}
+        onPageChange={(p) => setPage(p)}
+        loading={loading}
         getRowKey={(row) => row.id}
         onRowClick={(row) => setSelectedOrder(row)}
         rowActions={(row) => (
@@ -813,9 +868,23 @@ export default function OrdersPage() {
               <MapPin size={14} />
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); }}
-              className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
-              title="Chỉnh sửa"
+              onClick={(e) => { e.stopPropagation(); setPrintingOrder(row); }}
+              className="flex items-center justify-center w-7 h-7 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+              title="In phiếu gửi vận đơn (AWB)"
+            >
+              <Printer size={14} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (row.status === 'DELIVERED') {
+                  toast.error('Không thể sửa', 'Đơn hàng đã được giao thành công.');
+                  return;
+                }
+                setEditingOrder(row);
+              }}
+              className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+              title="Chỉnh sửa đơn hàng"
             >
               <Pencil size={14} />
             </button>
@@ -832,6 +901,24 @@ export default function OrdersPage() {
           onClose={() => setSelectedOrder(null)}
           onOpenMap={() => { setShowMapForOrder(selectedOrder); setSelectedOrder(null); }}
           onRelocate={() => { setRelocateOrder(selectedOrder); setSelectedOrder(null); }}
+          onPrint={() => { setPrintingOrder(selectedOrder); setSelectedOrder(null); }}
+        />
+      )}
+
+      {/* Edit Order Modal */}
+      {editingOrder && (
+        <EditOrderModal
+          order={editingOrder}
+          onClose={() => setEditingOrder(null)}
+          onSubmit={handleUpdateOrder}
+        />
+      )}
+
+      {/* Printable Waybill Modal */}
+      {printingOrder && (
+        <WaybillModal
+          order={printingOrder}
+          onClose={() => setPrintingOrder(null)}
         />
       )}
 

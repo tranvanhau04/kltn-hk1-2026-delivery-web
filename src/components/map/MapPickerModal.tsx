@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import { divIcon } from 'leaflet';
-import { MapPin, Save, X, RotateCcw, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { MapPin, Save, X, RotateCcw, CheckCircle, AlertCircle, Loader2, Search } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 // Fix Leaflet default icon issue in Next.js
@@ -94,6 +94,50 @@ export default function MapPickerModal({
     setTimeout(() => setToast(null), 3500);
   };
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (!val.trim() || val.length < 3) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    searchTimeoutRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&countrycodes=vn&limit=5`,
+          { headers: { 'User-Agent': 'IUH-SmartExpress-KLTN/1.0 (contact@iuh.edu.vn)' } },
+        );
+        if (res.ok) {
+          const list = (await res.json()) as { display_name: string; lat: string; lon: string }[];
+          setSearchResults(list);
+          setShowDropdown(list.length > 0);
+        }
+      } catch {
+        // best effort
+      } finally {
+        setIsSearching(false);
+      }
+    }, 450);
+  };
+
+  const handleSelectLocation = (item: { display_name: string; lat: string; lon: string }) => {
+    const newLat = parseFloat(item.lat);
+    const newLng = parseFloat(item.lon);
+    setLat(newLat);
+    setLng(newLng);
+    setReverseAddress(item.display_name);
+    setShowDropdown(false);
+    setSearchQuery('');
+  };
+
   /** Reverse geocode a lat/lng via Nominatim */
   const doReverseGeocode = useCallback(async (la: number, ln: number) => {
     setIsReverseLoading(true);
@@ -117,7 +161,6 @@ export default function MapPickerModal({
   // Reverse geocode on initial load if coordinates are non-zero
   useEffect(() => {
     if (lat !== 0 && lng !== 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       void doReverseGeocode(lat, lng);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -191,6 +234,52 @@ export default function MapPickerModal({
 
         {/* Map */}
         <div className="flex-1 relative">
+          {/* Forward Geocoding Search Bar */}
+          {!readOnly && (
+            <div className="absolute top-3 left-4 right-4 z-20 max-w-md mx-auto">
+              <div className="relative">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder="Tìm địa chỉ (VD: 12 Nguyễn Văn Bảo, Gò Vấp)..."
+                  className="w-full h-9 pl-9 pr-8 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl text-xs shadow-md focus:outline-none focus:ring-2 focus:ring-[#FA7070] text-gray-800 font-medium"
+                />
+                {isSearching && (
+                  <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#FA7070]" />
+                )}
+                {searchQuery && !isSearching && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setShowDropdown(false); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-xs"
+                    title="Xóa"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              {/* Search dropdown results */}
+              {showDropdown && searchResults.length > 0 && (
+                <div className="absolute top-10 left-0 right-0 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-30 max-h-52 overflow-y-auto divide-y divide-slate-50 animate-scale-in">
+                  {searchResults.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSelectLocation(item)}
+                      className="w-full text-left p-2.5 text-xs text-gray-700 hover:bg-[#FFF0F0] hover:text-[#FA7070] transition-colors flex items-start gap-2"
+                    >
+                      <MapPin size={13} className="shrink-0 mt-0.5 text-[#FA7070]" />
+                      <span className="line-clamp-2 leading-relaxed">{item.display_name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <MapContainer
             center={[lat, lng]}
             zoom={15}

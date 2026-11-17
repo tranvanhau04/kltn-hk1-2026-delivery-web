@@ -82,10 +82,14 @@ export default function ImportExcelModal({
       <div className="space-y-4">
         {/* Sample Template */}
         {!result && (
-          <div className="flex items-center justify-between p-3 bg-blue-50 text-blue-700 rounded-xl">
-            <span className="text-sm font-500">Chưa có file mẫu?</span>
-            <a href="#" onClick={(e) => { e.preventDefault(); alert('Cần cung cấp link tải template'); }} className="text-sm font-600 underline">
-              Tải template Excel
+          <div className="flex items-center justify-between p-3.5 bg-blue-50 border border-blue-100 text-blue-700 rounded-xl">
+            <span className="text-xs font-500">Chưa có file mẫu theo đúng cấu trúc?</span>
+            <a
+              href="/templates/mau_nhap_don_hang.xlsx"
+              download="mau_nhap_don_hang.xlsx"
+              className="text-xs font-600 text-blue-700 hover:text-blue-900 underline flex items-center gap-1 transition-colors"
+            >
+              Tải file mẫu (.xlsx)
             </a>
           </div>
         )}
