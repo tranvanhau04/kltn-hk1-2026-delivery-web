@@ -244,6 +244,8 @@ interface RouteSummaryCardProps {
   depot: Depot;
   availableDrivers: Driver[];
   onChangeDriver: (routeIndex: number, newDriverId: string) => void;
+  fuelLiters?: number;
+  fuelCostVnd?: number;
   onMoveStop?: (routeIndex: number, stopIndex: number, direction: 'up' | 'down') => void;
 }
 
@@ -253,6 +255,8 @@ function RouteSummaryCard({
   depot,
   availableDrivers,
   onChangeDriver,
+  fuelLiters,
+  fuelCostVnd,
   onMoveStop,
 }: RouteSummaryCardProps) {
   const [open, setOpen] = useState(false);
@@ -284,6 +288,8 @@ function RouteSummaryCard({
           </div>
           <p className="text-[11px] text-gray-400 mt-0.5 truncate">
             {route.stops.length} điểm · {route.totalDistanceKm.toFixed(1)} km · {route.totalEstimatedTimeMin.toFixed(0)} phút
+            {fuelLiters ? ` · ~${fuelLiters}L` : ''}
+            {fuelCostVnd ? ` (${formatCurrency(fuelCostVnd)})` : ''}
           </p>
         </div>
         <ChevronRight
@@ -1031,11 +1037,22 @@ function VrpPage() {
         {/* Solution stats */}
         {solution && !isOptimizing && (
           <div className="card p-4 shrink-0 animate-fade-in">
-            <div className="grid grid-cols-4 gap-4 text-center">
+            <div className={cn(
+              "grid gap-4 text-center",
+              solution._api?.totalFuelLiters ? "grid-cols-5" : "grid-cols-4"
+            )}>
               {[
                 { label: 'Tổng tuyến', value: solution.routes.length },
                 { label: 'Tổng đơn', value: solution.totalOrders },
                 { label: 'Tổng quãng đường', value: `${solution.totalDistanceKm.toFixed(1)} km` },
+                ...(solution._api?.totalFuelLiters
+                  ? [
+                      {
+                        label: 'Nhiên liệu ước tính',
+                        value: `${solution._api.totalFuelLiters.toFixed(1)} L`,
+                      },
+                    ]
+                  : []),
                 { label: 'Thời gian tối ưu', value: `${solution.optimizationTimeMs.toFixed(0)} ms` },
               ].map((s) => (
                 <div key={s.label}>
@@ -1063,6 +1080,8 @@ function VrpPage() {
               depot={displayDepot}
               availableDrivers={availableDrivers}
               onChangeDriver={handleChangeDriver}
+              fuelLiters={solution._api?.routes[idx]?.estimatedFuelLiters}
+              fuelCostVnd={solution._api?.routes[idx]?.estimatedFuelCostVnd}
               onMoveStop={handleMoveStop}
             />
           ))}

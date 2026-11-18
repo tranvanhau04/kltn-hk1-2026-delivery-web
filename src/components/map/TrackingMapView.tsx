@@ -164,7 +164,7 @@ import { useMap } from 'react-leaflet';
 function MapController({ center }: { center: [number, number] }) {
   const map = useMap();
   React.useEffect(() => {
-    map.flyTo(center, 14, { duration: 1.5 });
+    map.flyTo(center, 16, { animate: true, duration: 1.5 });
   }, [center, map]);
   return null;
 }
