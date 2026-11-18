@@ -289,6 +289,7 @@ function RouteSummaryCard({
           <p className="text-[11px] text-gray-400 mt-0.5 truncate">
             {route.stops.length} điểm · {route.totalDistanceKm.toFixed(1)} km · {route.totalEstimatedTimeMin.toFixed(0)} phút
             {fuelLiters ? ` · ~${fuelLiters}L` : ''}
+            {fuelCostVnd ? ` (${formatCurrency(fuelCostVnd)})` : ''}
           </p>
         </div>
         <ChevronRight

@@ -6,7 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { connectSocket, disconnectSocket, onDriverLocationUpdated, type DriverLocationUpdate } from '@/lib/socketClient';
 import type { Driver } from '@/types/domain';
-import type { ApiLiveDriver, ApiDriverRouteTodayResponse, ApiRouteStop } from '@/lib/api';
+import type { ApiLiveDriver, ApiDriverRouteTodayResponse } from '@/lib/api';
 
 // Fix missing marker icons in Leaflet on Next.js
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
@@ -70,7 +70,9 @@ function SmoothMarker({ position, icon, children, duration = 1200, eventHandlers
   const animFrameRef = useRef<number | null>(null);
 
   const eventHandlersRef = useRef(eventHandlers);
-  eventHandlersRef.current = eventHandlers;
+  useEffect(() => {
+    eventHandlersRef.current = eventHandlers;
+  }, [eventHandlers]);
 
   // Stable event handlers so React-Leaflet does not unbind/rebind listeners on every frame or render
   const stableHandlers = React.useMemo<L.LeafletEventHandlerFnMap>(() => ({
@@ -587,7 +589,7 @@ export default function TrackingMap({
             ...data,
             bearing,
             lastUpdated: data.timestamp || new Date(),
-            vehicleType: oldDriver.vehicleType || (data as any)?.vehicleType,
+            vehicleType: oldDriver.vehicleType || (data as { vehicleType?: string })?.vehicleType,
           };
           return updated;
         }

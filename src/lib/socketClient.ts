@@ -9,6 +9,7 @@ export interface DriverLocationUpdate {
   shiftId?: string | null;
   timestamp?: string | Date;
   trackingLogId?: string;
+  vehicleType?: string;
 }
 
 type LocationCallback = (data: DriverLocationUpdate) => void;

@@ -459,16 +459,18 @@ export default function TrackingPage() {
   const [selectedDriverRoute, setSelectedDriverRoute] = useState<ApiDriverRouteTodayResponse | null>(null);
 
   // Poll full route details when a driver is selected, auto-updating next stops as orders are delivered
+  const selectedDriverUserId = selectedDriver?.userId;
   useEffect(() => {
     let isMounted = true;
-    if (!selectedDriver?.userId) {
+    if (!selectedDriverUserId) {
       setSelectedDriverRoute(null);
       return;
     }
+    const currentUserId = selectedDriverUserId;
 
     async function loadRoute() {
       try {
-        const routeData = await fetchDriverRouteToday(selectedDriver!.userId);
+        const routeData = await fetchDriverRouteToday(currentUserId);
         if (isMounted) {
           setSelectedDriverRoute(routeData);
         }
@@ -485,7 +487,7 @@ export default function TrackingPage() {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [selectedDriver?.userId]);
+  }, [selectedDriverUserId]);
   const { positions, positionSource, polylines, liveDrivers, usingRealApi } = useLiveTracking();
 
   const allDrivers = useMemo(() => mergeDriverData(liveDrivers, positions), [liveDrivers, positions]);
@@ -516,7 +518,7 @@ export default function TrackingPage() {
     } else {
       const found =
         allDrivers.find((d) => String(d.userId) === String(driverId)) ||
-        allDrivers.find((d) => String((d as any).driverId) === String(driverId));
+        allDrivers.find((d) => String((d as { driverId?: string | number }).driverId) === String(driverId));
       if (found) {
         setSelectedDriver(found);
       } else {
