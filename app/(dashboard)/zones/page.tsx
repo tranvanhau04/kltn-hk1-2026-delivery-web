@@ -4,16 +4,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Map, Plus, Trash2, AlertTriangle, X, Users,
-  RefreshCw, AlertCircle, Loader2,
+  RefreshCw, AlertCircle, Loader2, Compass, CheckCircle2,
 } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { cn } from '@/lib/utils';
 import {
-  fetchZones, createZone, assignDriversToZone, unassignDriverFromZone, fetchDrivers,
+  fetchZones, assignDriversToZone, unassignDriverFromZone, fetchDrivers,
+  apiFetch,
   type ApiZone,
 } from '@/lib/api';
 import type { Driver } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
+import { parseZoneBoundary } from '@/components/map/ZoneMapView';
+import { withRoleGuard } from '@/components/auth/withRoleGuard';
 
 // Dynamically import Leaflet map components to prevent SSR window errors
 const ZoneMapView = dynamic(() => import('@/components/map/ZoneMapView'), { ssr: false });
@@ -37,12 +40,14 @@ function ZoneCard({
   onDelete,
   onClick,
   onOpenDrivers,
+  onStartDraw,
   isSelected,
 }: {
   zone: ApiZone;
   onDelete: () => void;
   onClick: () => void;
   onOpenDrivers: () => void;
+  onStartDraw: () => void;
   isSelected: boolean;
 }) {
   const metrics = zone.metrics;
@@ -50,6 +55,9 @@ function ZoneCard({
   const weightPct = metrics.fleetCapacityWeight > 0
     ? Math.min(100, Math.round((metrics.demandWeight / metrics.fleetCapacityWeight) * 100))
     : metrics.demandWeight > 0 ? 100 : 0;
+
+  const boundaryCoords = parseZoneBoundary(zone.boundaryGeoJson);
+  const hasBoundary = boundaryCoords.length >= 3;
 
   return (
     <div
@@ -132,7 +140,7 @@ function ZoneCard({
 
       {/* Weight utilization bar */}
       {metrics.fleetCapacityWeight > 0 && (
-        <div>
+        <div className="mb-2">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] text-gray-400">
               Tải trọng: {metrics.demandWeight}kg / {metrics.fleetCapacityWeight}kg
@@ -154,47 +162,78 @@ function ZoneCard({
               style={{ width: `${Math.min(100, weightPct)}%` }}
             />
           </div>
-          {metrics.overloadSeverity === 'CRITICAL' && (
-            <p className="text-[10px] text-red-600 font-600 mt-1">
-              ⚠️ {metrics.demandWeight}kg / {metrics.fleetCapacityWeight}kg tải trọng xe
-            </p>
-          )}
         </div>
       )}
-      {metrics.fleetCapacityWeight === 0 && metrics.totalOrders > 0 && (
-        <p className="text-[10px] text-amber-600 font-500 mt-1">
-          ⚠️ Chưa có tài xế — {metrics.totalOrders} đơn chưa xử lý
-        </p>
-      )}
+
+      {/* Boundary status & Drawing action */}
+      <div className="flex items-center justify-between pt-2.5 border-t border-slate-100/90 text-[11px]">
+        {hasBoundary ? (
+          <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+            <CheckCircle2 size={12} className="text-emerald-500" /> Đã có vùng
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
+            ⚠️ Chưa có vùng
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onStartDraw();
+          }}
+          className="font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+          title={hasBoundary ? 'Kéo chuột để vẽ lại vùng' : 'Kéo chuột để khoanh vùng'}
+          id={`btn-card-draw-${zone.id}`}
+        >
+          ✏️ {hasBoundary ? 'Vẽ lại vùng' : 'Khoanh vùng'}
+        </button>
+      </div>
     </div>
   );
 }
 
 // ─── NewZoneModal ─────────────────────────────────────────────────────────────
 
+interface NewZoneModalProps {
+  onClose: () => void;
+  onSubmit: (name: string, boundaryGeoJson?: string) => void;
+  loading: boolean;
+  name: string;
+  onNameChange: (val: string) => void;
+  boundaryGeoJson: string | null;
+  onStartDraw: () => void;
+  onClearBoundary: () => void;
+}
+
 function NewZoneModal({
   onClose,
   onSubmit,
   loading,
-}: {
-  onClose: () => void;
-  onSubmit: (name: string) => void;
-  loading: boolean;
-}) {
-  const [name, setName] = useState('');
+  name,
+  onNameChange,
+  boundaryGeoJson,
+  onStartDraw,
+  onClearBoundary,
+}: NewZoneModalProps) {
+  const hasBoundary = !!boundaryGeoJson;
 
   return (
     <Modal
       isOpen
       onClose={onClose}
       title="Tạo khu vực mới"
-      subtitle="Vẽ ranh giới trên bản đồ sau khi tạo"
+      subtitle="Khoanh vùng ô vuông GeoJSON trực tiếp trên bản đồ"
       size="md"
       footer={
         <>
           <button onClick={onClose} className="btn-secondary">Hủy</button>
           <button
-            onClick={() => { if (name.trim()) onSubmit(name.trim()); }}
+            onClick={() => {
+              if (name.trim()) {
+                onSubmit(name.trim(), boundaryGeoJson ?? undefined);
+              }
+            }}
             disabled={!name.trim() || loading}
             className="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
             id="btn-create-zone"
@@ -210,17 +249,54 @@ function NewZoneModal({
           <label className="block text-sm font-500 text-gray-700 mb-1.5">Tên khu vực *</label>
           <input
             value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="VD: Khu vực Bình Dương"
+            onChange={(e) => onNameChange(e.target.value)}
+            placeholder="VD: Khu vực Tân Bình / Tân Phú"
             className="input-base"
             id="zone-name"
             autoFocus
           />
         </div>
-        <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-          <p className="text-xs text-blue-700 font-500 mb-1">💡 Hướng dẫn vẽ ranh giới</p>
-          <p className="text-xs text-blue-600">
-            Sau khi tạo, nhấn vào khu vực trong danh sách để xem bản đồ và vẽ ranh giới polygon.
+
+        {/* Boundary Selection */}
+        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+              <Compass size={14} className="text-blue-500" />
+              Khoanh vùng bản đồ:
+            </span>
+            {hasBoundary ? (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-100/70 border border-emerald-300 px-2.5 py-0.5 rounded-full">
+                <CheckCircle2 size={12} className="text-emerald-600" /> Đã khoanh vùng (4 tọa độ góc)
+              </span>
+            ) : (
+              <span className="text-xs text-gray-500 bg-gray-200/70 px-2 py-0.5 rounded-full">
+                Chưa khoanh vùng
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onStartDraw}
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+              id="btn-modal-draw-zone"
+            >
+              ✏️ {hasBoundary ? 'Vẽ lại khoanh vùng trên bản đồ' : 'Vẽ khoanh vùng trên bản đồ'}
+            </button>
+            {hasBoundary && (
+              <button
+                type="button"
+                onClick={onClearBoundary}
+                className="px-3 py-2 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-xl text-xs font-semibold transition-colors"
+              >
+                Xóa
+              </button>
+            )}
+          </div>
+
+          <p className="text-[11px] text-gray-500 leading-relaxed">
+            💡 Nhấn &quot;Vẽ khoanh vùng trên bản đồ&quot; để ẩn tạm form, sau đó nhấn giữ chuột trái và kéo một ô vuông trên bản đồ. Tọa độ 4 góc sẽ tự động lưu vào khu vực.
           </p>
         </div>
       </div>
@@ -230,7 +306,7 @@ function NewZoneModal({
 
 // ─── Main Zones Page ──────────────────────────────────────────────────────────
 
-export default function ZonesPage() {
+function ZonesPage() {
   const [zones, setZones] = useState<ApiZone[]>([]);
   const [selectedZone, setSelectedZone] = useState<ApiZone | null>(null);
   const toast = useToast();
@@ -241,17 +317,27 @@ export default function ZonesPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Drawing states
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [drawingTarget, setDrawingTarget] = useState<
+    | { type: 'NEW_ZONE' }
+    | { type: 'EXISTING_ZONE'; zone: ApiZone }
+    | null
+  >(null);
+  const [newZoneName, setNewZoneName] = useState('');
+  const [newZoneBoundary, setNewZoneBoundary] = useState<string | null>(null);
+
   const loadZonesAndDrivers = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       const [zonesData, driversData] = await Promise.all([
         fetchZones(),
-        fetchDrivers()
+        fetchDrivers(),
       ]);
       setZones(zonesData);
       setAllDrivers(driversData);
-      
+
       // Keep selected zone in sync after refresh
       setSelectedZone((prev) => (prev ? zonesData.find((z) => z.id === prev.id) ?? null : null));
     } catch (err) {
@@ -262,24 +348,89 @@ export default function ZonesPage() {
     }
   }, []);
 
-  const loadZones = loadZonesAndDrivers; // fallback for refresh button
+  const loadZones = loadZonesAndDrivers;
 
   useEffect(() => {
     void loadZonesAndDrivers();
   }, [loadZonesAndDrivers]);
 
-  const handleCreateZone = async (name: string) => {
+  // Create new zone
+  const handleCreateZone = async (name: string, boundaryGeoJson?: string) => {
     setIsCreating(true);
     try {
-      const created = await createZone(name);
+      const created = await apiFetch<ApiZone>('/zones', {
+        method: 'POST',
+        body: JSON.stringify({ name, boundaryGeoJson }),
+      });
       setZones((prev) => [...prev, created]);
+      setSelectedZone(created);
       setShowNewZone(false);
+      setNewZoneName('');
+      setNewZoneBoundary(null);
       toast.success('Tạo khu vực thành công', `Đã tạo khu vực "${name}"`);
     } catch (err) {
       toast.error('Tạo khu vực thất bại', err instanceof Error ? err.message : 'Vui lòng thử lại.');
     } finally {
       setIsCreating(false);
     }
+  };
+
+  // Start drawing for new zone creation
+  const handleStartDrawForNewZone = () => {
+    setShowNewZone(false);
+    setIsDrawingMode(true);
+    setDrawingTarget({ type: 'NEW_ZONE' });
+  };
+
+  // Start drawing for an existing zone
+  const handleStartDrawForExistingZone = (zone: ApiZone) => {
+    setSelectedZone(zone);
+    setIsDrawingMode(true);
+    setDrawingTarget({ type: 'EXISTING_ZONE', zone });
+  };
+
+  // Handle completion of drawing a rectangle on map
+  const handleDrawComplete = async (geoJsonString: string) => {
+    if (!drawingTarget) return;
+
+    if (drawingTarget.type === 'NEW_ZONE') {
+      setNewZoneBoundary(geoJsonString);
+      setIsDrawingMode(false);
+      setDrawingTarget(null);
+      setShowNewZone(true);
+      toast.info('Đã khoanh vùng', 'Đã ghi nhận 4 tọa độ góc. Bấm "Tạo khu vực" để lưu.');
+      return;
+    }
+
+    if (drawingTarget.type === 'EXISTING_ZONE') {
+      const targetZone = drawingTarget.zone;
+      try {
+        const updated = await apiFetch<ApiZone>(`/zones/${targetZone.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ boundaryGeoJson: geoJsonString }),
+        });
+        setZones((prev) => prev.map((z) => (z.id === updated.id ? updated : z)));
+        setSelectedZone(updated);
+        toast.success(
+          'Đã lưu khoanh vùng thành công',
+          `Đã cập nhật ranh giới cho khu vực "${targetZone.name}"`,
+        );
+      } catch (err) {
+        toast.error('Lưu khoanh vùng thất bại', err instanceof Error ? err.message : 'Vui lòng thử lại.');
+      } finally {
+        setIsDrawingMode(false);
+        setDrawingTarget(null);
+      }
+    }
+  };
+
+  // Cancel drawing
+  const handleCancelDrawing = () => {
+    setIsDrawingMode(false);
+    if (drawingTarget?.type === 'NEW_ZONE') {
+      setShowNewZone(true);
+    }
+    setDrawingTarget(null);
   };
 
   const handleDeleteZone = (zoneId: string) => {
@@ -331,7 +482,11 @@ export default function ZonesPage() {
                 <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
               </button>
               <button
-                onClick={() => setShowNewZone(true)}
+                onClick={() => {
+                  setNewZoneName('');
+                  setNewZoneBoundary(null);
+                  setShowNewZone(true);
+                }}
                 className="btn-primary text-sm px-3 h-9"
                 id="btn-new-zone"
               >
@@ -345,8 +500,7 @@ export default function ZonesPage() {
             <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100 mb-2 animate-fade-in">
               <AlertTriangle size={15} className="text-red-500 shrink-0" />
               <p className="text-xs text-red-600 font-500">
-                {criticalCount} khu vực đang {' '}
-                <strong>QUÁ TẢI</strong>
+                {criticalCount} khu vực đang <strong>QUÁ TẢI</strong>
               </p>
             </div>
           )}
@@ -366,10 +520,9 @@ export default function ZonesPage() {
           )}
         </div>
 
-        {/* Zone cards */}
-        <div className="flex-1 space-y-3 overflow-y-auto">
+        {/* Zone cards list */}
+        <div className="flex-1 space-y-3 overflow-y-auto pr-1">
           {isLoading && zones.length === 0 ? (
-            // Loading skeleton
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="p-4 rounded-2xl border border-slate-100 bg-white animate-pulse">
                 <div className="flex items-center gap-3 mb-3">
@@ -393,90 +546,125 @@ export default function ZonesPage() {
                 onClick={() => setSelectedZone(zone === selectedZone ? null : zone)}
                 onDelete={() => handleDeleteZone(zone.id)}
                 onOpenDrivers={() => setDriverZone(zone)}
+                onStartDraw={() => handleStartDrawForExistingZone(zone)}
               />
             ))
           )}
         </div>
       </div>
 
-      {/* Right: Map */}
-      <div className="flex-1 card overflow-hidden">
-        {selectedZone ? (
-          <div className="flex flex-col h-full">
-            {/* Map header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
-                  <Map size={15} className="text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-700 text-gray-900">{selectedZone.name}</h3>
-                  <p className="text-xs text-gray-400">
-                    {selectedZone.assignedDriverIds?.length ?? 0} tài xế phân công
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
+      {/* Right: Map View (Always rendered for smooth drawing & overview) */}
+      <div className="flex-1 card overflow-hidden flex flex-col">
+        {/* Map Top Bar */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 shrink-0 bg-white">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+              <Map size={15} className="text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-700 text-gray-900">
+                {selectedZone ? selectedZone.name : 'Toàn bộ khu vực vận hành'}
+              </h3>
+              <p className="text-xs text-gray-400">
+                {selectedZone
+                  ? `${selectedZone.assignedDriverIds?.length ?? 0} tài xế phân công · ${selectedZone.metrics.totalOrders} đơn chờ`
+                  : `${zones.length} khu vực trên bản đồ`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {selectedZone && (
+              <>
+                <button
+                  onClick={() => handleStartDrawForExistingZone(selectedZone)}
+                  disabled={isDrawingMode}
+                  className="btn-secondary text-xs px-3 h-8 text-blue-600 hover:text-blue-700 font-semibold"
+                  id="btn-header-redraw-zone"
+                >
+                  ✏️ {parseZoneBoundary(selectedZone.boundaryGeoJson).length >= 3 ? 'Vẽ lại vùng' : 'Khoanh vùng'}
+                </button>
                 <button
                   onClick={() => setDriverZone(selectedZone)}
-                  className="btn-secondary text-sm px-3 h-8"
+                  className="btn-secondary text-xs px-3 h-8"
                   id="btn-open-driver-assignment"
                 >
-                  <Users size={14} /> Phân công tài xế
+                  <Users size={13} /> Phân công tài xế
                 </button>
                 <button
                   onClick={() => setSelectedZone(null)}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+                  title="Bỏ chọn khu vực"
                 >
-                  <X size={16} />
+                  <X size={15} />
                 </button>
-              </div>
-            </div>
-
-            {/* Map */}
-            <div className="flex-1">
-              <ZoneMapView
-                zone={selectedZone}
-                allZones={zones}
-                onZoneSelect={(id) => {
-                  const z = zones.find((z) => z.id === id);
-                  if (z) setSelectedZone(z);
+              </>
+            )}
+            {!selectedZone && (
+              <button
+                onClick={() => {
+                  setNewZoneName('');
+                  setNewZoneBoundary(null);
+                  setShowNewZone(true);
                 }}
-              />
-            </div>
+                className="btn-primary text-xs px-3 h-8"
+              >
+                <Plus size={13} /> Tạo khu vực mới
+              </button>
+            )}
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-5 text-center p-10">
-            <div className="w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center">
-              <Map size={36} className="text-blue-400/60" />
-            </div>
-            <div>
-              <h3 className="text-lg font-600 text-gray-700 mb-2">Chọn khu vực để xem bản đồ</h3>
-              <p className="text-sm text-gray-400 max-w-xs">
-                Nhấn vào một khu vực trong danh sách bên trái để xem và chỉnh sửa ranh giới trên bản đồ.
-              </p>
-            </div>
-            <button onClick={() => setShowNewZone(true)} className="btn-primary">
-              <Plus size={15} /> Tạo khu vực mới
-            </button>
-          </div>
-        )}
+        </div>
+
+        {/* Leaflet Map */}
+        <div className="flex-1 relative">
+          <ZoneMapView
+            zone={selectedZone}
+            allZones={zones}
+            onZoneSelect={(id) => {
+              const z = zones.find((item) => item.id === id);
+              if (z) setSelectedZone(z);
+            }}
+            isDrawingMode={isDrawingMode}
+            drawingTargetName={
+              drawingTarget?.type === 'EXISTING_ZONE'
+                ? drawingTarget.zone.name
+                : drawingTarget?.type === 'NEW_ZONE'
+                ? (newZoneName || 'Khu vực mới')
+                : null
+            }
+            onDrawComplete={handleDrawComplete}
+            onCancelDrawing={handleCancelDrawing}
+            onStartDrawing={() => {
+              if (selectedZone) {
+                handleStartDrawForExistingZone(selectedZone);
+              }
+            }}
+            previewPolygonGeoJson={newZoneBoundary}
+          />
+        </div>
       </div>
-
-
 
       {/* Modals */}
       {showNewZone && (
         <NewZoneModal
-          onClose={() => setShowNewZone(false)}
+          onClose={() => {
+            setShowNewZone(false);
+            setNewZoneName('');
+            setNewZoneBoundary(null);
+          }}
           onSubmit={handleCreateZone}
           loading={isCreating}
+          name={newZoneName}
+          onNameChange={setNewZoneName}
+          boundaryGeoJson={newZoneBoundary}
+          onStartDraw={handleStartDrawForNewZone}
+          onClearBoundary={() => setNewZoneBoundary(null)}
         />
       )}
 
       {driverZone && (
         <DriverAssignmentModal
           zone={driverZone}
+          allZones={zones}
           allDrivers={allDrivers}
           onClose={() => setDriverZone(null)}
           onAssign={handleAssignDrivers}
@@ -486,3 +674,5 @@ export default function ZonesPage() {
     </div>
   );
 }
+
+export default withRoleGuard(ZonesPage, ['ADMIN', 'DISPATCHER']);

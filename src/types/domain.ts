@@ -358,3 +358,122 @@ export interface NavItem {
   icon: string; // Lucide icon name
   badge?: number;
 }
+
+// --------------- Analytics Reports ---------------
+
+export interface RevenueChartItem {
+  label: string;
+  grossRevenue: number;
+  platformRevenue: number;
+  driverPayout: number;
+  deliveredOrders: number;
+}
+
+export interface RevenueSummary {
+  totalGrossRevenue: number;
+  totalPlatformRevenue: number;
+  totalDriverPayout: number;
+  deliveredCount: number;
+}
+
+export interface TopDriverItem {
+  driverId: string;
+  fullName: string;
+  licensePlate: string;
+  vehicleType: string;
+  deliveredOrders: number;
+  totalGrossRevenue: number;
+  platformRevenue: number;
+  driverNetIncome: number;
+}
+
+export interface TopCustomerItem {
+  customerName: string;
+  customerPhone: string;
+  deliveryAddress: string;
+  totalOrders: number;
+  deliveredOrders: number;
+  totalCodValue: number;
+  totalShippingFee: number;
+}
+
+export interface AnalyticsData {
+  revenueReport: {
+    summary: RevenueSummary;
+    chartData: RevenueChartItem[];
+  };
+  topDriversByRevenue: TopDriverItem[];
+  topCustomersByOrders: TopCustomerItem[];
+}
+
+// --------------- AI Analyst Reports ---------------
+
+export interface ZScoreDetailItem {
+  label: string;
+  value: number;
+  zScore: number;
+  isPeak: boolean;
+}
+
+export interface PeakDayAnalysis {
+  peakDay: string;
+  peakValue: number;
+  zScore: number;
+  isAbnormal: boolean;
+  mean: number;
+  stdDev: number;
+  details: ZScoreDetailItem[];
+  alertMessage: string;
+}
+
+export interface ForecastResult {
+  metric: string;
+  slope: number;
+  intercept: number;
+  rSquared: number;
+  trend: 'UP' | 'DOWN' | 'STABLE';
+  growthRatePercent: number;
+  historicalAvg: number;
+  predictedNext: number;
+  nextPoints: { label: string; predicted: number }[];
+  peakDayAnalysis: PeakDayAnalysis;
+}
+
+export interface AiRecommendationItem {
+  id: string;
+  category: 'OPERATIONS' | 'REVENUE' | 'CUSTOMERS' | 'FLEET';
+  categoryLabel: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  title: string;
+  description: string;
+  actionableStep: string;
+  impact: string;
+  iconType: string;
+}
+
+export interface AiInsightsData {
+  periodDays: number;
+  generatedAt: string;
+  summary: {
+    totalOrders: number;
+    successOrders: number;
+    failedOrders: number;
+    successRate: number;
+    totalCodCollected: number;
+    totalGrossRevenue: number;
+    totalPlatformRevenue: number;
+    totalDriverPayout: number;
+    deliveredCount: number;
+  };
+  forecast: ForecastResult;
+  recommendations: AiRecommendationItem[];
+}
+
+export interface AiChatResponse {
+  reply: string;
+  intent: string;
+  confidence: number;
+  suggestedQuestions: string[];
+  timestamp: string;
+}
+
