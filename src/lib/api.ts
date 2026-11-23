@@ -703,3 +703,68 @@ export async function exportOrdersExcel(params?: {
 
   return res.blob();
 }
+
+// ─── Analytics Reports ────────────────────────────────────────────────────────
+
+import type { AnalyticsData } from '@/types/domain';
+
+/** GET /reports/analytics — Revenue, top drivers, top customers analytics */
+export async function fetchAnalytics(days: number = 7): Promise<AnalyticsData> {
+  return apiFetch<AnalyticsData>(`/reports/analytics?days=${days}`);
+}
+
+/** GET /reports/export-analytics — Download analytics Excel report */
+export async function downloadAnalyticsExcel(
+  days: number,
+  type: 'revenue' | 'top_drivers' | 'top_customers',
+): Promise<void> {
+  const fullUrl = `${API_BASE}/reports/export-analytics?days=${days}&type=${type}`;
+  let token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  if (!token && typeof document !== 'undefined') {
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)(?:accessToken|token)=([^;]+)/);
+    if (cookieMatch) token = decodeURIComponent(cookieMatch[1]);
+  }
+
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(fullUrl, { headers });
+
+  if (!res.ok) {
+    throw new Error(`Lỗi xuất file (${res.status})`);
+  }
+
+  const typeNameMap: Record<string, string> = {
+    revenue: 'doanh-thu',
+    top_drivers: 'top-tai-xe',
+    top_customers: 'top-khach-hang',
+  };
+  const suffix = typeNameMap[type] || 'phan-tich';
+
+  const blob = await res.blob();
+  const objectUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = `Bao-cao-${suffix}-SmartExpress-${new Date().toISOString().split('T')[0]}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(objectUrl);
+}
+
+// ─── AI Analyst API ───────────────────────────────────────────────────────────
+
+import type { AiInsightsData, AiChatResponse } from '@/types/domain';
+
+/** GET /ai-analyst/insights — Phân tích hồi quy OLS, Z-Score đỉnh tải & hệ chuyên gia */
+export async function fetchAiInsights(days: number = 7): Promise<AiInsightsData> {
+  return apiFetch<AiInsightsData>(`/ai-analyst/insights?days=${days}`);
+}
+
+/** POST /ai-analyst/chat — Chatbot trợ lý phân tích dữ liệu vận hành & doanh thu */
+export async function sendAiChat(message: string, days: number = 7): Promise<AiChatResponse> {
+  return apiFetch<AiChatResponse>('/ai-analyst/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message, days }),
+  });
+}

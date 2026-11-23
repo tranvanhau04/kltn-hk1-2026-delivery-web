@@ -11,6 +11,7 @@ import type { User, UserRole } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
 import { useApp } from '@/context/AppContext';
 import { formatDateTime, cn } from '@/lib/utils';
+import { withRoleGuard } from '@/components/auth/withRoleGuard';
 
 const ROLE_CONFIG: Record<UserRole, { label: string; className: string }> = {
   ADMIN:      { label: 'Quản trị viên', className: 'badge badge-failed' },
@@ -103,7 +104,7 @@ function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit:
   );
 }
 
-export default function UsersPage() {
+function UsersPage() {
   const toast = useToast();
   const { currentUser } = useApp();
   const [users, setUsers] = useState<User[]>([]);
@@ -321,3 +322,5 @@ export default function UsersPage() {
     </div>
   );
 }
+
+export default withRoleGuard(UsersPage, ['ADMIN']);

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 
 interface DriverAssignmentModalProps {
   zone: ApiZone;
+  allZones?: ApiZone[];
   allDrivers: Driver[];
   onClose: () => void;
   onAssign: (driverIds: string[]) => Promise<void>;
@@ -31,23 +32,41 @@ const SHIFT_STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 export default function DriverAssignmentModal({
   zone,
+  allZones = [],
   allDrivers,
   onClose,
   onAssign,
   onUnassign,
 }: DriverAssignmentModalProps) {
-  const assignedIds = useMemo(() => new Set(zone.assignedDriverIds ?? []), [zone.assignedDriverIds]);
+  const currentZoneAssignedIds = useMemo(
+    () => new Set(zone.assignedDriverIds ?? []),
+    [zone.assignedDriverIds],
+  );
+
+  // Set of all drivers assigned to ANY zone across the whole system
+  const allAssignedDriverIds = useMemo(() => {
+    const set = new Set<string>();
+    (allZones ?? []).forEach((z) => {
+      (z.assignedDriverIds ?? []).forEach((id) => set.add(id));
+    });
+    (zone.assignedDriverIds ?? []).forEach((id) => set.add(id));
+    return set;
+  }, [allZones, zone.assignedDriverIds]);
+
   const [pendingAdd, setPendingAdd] = useState<Set<string>>(new Set());
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const unassignedDrivers = useMemo(
-    () => allDrivers.filter((d) => !assignedIds.has(d.userId)),
-    [allDrivers, assignedIds],
+  // Available to assign: only drivers who DO NOT belong to ANY zone
+  const availableDrivers = useMemo(
+    () => allDrivers.filter((d) => !allAssignedDriverIds.has(d.userId)),
+    [allDrivers, allAssignedDriverIds],
   );
+
+  // Drivers currently assigned to this specific zone
   const assignedDrivers = useMemo(
-    () => allDrivers.filter((d) => assignedIds.has(d.userId)),
-    [allDrivers, assignedIds],
+    () => allDrivers.filter((d) => currentZoneAssignedIds.has(d.userId)),
+    [allDrivers, currentZoneAssignedIds],
   );
 
   const togglePendingAdd = (driverId: string) => {
@@ -239,13 +258,17 @@ export default function DriverAssignmentModal({
           <div>
             <p className="text-xs font-700 text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
               <Users size={13} />
-              Tài xế có thể thêm ({unassignedDrivers.length})
+              Tài xế có thể thêm ({availableDrivers.length})
             </p>
-            {unassignedDrivers.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">Tất cả tài xế đã được phân công.</p>
+            {availableDrivers.length === 0 ? (
+              <div className="p-4 bg-gray-50 border border-dashed border-gray-200 rounded-xl text-center">
+                <p className="text-xs text-gray-500">
+                  Tất cả tài xế hiện đều đã được phân công khu vực. Hãy gỡ tài xế ở khu vực khác nếu muốn điều chuyển.
+                </p>
+              </div>
             ) : (
               <div className="space-y-2">
-                {unassignedDrivers.map((d) => {
+                {availableDrivers.map((d) => {
                   const isSelected = pendingAdd.has(d.userId);
                   const shift = SHIFT_STATUS_LABELS[d.currentShiftStatus] ?? { label: d.currentShiftStatus, color: 'text-gray-400 bg-gray-100' };
                   return (

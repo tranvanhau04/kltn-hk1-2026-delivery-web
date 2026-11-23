@@ -4,16 +4,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Package, CheckCircle, DollarSign, AlertTriangle,
   Check, FileSpreadsheet, Loader2, Inbox,
+  TrendingUp, Truck, Trophy, Medal, Award, Users,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
 } from 'recharts';
 import { StatCard } from '@/components/common/StatCard';
-import { fetchReportKpis, reconcileShift, downloadReportExcel } from '@/lib/api';
+import { AiAnalystWidget } from '@/components/ai-analyst/AiAnalystWidget';
+import { fetchReportKpis, reconcileShift, downloadReportExcel, fetchAnalytics, downloadAnalyticsExcel } from '@/lib/api';
 import { formatCurrency, formatDateTime, cn } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
-import type { ReportKpis, ShiftOverviewItem } from '@/types/domain';
+import type { ReportKpis, ShiftOverviewItem, AnalyticsData } from '@/types/domain';
+import { withRoleGuard } from '@/components/auth/withRoleGuard';
 
 // ─── Date range → API period mapping ─────────────────────────────────────────
 
@@ -35,6 +38,12 @@ function mapDateRange(range: string): {
   };
 }
 
+function mapDays(range: string): number {
+  if (range === '7d') return 7;
+  if (range === '30d') return 30;
+  return 90;
+}
+
 // ─── Custom Tooltip for Recharts ────────────────────────────────────────────
 
 function CustomTooltip({ active, payload, label }: {
@@ -51,6 +60,28 @@ function CustomTooltip({ active, payload, label }: {
           <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
           <span className="text-gray-500">{p.name}:</span>
           <span className="font-600 text-gray-800">{p.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Revenue Tooltip (VNĐ formatted) ────────────────────────────────────────
+
+function RevenueTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: Array<{ value: number; name: string; color: string }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white border border-slate-100 rounded-xl shadow-lg p-3 text-xs">
+      <p className="font-700 text-gray-700 mb-2">{label}</p>
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center gap-2 mb-1">
+          <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
+          <span className="text-gray-500">{p.name}:</span>
+          <span className="font-600 text-gray-800">{formatCurrency(p.value)}</span>
         </div>
       ))}
     </div>
@@ -229,14 +260,72 @@ function WeeklyBarChart({ data }: { data: { label: string; count: number }[] }) 
   );
 }
 
+// ─── Rank Badge ──────────────────────────────────────────────────────────────
+
+function RankBadge({ rank }: { rank: number }) {
+  if (rank === 1) {
+    return (
+      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-600">
+        <Trophy size={14} />
+      </span>
+    );
+  }
+  if (rank === 2) {
+    return (
+      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 text-slate-500">
+        <Medal size={14} />
+      </span>
+    );
+  }
+  if (rank === 3) {
+    return (
+      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-orange-100 text-orange-500">
+        <Award size={14} />
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-50 text-gray-400 text-xs font-600">
+      {rank}
+    </span>
+  );
+}
+
+// ─── Tab definitions ─────────────────────────────────────────────────────────
+
+type TabKey = 'overview' | 'revenue' | 'top_drivers' | 'top_customers';
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'overview', label: 'Tổng quan & Đơn hàng' },
+  { key: 'revenue', label: 'Báo cáo Doanh thu' },
+  { key: 'top_drivers', label: 'Top Tài xế Doanh thu' },
+  { key: 'top_customers', label: 'Top Khách hàng' },
+];
+
 // ─── Main Reports Page ───────────────────────────────────────────────────────
 
-export default function ReportsPage() {
+function ReportsPage() {
   const [dateRange, setDateRange] = useState('7d');
   const [kpis, setKpis] = useState<ReportKpis | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const toast = useToast();
+
+  // Fetch analytics data
+  const loadAnalytics = useCallback(async (range: string) => {
+    setAnalyticsLoading(true);
+    try {
+      const data = await fetchAnalytics(mapDays(range));
+      setAnalytics(data);
+    } catch (err) {
+      console.error('Failed to fetch analytics:', err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
 
   // Fetch KPIs from API when dateRange changes
   useEffect(() => {
@@ -261,10 +350,11 @@ export default function ReportsPage() {
     }
 
     loadData();
+    loadAnalytics(dateRange);
     return () => {
       ignore = true;
     };
-  }, [dateRange, toast]);
+  }, [dateRange, toast, loadAnalytics]);
 
   // Refresh KPIs for event handlers (e.g. after COD reconciliation)
   const refreshKpis = useCallback(async () => {
@@ -298,8 +388,16 @@ export default function ReportsPage() {
   const handleExportExcel = async () => {
     setExporting(true);
     try {
-      const { startDate, endDate } = mapDateRange(dateRange);
-      await downloadReportExcel(startDate, endDate);
+      if (activeTab === 'overview') {
+        const { startDate, endDate } = mapDateRange(dateRange);
+        await downloadReportExcel(startDate, endDate);
+      } else if (activeTab === 'revenue') {
+        await downloadAnalyticsExcel(mapDays(dateRange), 'revenue');
+      } else if (activeTab === 'top_drivers') {
+        await downloadAnalyticsExcel(mapDays(dateRange), 'top_drivers');
+      } else {
+        await downloadAnalyticsExcel(mapDays(dateRange), 'top_customers');
+      }
       toast.success('Xuất báo cáo thành công', 'File Excel đã được tải xuống');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Không thể xuất file. Vui lòng thử lại.';
@@ -307,6 +405,315 @@ export default function ReportsPage() {
     } finally {
       setExporting(false);
     }
+  };
+
+  // ─── Revenue Tab Content ─────────────────────────────────────────────────
+
+  const renderRevenueTab = () => {
+    if (analyticsLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <Loader2 size={32} className="animate-spin-slow mb-3" />
+          <p className="text-sm">Đang tải dữ liệu doanh thu...</p>
+        </div>
+      );
+    }
+
+    if (!analytics) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <Inbox size={40} className="mb-3 text-gray-300" />
+          <p className="text-sm font-500">Chưa có dữ liệu phân tích</p>
+        </div>
+      );
+    }
+
+    const { summary, chartData } = analytics.revenueReport;
+
+    return (
+      <div className="space-y-6">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="card p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#FFF0F0] flex items-center justify-center">
+                <DollarSign size={18} className="text-[#FA7070]" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-500">Tổng cước vận chuyển</p>
+                <p className="text-lg font-700 text-gray-900">{formatCurrency(summary.totalGrossRevenue)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400">{summary.deliveredCount} đơn giao thành công</p>
+          </div>
+          <div className="card p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <TrendingUp size={18} className="text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-500">Doanh thu nền tảng (15%)</p>
+                <p className="text-lg font-700 text-gray-900">{formatCurrency(summary.totalPlatformRevenue)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-emerald-500 font-500">Chiết khấu nền tảng</p>
+          </div>
+          <div className="card p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                <Truck size={18} className="text-blue-500" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-500">Chi trả tài xế (85%)</p>
+                <p className="text-lg font-700 text-gray-900">{formatCurrency(summary.totalDriverPayout)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-blue-500 font-500">Thu nhập tài xế</p>
+          </div>
+        </div>
+
+        {/* Revenue Bar Chart */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-base font-700 text-gray-900">Biểu đồ doanh thu theo ngày</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Phân bổ doanh thu: cước vận chuyển, nền tảng, tài xế</p>
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded bg-[#FA7070] inline-block" />
+                <span className="text-gray-500">Tổng cước</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded bg-[#10B981] inline-block" />
+                <span className="text-gray-500">Nền tảng</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded bg-[#3B82F6] inline-block" />
+                <span className="text-gray-500">Tài xế</span>
+              </span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: '#9CA3AF', fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis
+                tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v: number) => v >= 1000000 ? `${(v / 1000000).toFixed(0)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)}
+              />
+              <Tooltip content={<RevenueTooltip />} cursor={{ fill: 'rgba(250, 112, 112, 0.06)' }} />
+              <Bar dataKey="grossRevenue" name="Tổng cước" fill="#FA7070" radius={[6, 6, 0, 0]} maxBarSize={36} />
+              <Bar dataKey="platformRevenue" name="Nền tảng (15%)" fill="#10B981" radius={[6, 6, 0, 0]} maxBarSize={36} />
+              <Bar dataKey="driverPayout" name="Tài xế (85%)" fill="#3B82F6" radius={[6, 6, 0, 0]} maxBarSize={36} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── Top Drivers Tab Content ─────────────────────────────────────────────
+
+  const renderTopDriversTab = () => {
+    if (analyticsLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <Loader2 size={32} className="animate-spin-slow mb-3" />
+          <p className="text-sm">Đang tải dữ liệu tài xế...</p>
+        </div>
+      );
+    }
+
+    if (!analytics || analytics.topDriversByRevenue.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <Users size={40} className="mb-3 text-gray-300" />
+          <p className="text-sm font-500">Chưa có dữ liệu tài xế</p>
+        </div>
+      );
+    }
+
+    const drivers = analytics.topDriversByRevenue;
+    const top5 = drivers.slice(0, 5);
+
+    return (
+      <div className="space-y-6">
+        {/* Horizontal Bar Chart — Top 5 by Revenue */}
+        <div className="card p-6">
+          <div className="mb-6">
+            <h3 className="text-base font-700 text-gray-900">Top 5 Tài xế theo Doanh thu</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Tổng cước vận chuyển cao nhất</p>
+          </div>
+          <ResponsiveContainer width="100%" height={Math.max(200, top5.length * 50)}>
+            <BarChart data={top5} layout="vertical" margin={{ top: 5, right: 30, bottom: 5, left: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" horizontal={false} />
+              <XAxis
+                type="number"
+                tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v: number) => v >= 1000000 ? `${(v / 1000000).toFixed(0)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)}
+              />
+              <YAxis
+                type="category"
+                dataKey="fullName"
+                tick={{ fill: '#374151', fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                width={120}
+              />
+              <Tooltip content={<RevenueTooltip />} cursor={{ fill: 'rgba(250, 112, 112, 0.06)' }} />
+              <Bar dataKey="totalGrossRevenue" name="Tổng doanh thu" fill="#FA7070" radius={[0, 6, 6, 0]} maxBarSize={32} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Drivers Table */}
+        <div className="card overflow-hidden">
+          <div className="p-5 border-b border-slate-100">
+            <h3 className="text-base font-700 text-gray-900">Bảng xếp hạng Tài xế</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Chi tiết doanh thu và thu nhập từng tài xế</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/60">
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-center">Hạng</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-left">Tên tài xế</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-left">Biển số xe</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-right">Số đơn giao</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-right">Tổng doanh thu</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-right">Chiết khấu NTT (15%)</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-right">Thu nhập thực (85%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {drivers.map((driver, i) => (
+                  <tr key={driver.driverId} className="border-b border-slate-50 hover:bg-[#FFF0F0]/30 transition-colors">
+                    <td className="px-4 py-3.5 text-center">
+                      <RankBadge rank={i + 1} />
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FA7070]/20 to-[#8B2626]/20 flex items-center justify-center text-[#FA7070] font-700 text-xs">
+                          {driver.fullName.charAt(0)}
+                        </div>
+                        <span className="text-sm font-600 text-gray-800">{driver.fullName}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 text-sm text-gray-500">{driver.licensePlate}</td>
+                    <td className="px-4 py-3.5 text-sm font-600 text-gray-800 text-right">{driver.deliveredOrders}</td>
+                    <td className="px-4 py-3.5 text-sm font-600 text-gray-800 text-right">{formatCurrency(driver.totalGrossRevenue)}</td>
+                    <td className="px-4 py-3.5 text-sm font-600 text-emerald-600 text-right">{formatCurrency(driver.platformRevenue)}</td>
+                    <td className="px-4 py-3.5 text-sm font-600 text-blue-600 text-right">{formatCurrency(driver.driverNetIncome)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── Top Customers Tab Content ───────────────────────────────────────────
+
+  const renderTopCustomersTab = () => {
+    if (analyticsLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <Loader2 size={32} className="animate-spin-slow mb-3" />
+          <p className="text-sm">Đang tải dữ liệu khách hàng...</p>
+        </div>
+      );
+    }
+
+    if (!analytics || analytics.topCustomersByOrders.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <Users size={40} className="mb-3 text-gray-300" />
+          <p className="text-sm font-500">Chưa có dữ liệu khách hàng</p>
+        </div>
+      );
+    }
+
+    const customers = analytics.topCustomersByOrders;
+    const top5 = customers.slice(0, 5);
+
+    return (
+      <div className="space-y-6">
+        {/* Vertical Bar Chart — Top 5 by Order Count */}
+        <div className="card p-6">
+          <div className="mb-6">
+            <h3 className="text-base font-700 text-gray-900">Top 5 Khách hàng theo Số đơn</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Khách hàng có tổng đơn hàng cao nhất</p>
+          </div>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={top5} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="customerBarGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#FA7070" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#FA7070" stopOpacity={0.6} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+              <XAxis dataKey="customerName" tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#9CA3AF', fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(250, 112, 112, 0.06)' }} />
+              <Bar dataKey="totalOrders" name="Tổng đơn" fill="url(#customerBarGradient)" radius={[6, 6, 0, 0]} maxBarSize={48} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Customers Table */}
+        <div className="card overflow-hidden">
+          <div className="p-5 border-b border-slate-100">
+            <h3 className="text-base font-700 text-gray-900">Bảng xếp hạng Khách hàng</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Chi tiết đơn hàng và giá trị từng khách hàng</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/60">
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-center">Hạng</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-left">Tên khách hàng</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-left">SĐT</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-right">Tổng đơn</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-right">Đơn giao OK</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-right">Tổng COD</th>
+                  <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-right">Tổng phí ship</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.map((customer, i) => (
+                  <tr key={`${customer.customerPhone}-${i}`} className="border-b border-slate-50 hover:bg-[#FFF0F0]/30 transition-colors">
+                    <td className="px-4 py-3.5 text-center">
+                      <RankBadge rank={i + 1} />
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FA7070]/20 to-[#8B2626]/20 flex items-center justify-center text-[#FA7070] font-700 text-xs">
+                          {customer.customerName.charAt(0)}
+                        </div>
+                        <span className="text-sm font-600 text-gray-800">{customer.customerName}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 text-sm text-gray-500">{customer.customerPhone}</td>
+                    <td className="px-4 py-3.5 text-sm font-600 text-gray-800 text-right">{customer.totalOrders}</td>
+                    <td className="px-4 py-3.5 text-sm font-600 text-green-600 text-right">{customer.deliveredOrders}</td>
+                    <td className="px-4 py-3.5 text-sm font-600 text-gray-800 text-right">{formatCurrency(customer.totalCodValue)}</td>
+                    <td className="px-4 py-3.5 text-sm font-600 text-gray-800 text-right">{formatCurrency(customer.totalShippingFee)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -392,14 +799,46 @@ export default function ReportsPage() {
         />
       </div>
 
-      {/* Weekly Bar Chart */}
-      <WeeklyBarChart data={kpis?.weeklyOrderTrends ?? []} />
+      {/* Tab Bar */}
+      <div className="bg-white rounded-2xl p-1.5 shadow-sm border border-slate-100 flex gap-1">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              'px-5 py-2.5 rounded-xl text-sm font-500 transition-all',
+              activeTab === tab.key
+                ? 'bg-[#FA7070] text-white shadow-sm'
+                : 'text-gray-500 hover:bg-gray-50'
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {/* COD Reconciliation Table */}
-      <ReconciliationTable
-        shifts={kpis?.shiftOverview ?? []}
-        onReconcile={handleReconcile}
-      />
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <>
+          {/* Weekly Bar Chart */}
+          <WeeklyBarChart data={kpis?.weeklyOrderTrends ?? []} />
+
+          {/* COD Reconciliation Table */}
+          <ReconciliationTable
+            shifts={kpis?.shiftOverview ?? []}
+            onReconcile={handleReconcile}
+          />
+        </>
+      )}
+
+      {activeTab === 'revenue' && renderRevenueTab()}
+      {activeTab === 'top_drivers' && renderTopDriversTab()}
+      {activeTab === 'top_customers' && renderTopCustomersTab()}
+
+      {/* SmartExpress AI Analyst Widget with Glowing Neon Robot Button */}
+      <AiAnalystWidget period={dateRange} />
     </div>
   );
 }
+
+export default withRoleGuard(ReportsPage, ['ADMIN', 'DISPATCHER']);
