@@ -5,6 +5,7 @@ import {
   Package, CheckCircle, DollarSign, AlertTriangle,
   Check, FileSpreadsheet, Loader2, Inbox,
   TrendingUp, Truck, Trophy, Medal, Award, Users,
+  Eye, Square, CheckSquare,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -12,7 +13,15 @@ import {
 } from 'recharts';
 import { StatCard } from '@/components/common/StatCard';
 import { AiAnalystWidget } from '@/components/ai-analyst/AiAnalystWidget';
-import { fetchReportKpis, reconcileShift, downloadReportExcel, fetchAnalytics, downloadAnalyticsExcel } from '@/lib/api';
+import ShiftDetailModal from '@/components/reports/ShiftDetailModal';
+import {
+  fetchReportKpis,
+  reconcileShift,
+  downloadReportExcel,
+  fetchAnalytics,
+  downloadAnalyticsExcel,
+  bulkReconcileShifts,
+} from '@/lib/api';
 import { formatCurrency, formatDateTime, cn } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
 import type { ReportKpis, ShiftOverviewItem, AnalyticsData } from '@/types/domain';
@@ -93,17 +102,67 @@ function RevenueTooltip({ active, payload, label }: {
 function ReconciliationTable({
   shifts,
   onReconcile,
+  onViewDetail,
+  onBulkReconcile,
 }: {
   shifts: ShiftOverviewItem[];
   onReconcile: (shiftId: string, codCollected: number, driverName: string) => void;
+  onViewDetail: (shiftId: string) => void;
+  onBulkReconcile: (shiftIds: string[]) => Promise<void>;
 }) {
   const [reconcilingId, setReconcilingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  // Reset selection khi shifts thay đổi
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [shifts]);
+
+  const pendingShifts = shifts.filter((s) => s.reconciliationStatus === 'PENDING');
+
+  const allPendingSelected =
+    pendingShifts.length > 0 && pendingShifts.every((s) => selectedIds.has(s.shiftId));
+  const somePendingSelected =
+    pendingShifts.some((s) => selectedIds.has(s.shiftId)) && !allPendingSelected;
+
+  const toggleAll = () => {
+    if (allPendingSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(pendingShifts.map((s) => s.shiftId)));
+    }
+  };
+
+  const toggleOne = (shiftId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(shiftId)) {
+        next.delete(shiftId);
+      } else {
+        next.add(shiftId);
+      }
+      return next;
+    });
+  };
 
   const handleClick = async (shift: ShiftOverviewItem) => {
     setReconcilingId(shift.shiftId);
     await onReconcile(shift.shiftId, shift.codCollected, shift.driverName);
     setReconcilingId(null);
   };
+
+  const handleBulkClick = async () => {
+    setBulkLoading(true);
+    await onBulkReconcile(Array.from(selectedIds));
+    setSelectedIds(new Set());
+    setBulkLoading(false);
+  };
+
+  const selectedCount = selectedIds.size;
+  const selectedTotalCod = shifts
+    .filter((s) => selectedIds.has(s.shiftId))
+    .reduce((sum, s) => sum + s.codCollected, 0);
 
   if (shifts.length === 0) {
     return (
@@ -123,29 +182,119 @@ function ReconciliationTable({
 
   return (
     <div className="card overflow-hidden">
-      <div className="p-5 border-b border-slate-100">
-        <h3 className="text-base font-700 text-gray-900">Đối soát COD theo ca</h3>
-        <p className="text-xs text-gray-400 mt-0.5">Duyệt đối soát COD từng tài xế theo ca làm việc</p>
+      {/* Table Header */}
+      <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 className="text-base font-700 text-gray-900">Đối soát COD theo ca</h3>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Nhấn vào dòng để xem chi tiết · Chọn nhiều ca để duyệt hàng loạt
+          </p>
+        </div>
+        {pendingShifts.length > 0 && (
+          <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
+            {pendingShifts.length} ca chờ duyệt
+          </span>
+        )}
       </div>
+
+      {/* Bulk Action Bar */}
+      {selectedCount > 0 && (
+        <div className="bg-blue-50 border-b border-blue-200 px-5 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-sm text-blue-800">
+            <CheckSquare size={16} className="text-blue-600" />
+            <span>
+              Đã chọn <strong>{selectedCount}</strong> ca ·{' '}
+              Tổng COD: <strong>{formatCurrency(selectedTotalCod)}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg hover:bg-white/60 transition-colors"
+            >
+              Hủy chọn
+            </button>
+            <button
+              onClick={handleBulkClick}
+              disabled={bulkLoading}
+              className="flex items-center gap-1.5 text-xs font-600 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-1.5 rounded-lg transition-colors shadow-sm"
+            >
+              {bulkLoading ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              Duyệt {selectedCount} ca đã chọn
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/60">
+              {/* Checkbox column */}
+              <th className="pl-4 pr-2 py-3 w-10">
+                <button
+                  onClick={toggleAll}
+                  className="text-gray-400 hover:text-blue-600 transition-colors"
+                  title={allPendingSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả ca chờ duyệt'}
+                >
+                  {allPendingSelected ? (
+                    <CheckSquare size={16} className="text-blue-600" />
+                  ) : somePendingSelected ? (
+                    <Square size={16} className="text-blue-400 opacity-70" />
+                  ) : (
+                    <Square size={16} />
+                  )}
+                </button>
+              </th>
               <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-left">Tài xế</th>
               <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-left">Biển số</th>
               <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-center">Bắt đầu</th>
               <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-right">COD Thu</th>
               <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-right">COD Nộp</th>
               <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-right">Chênh lệch</th>
-              <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-center">Đối soát</th>
+              <th className="px-4 py-3 text-xs font-600 text-gray-500 uppercase tracking-wide text-center">Hành động</th>
             </tr>
           </thead>
           <tbody>
             {shifts.map((shift) => {
               const diff = shift.codCollected - shift.codSubmitted;
               const isReconciled = shift.reconciliationStatus === 'RECONCILED';
+              const isSelected = selectedIds.has(shift.shiftId);
+
               return (
-                <tr key={shift.shiftId} className="border-b border-slate-50 hover:bg-[#FFF0F0]/30 transition-colors">
+                <tr
+                  key={shift.shiftId}
+                  className={cn(
+                    'border-b border-slate-50 transition-colors cursor-pointer',
+                    isSelected
+                      ? 'bg-blue-50/60 hover:bg-blue-50'
+                      : 'hover:bg-[#FFF0F0]/30',
+                  )}
+                  onClick={() => onViewDetail(shift.shiftId)}
+                >
+                  {/* Checkbox */}
+                  <td
+                    className="pl-4 pr-2 py-3.5 w-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isReconciled) toggleOne(shift.shiftId);
+                    }}
+                  >
+                    {!isReconciled ? (
+                      <button className="text-gray-400 hover:text-blue-600 transition-colors">
+                        {isSelected ? (
+                          <CheckSquare size={16} className="text-blue-600" />
+                        ) : (
+                          <Square size={16} />
+                        )}
+                      </button>
+                    ) : (
+                      <span className="w-4 h-4 block" />
+                    )}
+                  </td>
+
+                  {/* Driver */}
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FA7070]/20 to-[#8B2626]/20 flex items-center justify-center text-[#FA7070] font-700 text-xs">
@@ -172,24 +321,41 @@ function ReconciliationTable({
                       {diff === 0 ? '0 ₫' : (diff > 0 ? '-' : '+') + formatCurrency(Math.abs(diff))}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-center">
-                    {isReconciled ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-600 text-green-700 bg-green-50 px-2 py-1 rounded-lg">
-                        <Check size={11} /> Đã đối soát
-                      </span>
-                    ) : (
+
+                  {/* Actions */}
+                  <td
+                    className="px-4 py-3.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      {/* Eye - View detail */}
                       <button
-                        onClick={() => handleClick(shift)}
-                        disabled={reconcilingId === shift.shiftId}
-                        className="btn-primary text-xs h-8 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                        id={`btn-reconcile-${shift.shiftId}`}
+                        onClick={() => onViewDetail(shift.shiftId)}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Xem chi tiết ca"
                       >
-                        {reconcilingId === shift.shiftId ? (
-                          <Loader2 size={12} className="animate-spin-slow" />
-                        ) : null}
-                        Duyệt đối soát
+                        <Eye size={15} />
                       </button>
-                    )}
+
+                      {/* Reconcile button */}
+                      {isReconciled ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-600 text-green-700 bg-green-50 px-2 py-1 rounded-lg">
+                          <Check size={11} /> Đã duyệt
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => void handleClick(shift)}
+                          disabled={reconcilingId === shift.shiftId}
+                          className="btn-primary text-xs h-8 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                          id={`btn-reconcile-${shift.shiftId}`}
+                        >
+                          {reconcilingId === shift.shiftId ? (
+                            <Loader2 size={12} className="animate-spin-slow" />
+                          ) : null}
+                          Duyệt
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -312,6 +478,7 @@ function ReportsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const toast = useToast();
 
   // Fetch analytics data
@@ -371,16 +538,30 @@ function ReportsPage() {
     }
   }, [dateRange, toast]);
 
-  // Handle COD reconciliation (1-click: submittedAmount = codCollected)
+  // Handle single COD reconciliation (1-click: submittedAmount = codCollected)
   const handleReconcile = async (shiftId: string, codCollected: number, driverName: string) => {
     try {
       const result = await reconcileShift(shiftId, codCollected);
       toast.success('Đối soát COD thành công', result.message || `Đã duyệt đối soát cho ${driverName}`);
-      // Refresh data to reflect the updated reconciliation status
       await refreshKpis();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Không thể duyệt đối soát. Vui lòng thử lại.';
       toast.error('Đối soát thất bại', msg);
+    }
+  };
+
+  // Handle bulk COD reconciliation
+  const handleBulkReconcile = async (shiftIds: string[]) => {
+    try {
+      const result = await bulkReconcileShifts(shiftIds);
+      toast.success(
+        'Duyệt hàng loạt thành công',
+        result.message || `Đã duyệt ${result.reconciledCount} ca`,
+      );
+      await refreshKpis();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Không thể duyệt hàng loạt. Vui lòng thử lại.';
+      toast.error('Duyệt hàng loạt thất bại', msg);
     }
   };
 
@@ -721,7 +902,7 @@ function ReportsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-700 text-gray-900">Báo cáo & Thống kê</h2>
+          <h2 className="text-xl font-700 text-gray-900">Báo cáo &amp; Thống kê</h2>
           <p className="text-sm text-gray-400 mt-0.5">Tổng quan hoạt động giao vận</p>
         </div>
         <div className="flex items-center gap-2">
@@ -747,7 +928,7 @@ function ReportsPage() {
 
           {/* Export Excel Button */}
           <button
-            onClick={handleExportExcel}
+            onClick={() => void handleExportExcel()}
             disabled={exporting || loading}
             className="btn-secondary text-sm h-9 px-4 ml-2 disabled:opacity-50"
             id="btn-export-excel"
@@ -826,7 +1007,9 @@ function ReportsPage() {
           {/* COD Reconciliation Table */}
           <ReconciliationTable
             shifts={kpis?.shiftOverview ?? []}
-            onReconcile={handleReconcile}
+            onReconcile={(shiftId, codCollected, driverName) => void handleReconcile(shiftId, codCollected, driverName)}
+            onViewDetail={(shiftId) => setSelectedShiftId(shiftId)}
+            onBulkReconcile={handleBulkReconcile}
           />
         </>
       )}
@@ -837,6 +1020,13 @@ function ReportsPage() {
 
       {/* SmartExpress AI Analyst Widget with Glowing Neon Robot Button */}
       <AiAnalystWidget period={dateRange} />
+
+      {/* Shift Detail Modal */}
+      <ShiftDetailModal
+        shiftId={selectedShiftId}
+        onClose={() => setSelectedShiftId(null)}
+        onReconcile={(shiftId) => void handleReconcile(shiftId, 0, '')}
+      />
     </div>
   );
 }

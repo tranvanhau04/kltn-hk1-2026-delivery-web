@@ -624,6 +624,21 @@ export async function fetchReportKpis(
   return apiFetch<ReportKpis>(`/reports/kpis?${params.toString()}`);
 }
 
+/** GET /reports/shifts/:id — Lấy chi tiết ca làm việc (KLTN-131) */
+export async function fetchShiftDetail(shiftId: string): Promise<import('@/types/domain').ShiftDetail> {
+  return apiFetch<import('@/types/domain').ShiftDetail>(`/reports/shifts/${shiftId}`);
+}
+
+/** POST /reports/shifts/bulk-reconcile — Duyệt đối soát hàng loạt (KLTN-131) */
+export async function bulkReconcileShifts(
+  shiftIds: string[],
+): Promise<import('@/types/domain').BulkReconcileResult> {
+  return apiFetch<import('@/types/domain').BulkReconcileResult>('/reports/shifts/bulk-reconcile', {
+    method: 'POST',
+    body: JSON.stringify({ shiftIds }),
+  });
+}
+
 /** PATCH /reports/shifts/:id/reconcile — Approve COD reconciliation for a shift */
 export async function reconcileShift(
   shiftId: string,

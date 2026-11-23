@@ -243,6 +243,7 @@ export interface WeeklyTrendItem {
 export interface ShiftOverviewItem {
   shiftId: string;
   driverName: string;
+  driverId: string;
   licensePlate: string;
   startTime: string;
   endTime: string | null;
@@ -251,6 +252,65 @@ export interface ShiftOverviewItem {
   reconciliationStatus: 'RECONCILED' | 'PENDING';
   reconciledBy: string | null;
   reconciledAt: string | null;
+}
+
+// --------------- Shift Detail (KLTN-131) ---------------
+
+export interface ShiftDetailStop {
+  stopId: string;
+  sequenceNo: number;
+  status: StopStatus;
+  arrivedAt?: string | null;
+  orderId: string;
+  orderCode: string;
+  receiverName: string;
+  receiverPhone: string;
+  deliveryAddress: string;
+  codAmount: number;
+  pod?: {
+    photoUrl?: string | null;
+    codCollected: number;
+    failureReason?: string | null;
+    confirmedAt?: string | null;
+  } | null;
+}
+
+export interface ShiftDetailRoute {
+  id: string;
+  totalDistanceKm: number;
+  totalEstimatedTimeMin: number;
+  status: string;
+  totalOrders: number;
+  deliveredCount: number;
+  failedCount: number;
+}
+
+export interface ShiftDetail {
+  shiftId: string;
+  driverId: string;
+  driverName: string;
+  driverPhone?: string | null;
+  licensePlate: string;
+  vehicleType: string;
+  startTime: string;
+  endTime?: string | null;
+  status: ShiftStatus;
+  startingCashCod: number;
+  codCollected: number;
+  codSubmitted: number;
+  codDifference: number;
+  reconciledBy?: string | null;
+  reconciledAt?: string | null;
+  route?: ShiftDetailRoute | null;
+  stops: ShiftDetailStop[];
+}
+
+export interface BulkReconcileResult {
+  success: boolean;
+  reconciledCount: number;
+  reconciledShiftIds: string[];
+  skippedCount: number;
+  message: string;
 }
 
 export interface DriverPerformance {
