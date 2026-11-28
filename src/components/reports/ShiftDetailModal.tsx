@@ -170,7 +170,7 @@ function StopRow({ stop, index }: { stop: ShiftDetailStop; index: number }) {
 interface ShiftDetailModalProps {
   shiftId: string | null;
   onClose: () => void;
-  onReconcile?: (shiftId: string, codCollected: number, driverName: string) => void;
+  onReconcile?: (shiftId: string, submittedAmount: number, driverName: string) => void;
 }
 
 export default function ShiftDetailModal({
@@ -181,6 +181,7 @@ export default function ShiftDetailModal({
   const [detail, setDetail] = useState<ShiftDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submittedInput, setSubmittedInput] = useState<string>('');
 
   const loadDetail = useCallback(async (id: string) => {
     setLoading(true);
@@ -188,6 +189,9 @@ export default function ShiftDetailModal({
     try {
       const data = await fetchShiftDetail(id);
       setDetail(data);
+      const defaultAmount =
+        data.codSubmitted > 0 ? data.codSubmitted : data.codCollected;
+      setSubmittedInput(String(defaultAmount));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lỗi tải dữ liệu ca làm việc');
     } finally {
@@ -367,7 +371,7 @@ export default function ShiftDetailModal({
                 <div className="flex items-center gap-2.5 p-3 bg-emerald-50/70 border border-emerald-200 rounded-lg text-emerald-800 text-xs tabular-nums">
                   <CheckCircle className="w-4 h-4 flex-shrink-0" />
                   <span>
-                    Đã đối soát bởi <strong>{detail.reconciledBy}</strong> lúc{' '}
+                    Đã đối soát bởi <strong>{detail.reconciledByName || detail.reconciledBy}</strong> lúc{' '}
                     <strong>{formatDate(detail.reconciledAt)}</strong>
                   </span>
                 </div>
@@ -425,24 +429,59 @@ export default function ShiftDetailModal({
         </div>
 
         {/* ── Footer ── */}
-        <div className="bg-white border-t border-slate-200 px-6 py-3.5 flex items-center justify-end gap-2.5">
-          <button
-            onClick={onClose}
-            className="btn-secondary"
-          >
-            Đóng
-          </button>
-          {detail && !isReconciled && onReconcile && (
+        <div className="bg-white border-t border-slate-200 px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            {detail && !isReconciled && detail.status === 'OPEN' && (
+              <span className="text-xs text-amber-700 font-medium">
+                Ca đang mở — chờ tài xế kết thúc ca trước khi đối soát
+              </span>
+            )}
+            {detail && !isReconciled && detail.status !== 'OPEN' && onReconcile && (
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="reconcile-actual-cash"
+                  className="text-xs font-medium text-slate-600 whitespace-nowrap"
+                >
+                  Tiền thực nhận (VNĐ):
+                </label>
+                <input
+                  id="reconcile-actual-cash"
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={submittedInput}
+                  onChange={(e) => setSubmittedInput(e.target.value)}
+                  className="w-36 h-8 px-2.5 text-sm font-medium tabular-nums text-right border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900/15 focus:border-slate-500"
+                />
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2.5">
             <button
-              onClick={() => {
-                onReconcile(detail.shiftId, detail.codCollected, detail.driverName);
-                onClose();
-              }}
-              className="btn-primary"
+              onClick={onClose}
+              className="btn-secondary"
             >
-              ✓ Duyệt ca này
+              Đóng
             </button>
-          )}
+            {detail && !isReconciled && detail.status !== 'OPEN' && onReconcile && (
+              <button
+                onClick={() => {
+                  const parsed = Number(submittedInput);
+                  const amount =
+                    Number.isFinite(parsed) && parsed >= 0
+                      ? parsed
+                      : detail.codSubmitted > 0
+                        ? detail.codSubmitted
+                        : detail.codCollected;
+                  onReconcile(detail.shiftId, amount, detail.driverName);
+                  onClose();
+                }}
+                className="btn-primary"
+              >
+                ✓ Duyệt ca này
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

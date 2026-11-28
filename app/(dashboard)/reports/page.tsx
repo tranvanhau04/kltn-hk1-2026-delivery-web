@@ -122,8 +122,14 @@ function ReconciliationTable({
   };
 
   const handleClick = async (shift: ShiftOverviewItem) => {
+    // Nếu tài xế đã khai báo số tiền nộp khác COD thu (thiếu/dư), mở modal chi tiết để thủ quỹ xác nhận số thực nhận
+    if (shift.codSubmitted > 0 && shift.codSubmitted !== shift.codCollected) {
+      onViewDetail(shift.shiftId);
+      return;
+    }
+    const submittedAmount = shift.codSubmitted > 0 ? shift.codSubmitted : shift.codCollected;
     setReconcilingId(shift.shiftId);
-    await onReconcile(shift.shiftId, shift.codCollected, shift.driverName);
+    await onReconcile(shift.shiftId, submittedAmount, shift.driverName);
     setReconcilingId(null);
   };
 
@@ -456,10 +462,10 @@ function ReportsPage() {
     }
   }, [dateRange, toast]);
 
-  // Handle single COD reconciliation (1-click: submittedAmount = codCollected)
-  const handleReconcile = async (shiftId: string, codCollected: number, driverName: string) => {
+  // Handle single COD reconciliation with actual submitted amount
+  const handleReconcile = async (shiftId: string, submittedAmount: number, driverName: string) => {
     try {
-      const result = await reconcileShift(shiftId, codCollected);
+      const result = await reconcileShift(shiftId, submittedAmount);
       toast.success('Đối soát COD thành công', result.message || `Đã duyệt đối soát cho ${driverName}`);
       await refreshKpis();
     } catch (err) {

@@ -300,6 +300,7 @@ export interface ShiftDetail {
   codSubmitted: number;
   codDifference: number;
   reconciledBy?: string | null;
+  reconciledByName?: string | null;
   reconciledAt?: string | null;
   route?: ShiftDetailRoute | null;
   stops: ShiftDetailStop[];
