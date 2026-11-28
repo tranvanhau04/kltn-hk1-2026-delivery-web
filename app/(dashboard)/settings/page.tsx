@@ -38,22 +38,22 @@ function SettingsPage() {
   return (
     <div className="space-y-6 animate-fade-in pb-10">
       <div>
-        <h2 className="text-xl font-700 text-gray-900">Cài đặt hệ thống</h2>
-        <p className="text-sm text-gray-400 mt-0.5">Tùy chỉnh thông tin và cấu hình hoạt động</p>
+        <h2 className="text-lg font-semibold text-slate-900 tracking-tight">Cài đặt hệ thống</h2>
+        <p className="text-xs text-slate-500 mt-0.5">Tùy chỉnh thông tin và cấu hình hoạt động</p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
         {/* Sidebar Tabs */}
-        <div className="w-full md:w-64 shrink-0 flex flex-col gap-1">
+        <div className="w-full md:w-60 shrink-0 flex flex-col gap-1 bg-white p-2 rounded-lg border border-slate-200/80 shadow-xs">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-500 transition-colors w-full text-left',
+                'flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-colors w-full text-left',
                 activeTab === tab.id
-                  ? 'bg-[#FFF0F0] text-[#FA7070] font-600'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-slate-100 text-slate-900 border-l-2 border-[#D92D20] rounded-l-none'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               )}
             >
               {tab.icon}
@@ -155,45 +155,45 @@ function SettingsPage() {
 
             {activeTab === 'notifications' && (
               <div className="space-y-4 animate-fade-in">
-                <h3 className="text-lg font-700 text-gray-900 border-b border-slate-100 pb-3 mb-5">Tùy chọn cảnh báo</h3>
+                <h3 className="text-sm font-semibold text-slate-900 border-b border-slate-200 pb-3 mb-4">Tùy chọn cảnh báo</h3>
                 
-                <div className="space-y-4 max-w-md">
-                  <label className="flex items-center justify-between cursor-pointer p-3 rounded-xl border border-slate-100 hover:bg-gray-50 transition-colors">
+                <div className="space-y-3 max-w-md">
+                  <label className="flex items-center justify-between cursor-pointer p-3 rounded-lg border border-slate-200/80 hover:bg-slate-50 transition-colors">
                     <div>
-                      <p className="text-sm font-600 text-gray-800">Cảnh báo hệ thống</p>
-                      <p className="text-[11px] text-gray-500 mt-0.5">Bật thông báo popup khi có lỗi hệ thống</p>
+                      <p className="text-xs font-medium text-slate-900">Cảnh báo hệ thống</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Bật thông báo popup khi có lỗi hệ thống</p>
                     </div>
                     <input
                       type="checkbox"
                       checked={form.systemAlerts}
                       onChange={(e) => setForm(f => ({ ...f, systemAlerts: e.target.checked }))}
-                      className="w-4 h-4 accent-[#FA7070] rounded"
+                      className="w-4 h-4 accent-slate-900 rounded"
                     />
                   </label>
 
-                  <label className="flex items-center justify-between cursor-pointer p-3 rounded-xl border border-slate-100 hover:bg-gray-50 transition-colors">
+                  <label className="flex items-center justify-between cursor-pointer p-3 rounded-lg border border-slate-200/80 hover:bg-slate-50 transition-colors">
                     <div>
-                      <p className="text-sm font-600 text-gray-800">Thiếu tài xế / Quá tải</p>
-                      <p className="text-[11px] text-gray-500 mt-0.5">Cảnh báo khi khu vực có số đơn vượt quá số tài xế</p>
+                      <p className="text-xs font-medium text-slate-900">Thiếu tài xế / Quá tải</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Cảnh báo khi khu vực có số đơn vượt quá số tài xế</p>
                     </div>
                     <input
                       type="checkbox"
                       checked={form.lowCapacityAlerts}
                       onChange={(e) => setForm(f => ({ ...f, lowCapacityAlerts: e.target.checked }))}
-                      className="w-4 h-4 accent-[#FA7070] rounded"
+                      className="w-4 h-4 accent-slate-900 rounded"
                     />
                   </label>
 
-                  <label className="flex items-center justify-between cursor-pointer p-3 rounded-xl border border-slate-100 hover:bg-gray-50 transition-colors">
+                  <label className="flex items-center justify-between cursor-pointer p-3 rounded-lg border border-slate-200/80 hover:bg-slate-50 transition-colors">
                     <div>
-                      <p className="text-sm font-600 text-gray-800">Cảnh báo chậm trễ (Delay)</p>
-                      <p className="text-[11px] text-gray-500 mt-0.5">Báo khi tài xế dừng quá lâu tại một điểm giao</p>
+                      <p className="text-xs font-medium text-slate-900">Cảnh báo chậm trễ (Delay)</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Báo khi tài xế dừng quá lâu tại một điểm giao</p>
                     </div>
                     <input
                       type="checkbox"
                       checked={form.delayAlerts}
                       onChange={(e) => setForm(f => ({ ...f, delayAlerts: e.target.checked }))}
-                      className="w-4 h-4 accent-[#FA7070] rounded"
+                      className="w-4 h-4 accent-slate-900 rounded"
                     />
                   </label>
                 </div>

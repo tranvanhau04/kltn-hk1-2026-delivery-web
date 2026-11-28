@@ -18,23 +18,24 @@ import { StatCard } from '@/components/common/StatCard';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { fetchDashboardStats, fetchOrders, type DashboardStats, type ApiOrder } from '@/lib/api';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import dynamic from 'next/dynamic';
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { color: string; name: string; value: number }[]; label?: string }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-slate-100 rounded-xl shadow-lg p-3 text-xs">
-      <p className="font-700 text-gray-700 mb-2">{label}</p>
-      {payload.map((p: { color: string; name: string; value: number }, i: number) => (
-        <div key={i} className="flex items-center gap-2 mb-1">
-          <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
-          <span className="text-gray-500">{p.name}:</span>
-          <span className="font-600 text-gray-800">{p.value}</span>
+const DashboardOrdersChart = dynamic(
+  () => import('@/components/dashboard/DashboardOrdersChart'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex flex-col justify-end gap-3 p-4 animate-pulse">
+        <div className="flex items-end gap-3 h-48 w-full justify-between">
+          {[40, 65, 45, 85, 60, 75, 95].map((h, i) => (
+            <div key={i} className="flex-1 bg-slate-100 rounded-t" style={{ height: `${h}%` }} />
+          ))}
         </div>
-      ))}
-    </div>
-  );
-}
+        <div className="h-3 bg-slate-100 rounded w-full" />
+      </div>
+    ),
+  },
+);
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
@@ -74,13 +75,13 @@ export default function DashboardOverviewPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-700 text-gray-900">Tổng quan hệ thống</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Bảng điều khiển hoạt động giao vận hàng ngày</p>
+          <h2 className="text-lg font-semibold text-slate-900 tracking-tight">Tổng quan hệ thống</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Bảng điều khiển hoạt động giao vận hàng ngày</p>
         </div>
         <button
           onClick={loadDashboardData}
           disabled={loading}
-          className="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3"
+          className="btn-secondary text-xs flex items-center gap-1.5 h-8 px-3"
           title="Tải lại dữ liệu"
         >
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
@@ -95,31 +96,31 @@ export default function DashboardOverviewPage() {
           value={totalOrders}
           trend={12}
           loading={loading}
-          icon={<Package size={18} className="text-[#FA7070]" />}
-          iconBg="bg-[#FFF0F0]"
+          icon={<Package size={16} className="text-slate-700" />}
+          iconBg="bg-slate-100"
         />
         <StatCard
           title="Tài xế hoạt động"
           value={activeCouriers}
           trend={2}
           loading={loading}
-          icon={<Truck size={18} className="text-blue-500" />}
-          iconBg="bg-blue-50"
+          icon={<Truck size={16} className="text-indigo-600" />}
+          iconBg="bg-indigo-50"
         />
         <StatCard
           title="Giao thành công"
           value={successRate}
           trend={1.5}
           loading={loading}
-          icon={<CheckCircle size={18} className="text-green-500" />}
-          iconBg="bg-green-50"
+          icon={<CheckCircle size={16} className="text-emerald-600" />}
+          iconBg="bg-emerald-50"
         />
         <StatCard
           title="COD Đã thu"
           value={formatCurrency(totalCOD)}
           trend={5}
           loading={loading}
-          icon={<DollarSign size={18} className="text-amber-500" />}
+          icon={<DollarSign size={16} className="text-amber-600" />}
           iconBg="bg-amber-50"
         />
       </div>
@@ -128,10 +129,14 @@ export default function DashboardOverviewPage() {
         {/* Main Chart Column */}
         <div className="lg:col-span-2 space-y-6">
           <div className="card p-5 h-[360px] flex flex-col">
-            <div className="flex items-center justify-between mb-6 shrink-0">
+            <div className="flex items-center justify-between mb-5 shrink-0">
               <div>
-                <h3 className="text-base font-700 text-gray-900">Khối lượng đơn hàng</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Thống kê phân bổ theo ngày trong tuần</p>
+                <h3 className="text-sm font-semibold text-slate-900">Khối lượng đơn hàng</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Thống kê phân bổ theo ngày trong tuần</p>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span className="w-2.5 h-2.5 rounded-xs bg-indigo-600 inline-block" />
+                <span>Tổng đơn</span>
               </div>
             </div>
             <div className="flex-1 min-h-0 flex items-center justify-center">
@@ -139,38 +144,15 @@ export default function DashboardOverviewPage() {
                 <div className="w-full h-full flex flex-col justify-end gap-3 p-4 animate-pulse">
                   <div className="flex items-end gap-3 h-48 w-full justify-between">
                     {[40, 65, 45, 85, 60, 75, 95].map((h, i) => (
-                      <div key={i} className="flex-1 bg-slate-100 rounded-t-xl" style={{ height: `${h}%` }} />
+                      <div key={i} className="flex-1 bg-slate-100 rounded-t" style={{ height: `${h}%` }} />
                     ))}
                   </div>
-                  <div className="h-3 bg-slate-100 rounded-md w-full" />
+                  <div className="h-3 bg-slate-100 rounded w-full" />
                 </div>
               ) : chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
-                    <defs>
-                      <linearGradient id="colorOrdersDb" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#FA7070" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#FA7070" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                    <XAxis dataKey="day" tick={{ fill: '#9CA3AF', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: '#9CA3AF', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area
-                      type="monotone"
-                      dataKey="orders"
-                      name="Tổng đơn"
-                      stroke="#FA7070"
-                      strokeWidth={3}
-                      fill="url(#colorOrdersDb)"
-                      dot={{ r: 4, fill: '#FA7070', strokeWidth: 2, stroke: 'white' }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <DashboardOrdersChart data={chartData} />
               ) : (
-                <p className="text-xs text-gray-400">Không có dữ liệu đơn hàng</p>
+                <p className="text-xs text-slate-400">Không có dữ liệu đơn hàng</p>
               )}
             </div>
           </div>
@@ -180,68 +162,68 @@ export default function DashboardOverviewPage() {
         <div className="space-y-6">
           {/* Quick Actions */}
           <div className="card p-5">
-            <h3 className="text-sm font-700 text-gray-900 mb-4">Thao tác nhanh</h3>
-            <div className="grid grid-cols-1 gap-3">
-              <button onClick={() => router.push('/orders')} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-[#FA7070] hover:bg-[#FFF0F0] transition-colors group">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#FA7070]/10 flex items-center justify-center group-hover:bg-[#FA7070] transition-colors">
-                    <Plus size={16} className="text-[#FA7070] group-hover:text-white" />
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Thao tác nhanh</h3>
+            <div className="grid grid-cols-1 gap-2">
+              <button onClick={() => router.push('/orders')} className="flex items-center justify-between p-2.5 rounded-md border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50 transition-colors group">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-md bg-slate-900 flex items-center justify-center text-white">
+                    <Plus size={14} />
                   </div>
-                  <span className="text-sm font-600 text-gray-700">Tạo đơn hàng mới</span>
+                  <span className="text-xs font-medium text-slate-800">Tạo đơn hàng mới</span>
                 </div>
-                <ChevronRight size={16} className="text-gray-400 group-hover:text-[#FA7070]" />
+                <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-700" />
               </button>
               
-              <button onClick={() => router.push('/vrp')} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-violet-300 hover:bg-violet-50 transition-colors group">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center group-hover:bg-violet-500 transition-colors">
-                    <Route size={16} className="text-violet-600 group-hover:text-white" />
+              <button onClick={() => router.push('/vrp')} className="flex items-center justify-between p-2.5 rounded-md border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50 transition-colors group">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-md bg-indigo-50 border border-indigo-200/80 flex items-center justify-center text-indigo-600">
+                    <Route size={14} />
                   </div>
-                  <span className="text-sm font-600 text-gray-700">Tối ưu tuyến đường</span>
+                  <span className="text-xs font-medium text-slate-800">Tối ưu tuyến đường</span>
                 </div>
-                <ChevronRight size={16} className="text-gray-400 group-hover:text-violet-600" />
+                <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-700" />
               </button>
 
-              <button onClick={() => router.push('/tracking')} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-blue-300 hover:bg-blue-50 transition-colors group">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-500 transition-colors">
-                    <MapIcon size={16} className="text-blue-600 group-hover:text-white" />
+              <button onClick={() => router.push('/tracking')} className="flex items-center justify-between p-2.5 rounded-md border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50 transition-colors group">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-md bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-600">
+                    <MapIcon size={14} />
                   </div>
-                  <span className="text-sm font-600 text-gray-700">Bản đồ trực tiếp</span>
+                  <span className="text-xs font-medium text-slate-800">Bản đồ trực tiếp</span>
                 </div>
-                <ChevronRight size={16} className="text-gray-400 group-hover:text-blue-600" />
+                <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-700" />
               </button>
             </div>
           </div>
 
           {/* Recent Activity */}
           <div className="card flex flex-col h-[360px]">
-            <div className="p-5 border-b border-slate-100 shrink-0">
-              <h3 className="text-sm font-700 text-gray-900">Hoạt động gần đây</h3>
-              <p className="text-xs text-gray-400 mt-0.5">5 đơn hàng cập nhật mới nhất</p>
+            <div className="px-5 py-3.5 border-b border-slate-200 shrink-0">
+              <h3 className="text-sm font-semibold text-slate-900">Hoạt động gần đây</h3>
+              <p className="text-xs text-slate-500 mt-0.5 tabular-nums">5 đơn hàng cập nhật mới nhất</p>
             </div>
-            <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
               {loading ? (
-                <div className="flex items-center justify-center h-full text-xs text-gray-400 gap-2">
-                  <Loader2 size={16} className="animate-spin text-[#FA7070]" />
+                <div className="flex items-center justify-center h-full text-xs text-slate-400 gap-2">
+                  <Loader2 size={15} className="animate-spin text-slate-600" />
                   <span>Đang tải đơn hàng...</span>
                 </div>
               ) : recentOrders.length > 0 ? (
                 recentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors">
-                    <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                      <Package size={14} className="text-gray-500" />
+                  <div key={order.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50/70 transition-colors">
+                    <div className="w-8 h-8 rounded-md bg-slate-100 border border-slate-200/70 flex items-center justify-center shrink-0">
+                      <Package size={14} className="text-slate-500" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-600 text-gray-800 truncate">{order.code}</p>
-                      <p className="text-xs text-gray-500 truncate">{order.receiverName} - {order.deliveryAddress}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{formatDateTime(order.createdAt)}</p>
+                      <p className="text-xs font-mono font-semibold text-slate-900 truncate tabular-nums">{order.code}</p>
+                      <p className="text-xs text-slate-500 truncate">{order.receiverName} · {order.deliveryAddress}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 tabular-nums">{formatDateTime(order.createdAt)}</p>
                     </div>
-                    <StatusBadge status={order.status} className="text-[10px]" />
+                    <StatusBadge status={order.status} className="text-[11px]" />
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-gray-400 p-4 text-center">Chưa có đơn hàng nào</p>
+                <p className="text-xs text-slate-400 p-4 text-center">Chưa có đơn hàng nào</p>
               )}
             </div>
           </div>

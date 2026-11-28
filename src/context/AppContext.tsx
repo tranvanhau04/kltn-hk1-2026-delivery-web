@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import type { User, Order } from '@/types/domain';
 import { updateOrderStatusApi } from '@/lib/api';
 
@@ -287,7 +287,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications],
+  );
 
   const markAllRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
@@ -301,25 +304,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const clearSelection = useCallback(() => setSelectedOrderIds([]), []);
 
+  const contextValue = useMemo<AppContextValue>(
+    () => ({
+      currentUser,
+      isAuthenticated: !!currentUser,
+      isLoading,
+      login,
+      logout,
+      orders,
+      updateOrderStatus,
+      notifications,
+      unreadCount,
+      markAllRead,
+      selectedOrderIds,
+      toggleOrderSelection,
+      clearSelection,
+      setSelectedOrderIds,
+    }),
+    [
+      currentUser,
+      isLoading,
+      login,
+      logout,
+      orders,
+      updateOrderStatus,
+      notifications,
+      unreadCount,
+      markAllRead,
+      selectedOrderIds,
+      toggleOrderSelection,
+      clearSelection,
+    ],
+  );
+
   return (
-    <AppContext.Provider
-      value={{
-        currentUser,
-        isAuthenticated: !!currentUser,
-        isLoading,
-        login,
-        logout,
-        orders,
-        updateOrderStatus,
-        notifications,
-        unreadCount,
-        markAllRead,
-        selectedOrderIds,
-        toggleOrderSelection,
-        clearSelection,
-        setSelectedOrderIds,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

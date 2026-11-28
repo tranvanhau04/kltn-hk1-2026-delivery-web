@@ -188,28 +188,28 @@ const TOAST_STYLES: Record<
   { icon: React.ReactNode; borderColor: string; bg: string; progressColor: string }
 > = {
   success: {
-    icon: <CheckCircle size={18} className="text-green-500 shrink-0" />,
-    borderColor: 'border-l-green-500',
-    bg: 'bg-green-50',
-    progressColor: 'bg-green-500',
+    icon: <CheckCircle size={16} className="text-emerald-600 shrink-0" />,
+    borderColor: 'border-l-emerald-600',
+    bg: 'bg-white',
+    progressColor: 'bg-emerald-600',
   },
   error: {
-    icon: <XCircle size={18} className="text-red-500 shrink-0" />,
-    borderColor: 'border-l-red-500',
-    bg: 'bg-red-50',
-    progressColor: 'bg-red-500',
+    icon: <XCircle size={16} className="text-[#D92D20] shrink-0" />,
+    borderColor: 'border-l-[#D92D20]',
+    bg: 'bg-white',
+    progressColor: 'bg-[#D92D20]',
   },
   warning: {
-    icon: <AlertTriangle size={18} className="text-amber-500 shrink-0" />,
+    icon: <AlertTriangle size={16} className="text-amber-600 shrink-0" />,
     borderColor: 'border-l-amber-500',
-    bg: 'bg-amber-50',
+    bg: 'bg-white',
     progressColor: 'bg-amber-500',
   },
   info: {
-    icon: <Info size={18} className="text-blue-500 shrink-0" />,
-    borderColor: 'border-l-blue-500',
-    bg: 'bg-blue-50',
-    progressColor: 'bg-blue-500',
+    icon: <Info size={16} className="text-slate-700 shrink-0" />,
+    borderColor: 'border-l-slate-800',
+    bg: 'bg-white',
+    progressColor: 'bg-slate-800',
   },
 };
 
@@ -253,7 +253,7 @@ function ToastItem({
   return (
     <div
       className={cn(
-        'pointer-events-auto w-[380px] max-w-[calc(100vw-3rem)] rounded-xl border border-slate-100 border-l-4 shadow-lg overflow-hidden',
+        'pointer-events-auto w-[360px] max-w-[calc(100vw-3rem)] rounded-lg border border-slate-200 border-l-2 shadow-md overflow-hidden',
         style.borderColor,
         style.bg,
         t.exiting ? 'animate-toast-slide-out' : 'animate-toast-slide-in',
@@ -263,28 +263,28 @@ function ToastItem({
       onMouseLeave={() => setPaused(false)}
     >
       {/* Content */}
-      <div className="flex items-start gap-3 px-4 py-3">
+      <div className="flex items-start gap-3 px-3.5 py-3">
         <div className="mt-0.5">{style.icon}</div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-600 text-gray-900 leading-5">{t.title}</p>
+          <p className="text-xs font-semibold text-slate-900 leading-4">{t.title}</p>
           {t.message && (
-            <p className="text-xs text-gray-500 mt-0.5 leading-4">{t.message}</p>
+            <p className="text-xs text-slate-500 mt-0.5 leading-4">{t.message}</p>
           )}
         </div>
         <button
           onClick={() => onDismiss(t.id)}
-          className="shrink-0 p-0.5 rounded-md hover:bg-black/5 transition-colors"
+          className="shrink-0 p-0.5 rounded hover:bg-slate-100 transition-colors"
           aria-label="Đóng thông báo"
         >
-          <X size={14} className="text-gray-400" />
+          <X size={13} className="text-slate-400" />
         </button>
       </div>
 
       {/* Progress bar */}
       {duration > 0 && (
-        <div className="h-[3px] w-full bg-black/5">
+        <div className="h-[2px] w-full bg-slate-100">
           <div
-            className={cn('h-full rounded-full', style.progressColor)}
+            className={cn('h-full', style.progressColor)}
             style={{
               animation: `toast-progress ${duration}ms linear forwards`,
               animationPlayState: paused ? 'paused' : 'running',

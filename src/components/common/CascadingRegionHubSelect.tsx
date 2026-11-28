@@ -120,11 +120,11 @@ export function CascadingRegionHubSelect({
         <label
           htmlFor="region-select"
           className={cn(
-            'font-700 text-gray-500 whitespace-nowrap flex items-center gap-1',
+            'font-medium text-slate-500 whitespace-nowrap flex items-center gap-1',
             isSmall ? 'text-[11px]' : 'text-xs',
           )}
         >
-          <Globe size={isSmall ? 13 : 14} className="text-blue-500 shrink-0" />
+          <Globe size={isSmall ? 13 : 14} className="text-slate-400 shrink-0" />
           Khu vực:
         </label>
         <div className="relative">
@@ -134,8 +134,8 @@ export function CascadingRegionHubSelect({
             onChange={handleRegionChange}
             disabled={loadingRegions}
             className={cn(
-              'bg-white border border-gray-300 text-gray-800 font-600 rounded-lg focus:ring-[#FA7070] focus:border-[#FA7070] cursor-pointer shadow-2xs hover:border-gray-400 transition-colors pr-7',
-              isSmall ? 'text-xs py-1.5 px-2.5 h-8' : 'text-xs py-2 px-3 h-9',
+              'bg-white border border-slate-200 text-slate-800 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 cursor-pointer hover:border-slate-300 transition-colors pr-7',
+              isSmall ? 'text-xs py-1 px-2.5 h-8' : 'text-xs py-1.5 px-3 h-9',
               loadingRegions && 'opacity-60 cursor-not-allowed',
             )}
             aria-label="Chọn khu vực quản lý"
@@ -161,11 +161,11 @@ export function CascadingRegionHubSelect({
         <label
           htmlFor="hub-select"
           className={cn(
-            'font-700 text-gray-500 whitespace-nowrap flex items-center gap-1',
+            'font-medium text-slate-500 whitespace-nowrap flex items-center gap-1',
             isSmall ? 'text-[11px]' : 'text-xs',
           )}
         >
-          <MapPin size={isSmall ? 13 : 14} className="text-[#FA7070] shrink-0" />
+          <MapPin size={isSmall ? 13 : 14} className="text-slate-400 shrink-0" />
           Kho / Hub:
         </label>
         <div className="relative">
@@ -175,8 +175,8 @@ export function CascadingRegionHubSelect({
             onChange={handleHubChange}
             disabled={loadingDepots || (!allowAllHubs && depots.length === 0)}
             className={cn(
-              'bg-white border border-gray-300 text-gray-800 font-600 rounded-lg focus:ring-[#FA7070] focus:border-[#FA7070] cursor-pointer shadow-2xs hover:border-gray-400 transition-colors pr-7 max-w-[220px] truncate',
-              isSmall ? 'text-xs py-1.5 px-2.5 h-8' : 'text-xs py-2 px-3 h-9',
+              'bg-white border border-slate-200 text-slate-800 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 cursor-pointer hover:border-slate-300 transition-colors pr-7 max-w-[220px] truncate',
+              isSmall ? 'text-xs py-1 px-2.5 h-8' : 'text-xs py-1.5 px-3 h-9',
               loadingDepots && 'opacity-60 cursor-not-allowed',
             )}
             aria-label="Chọn Hub / Kho điều phối"
@@ -204,7 +204,7 @@ export function CascadingRegionHubSelect({
           </select>
           {loadingDepots && (
             <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-              <Loader2 size={12} className="animate-spin text-gray-400" />
+              <Loader2 size={12} className="animate-spin text-slate-400" />
             </div>
           )}
         </div>

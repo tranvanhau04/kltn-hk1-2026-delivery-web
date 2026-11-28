@@ -82,12 +82,12 @@ export default function ImportExcelModal({
       <div className="space-y-4">
         {/* Sample Template */}
         {!result && (
-          <div className="flex items-center justify-between p-3.5 bg-blue-50 border border-blue-100 text-blue-700 rounded-xl">
-            <span className="text-xs font-500">Chưa có file mẫu theo đúng cấu trúc?</span>
+          <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 text-slate-700 rounded-lg">
+            <span className="text-xs font-medium">Chưa có file mẫu theo đúng cấu trúc?</span>
             <a
               href="/templates/mau_nhap_don_hang.xlsx"
               download="mau_nhap_don_hang.xlsx"
-              className="text-xs font-600 text-blue-700 hover:text-blue-900 underline flex items-center gap-1 transition-colors"
+              className="text-xs font-semibold text-slate-900 hover:underline flex items-center gap-1 transition-colors"
             >
               Tải file mẫu (.xlsx)
             </a>
@@ -97,8 +97,8 @@ export default function ImportExcelModal({
         {/* Upload Area */}
         {!result ? (
           <div
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-              file ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:bg-gray-50'
+            className={`border border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+              file ? 'border-emerald-400 bg-emerald-50/50' : 'border-slate-300 hover:bg-slate-50'
             }`}
             onClick={() => fileInputRef.current?.click()}
           >
@@ -110,38 +110,38 @@ export default function ImportExcelModal({
               onChange={handleFileSelect}
             />
             {file ? (
-              <div className="flex flex-col items-center gap-2">
-                <File size={32} className="text-green-500" />
-                <p className="text-sm font-600 text-green-700">{file.name}</p>
-                <p className="text-xs text-green-600">{(file.size / 1024).toFixed(1)} KB</p>
+              <div className="flex flex-col items-center gap-1.5">
+                <File size={28} className="text-emerald-600" />
+                <p className="text-sm font-medium text-emerald-800">{file.name}</p>
+                <p className="text-xs text-emerald-600 tabular-nums">{(file.size / 1024).toFixed(1)} KB</p>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-2 cursor-pointer">
-                <UploadCloud size={32} className="text-gray-400" />
-                <p className="text-sm font-600 text-gray-700">Kéo thả file hoặc nhấn để chọn</p>
-                <p className="text-xs text-gray-400">Hỗ trợ file .xlsx, .xls</p>
+              <div className="flex flex-col items-center gap-1.5 cursor-pointer">
+                <UploadCloud size={28} className="text-slate-400" />
+                <p className="text-sm font-medium text-slate-700">Kéo thả file hoặc nhấn để chọn</p>
+                <p className="text-xs text-slate-400">Hỗ trợ file .xlsx, .xls</p>
               </div>
             )}
           </div>
         ) : (
           /* Result Summary */
           <div className="space-y-3">
-            <div className={`p-4 rounded-xl flex flex-col items-center gap-2 ${result.failedCount === 0 ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
-              {result.failedCount === 0 ? <CheckCircle size={32} className="text-green-500" /> : <AlertCircle size={32} className="text-amber-500" />}
-              <h3 className="font-600 text-lg">Hoàn tất nhập dữ liệu</h3>
-              <p className="text-sm">Tổng số dòng: {result.totalRows}</p>
-              <div className="flex gap-4 mt-2">
-                <span className="text-sm font-600 text-green-600 bg-white px-3 py-1 rounded-full shadow-sm">Thành công: {result.importedCount}</span>
-                <span className="text-sm font-600 text-red-600 bg-white px-3 py-1 rounded-full shadow-sm">Thất bại: {result.failedCount}</span>
+            <div className={`p-4 rounded-lg border flex flex-col items-center gap-1.5 ${result.failedCount === 0 ? 'bg-emerald-50/60 border-emerald-200 text-emerald-800' : 'bg-amber-50/60 border-amber-200 text-amber-800'}`}>
+              {result.failedCount === 0 ? <CheckCircle size={28} className="text-emerald-600" /> : <AlertCircle size={28} className="text-amber-600" />}
+              <h3 className="font-semibold text-base">Hoàn tất nhập dữ liệu</h3>
+              <p className="text-xs tabular-nums">Tổng số dòng: {result.totalRows}</p>
+              <div className="flex gap-3 mt-2 tabular-nums">
+                <span className="text-xs font-medium text-emerald-700 bg-white border border-emerald-200 px-2.5 py-1 rounded">Thành công: {result.importedCount}</span>
+                <span className="text-xs font-medium text-[#D92D20] bg-white border border-red-200 px-2.5 py-1 rounded">Thất bại: {result.failedCount}</span>
               </div>
             </div>
 
             {result.errors.length > 0 && (
-              <div className="p-3 bg-red-50 rounded-xl border border-red-100 max-h-40 overflow-y-auto">
-                <p className="text-xs font-700 text-red-700 mb-2">Chi tiết lỗi:</p>
+              <div className="p-3 bg-red-50/70 rounded-lg border border-red-200 max-h-40 overflow-y-auto">
+                <p className="text-xs font-semibold text-red-800 mb-1.5">Chi tiết lỗi:</p>
                 <ul className="list-disc pl-4 space-y-1">
                   {result.errors.map((err, i) => (
-                    <li key={i} className="text-xs text-red-600">{err}</li>
+                    <li key={i} className="text-xs text-red-700">{err}</li>
                   ))}
                 </ul>
               </div>
@@ -150,8 +150,8 @@ export default function ImportExcelModal({
         )}
 
         {errorMsg && (
-          <div className="p-3 bg-red-50 text-red-600 text-sm font-500 rounded-xl flex items-center gap-2">
-            <AlertCircle size={16} /> {errorMsg}
+          <div className="p-3 bg-red-50 border border-red-200 text-[#D92D20] text-xs font-medium rounded-md flex items-center gap-2">
+            <AlertCircle size={15} /> {errorMsg}
           </div>
         )}
       </div>

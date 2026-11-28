@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Plus, Mail, Phone, Shield, UserCheck, Pencil, Truck, Lock } from 'lucide-react';
+import { Plus, Mail, Phone, Shield, UserCheck, Pencil, Truck, Lock, Download } from 'lucide-react';
 import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
@@ -10,8 +11,14 @@ import { fetchUsers, createUser, updateUserStatus, forgotPassword } from '@/lib/
 import type { User, UserRole } from '@/types/domain';
 import { useToast } from '@/context/ToastContext';
 import { useApp } from '@/context/AppContext';
+import { useDebounce } from '@/hooks/useDebounce';
 import { formatDateTime, cn } from '@/lib/utils';
 import { withRoleGuard } from '@/components/auth/withRoleGuard';
+
+const ImportUsersExcelModal = dynamic(
+  () => import('@/components/users/ImportUsersExcelModal'),
+  { ssr: false },
+);
 
 const ROLE_CONFIG: Record<UserRole, { label: string; className: string }> = {
   ADMIN:      { label: 'Quản trị viên', className: 'badge badge-failed' },
@@ -78,7 +85,7 @@ function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit:
           />
         </div>
         <div>
-          <label className="block text-sm font-500 text-gray-700 mb-2">Vai trò *</label>
+          <label className="block text-xs font-medium text-slate-700 mb-2">Vai trò *</label>
           <div className="grid grid-cols-3 gap-2">
             {(['ADMIN', 'DISPATCHER', 'DRIVER'] as UserRole[]).map((role) => (
               <button
@@ -86,14 +93,14 @@ function InviteUserModal({ onClose, onSubmit }: { onClose: () => void; onSubmit:
                 type="button"
                 onClick={() => setForm((f) => ({ ...f, role }))}
                 className={cn(
-                  'px-3 py-2.5 rounded-xl border text-sm font-500 transition-all flex items-center gap-2',
+                  'px-3 py-2 rounded-md border text-xs font-medium transition-colors flex items-center gap-1.5',
                   form.role === role
-                    ? 'border-[#FA7070] bg-[#FFF0F0] text-[#FA7070]'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    ? 'border-slate-900 bg-slate-900 text-white'
+                    : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                 )}
                 id={`role-${role}`}
               >
-                {role === 'ADMIN' ? <Shield size={15} /> : role === 'DISPATCHER' ? <UserCheck size={15} /> : <Truck size={15} />}
+                {role === 'ADMIN' ? <Shield size={14} /> : role === 'DISPATCHER' ? <UserCheck size={14} /> : <Truck size={14} />}
                 {ROLE_CONFIG[role].label}
               </button>
             ))}
@@ -109,7 +116,9 @@ function UsersPage() {
   const { currentUser } = useApp();
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [showInvite, setShowInvite] = useState(false);
+  const [showImportExcel, setShowImportExcel] = useState(false);
   const [filter, setFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
 
@@ -131,20 +140,112 @@ function UsersPage() {
     void loadUsers();
   }, [loadUsers]);
 
+  const roleCounts = useMemo(() => {
+    const counts: Record<UserRole, number> = {
+      ADMIN: 0,
+      DISPATCHER: 0,
+      DRIVER: 0,
+    };
+    for (const u of users) {
+      if (u.role in counts) {
+        counts[u.role] += 1;
+      }
+    }
+    return counts;
+  }, [users]);
+
+  const filteredUsers = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    return users.filter((u) => {
+      const matchSearch =
+        !q ||
+        u.fullName.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (u.phone && u.phone.includes(q));
+      const matchFilter = filter === 'ALL' || u.role === filter;
+      return matchSearch && matchFilter;
+    });
+  }, [users, debouncedSearch, filter]);
+
+  const userFilterTabs = useMemo(
+    () => [
+      { label: 'Tất cả',        value: 'ALL',        count: users.length },
+      { label: 'Quản trị viên', value: 'ADMIN',      count: roleCounts.ADMIN },
+      { label: 'Điều phối',     value: 'DISPATCHER', count: roleCounts.DISPATCHER },
+      { label: 'Tài xế',        value: 'DRIVER',     count: roleCounts.DRIVER },
+    ],
+    [users.length, roleCounts],
+  );
+
+  const columns = useMemo<ColumnDef<User>[]>(
+    () => [
+      {
+        key: 'fullName',
+        header: 'Người dùng',
+        sortable: true,
+        render: (_v, row) => {
+          const u = row as User;
+          return (
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-semibold text-xs shrink-0">
+                {u.fullName.charAt(0)}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-900">{u.fullName}</p>
+                <p className="text-xs text-slate-500 flex items-center gap-1">
+                  <Mail size={11} /> {u.email}
+                </p>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'phone',
+        header: 'Điện thoại',
+        render: (v) => (
+          <span className="text-sm text-slate-600 flex items-center gap-1 tabular-nums">
+            <Phone size={12} className="text-slate-400" /> {String(v)}
+          </span>
+        ),
+      },
+      {
+        key: 'role',
+        header: 'Vai trò',
+        render: (v) => {
+          const conf = ROLE_CONFIG[v as UserRole];
+          return <span className={conf.className}>{conf.label}</span>;
+        },
+      },
+      {
+        key: 'status',
+        header: 'Trạng thái',
+        render: (v) => <StatusBadge status={v as 'ACTIVE' | 'INACTIVE'} />,
+      },
+      {
+        key: 'createdAt',
+        header: 'Ngày tham gia',
+        sortable: true,
+        render: (v) => <span className="text-xs text-slate-500 tabular-nums">{formatDateTime(String(v))}</span>,
+      },
+    ],
+    [],
+  );
+
   // Role Guard: Only ADMIN can view and manage users
   if (currentUser && currentUser.role !== 'ADMIN') {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center card bg-white space-y-4 my-8">
-        <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center shadow-xs">
-          <Lock size={32} />
+      <div className="flex flex-col items-center justify-center p-10 text-center card bg-white space-y-4 my-8">
+        <div className="w-12 h-12 rounded-lg bg-red-50 border border-red-200 text-[#D92D20] flex items-center justify-center">
+          <Lock size={22} />
         </div>
         <div className="space-y-1">
-          <h3 className="text-lg font-700 text-gray-900">Quyền truy cập bị từ chối (403 Forbidden)</h3>
-          <p className="text-sm text-gray-500 max-w-md mx-auto">
-            Tài khoản của bạn hiện tại có vai trò <span className="font-600 text-gray-700">{currentUser.role === 'DISPATCHER' ? 'Điều phối viên (Dispatcher)' : currentUser.role}</span>. Phân hệ Quản lý người dùng hệ thống chỉ được cấp quyền cho Quản trị viên (ADMIN).
+          <h3 className="text-base font-semibold text-slate-900">Quyền truy cập bị từ chối (403 Forbidden)</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            Tài khoản của bạn hiện tại có vai trò <span className="font-semibold text-slate-700">{currentUser.role === 'DISPATCHER' ? 'Điều phối viên (Dispatcher)' : currentUser.role}</span>. Phân hệ Quản lý người dùng hệ thống chỉ được cấp quyền cho Quản trị viên (ADMIN).
           </p>
         </div>
-        <Link href="/dashboard" className="btn-primary text-sm">
+        <Link href="/dashboard" className="btn-primary text-xs">
           Quay lại Bảng điều khiển
         </Link>
       </div>
@@ -163,92 +264,45 @@ function UsersPage() {
     }
   };
 
-  const filteredUsers = users.filter((u) => {
-    const matchSearch = !search || u.fullName.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === 'ALL' || u.role === filter;
-    return matchSearch && matchFilter;
-  });
-
-  const columns: ColumnDef<User>[] = [
-    {
-      key: 'fullName',
-      header: 'Người dùng',
-      sortable: true,
-      render: (v, row) => {
-        const u = row as User;
-        return (
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-100 to-violet-200 flex items-center justify-center text-violet-700 font-700 text-sm shrink-0">
-              {u.fullName.charAt(0)}
-            </div>
-            <div>
-              <p className="text-sm font-600 text-gray-800">{u.fullName}</p>
-              <p className="text-xs text-gray-400 flex items-center gap-1">
-                <Mail size={11} /> {u.email}
-              </p>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'phone',
-      header: 'Điện thoại',
-      render: (v) => (
-        <span className="text-sm text-gray-600 flex items-center gap-1">
-          <Phone size={12} className="text-gray-400" /> {String(v)}
-        </span>
-      ),
-    },
-    {
-      key: 'role',
-      header: 'Vai trò',
-      render: (v) => {
-        const conf = ROLE_CONFIG[v as UserRole];
-        return <span className={conf.className}>{conf.label}</span>;
-      },
-    },
-    {
-      key: 'status',
-      header: 'Trạng thái',
-      render: (v) => <StatusBadge status={v as 'ACTIVE' | 'INACTIVE'} />,
-    },
-    {
-      key: 'createdAt',
-      header: 'Ngày tham gia',
-      sortable: true,
-      render: (v) => <span className="text-xs text-gray-400">{formatDateTime(String(v))}</span>,
-    },
-  ];
-
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-700 text-gray-900">Người dùng hệ thống</h2>
-          <p className="text-sm text-gray-400 mt-0.5">{users.length} người dùng</p>
+          <h2 className="text-lg font-semibold text-slate-900 tracking-tight">Người dùng hệ thống</h2>
+          <p className="text-xs text-slate-500 mt-0.5 tabular-nums">{users.length} người dùng</p>
         </div>
-        <button onClick={() => setShowInvite(true)} className="btn-primary" id="btn-invite-user">
-          <Plus size={15} /> Mời người dùng
-        </button>
+        <div className="flex items-center gap-2">
+          {currentUser?.role === 'ADMIN' && (
+            <button
+              onClick={() => setShowImportExcel(true)}
+              className="inline-flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-md text-xs font-medium h-8 px-3 transition-colors"
+              id="btn-import-users-excel"
+            >
+              <Download size={14} /> Nhập Excel
+            </button>
+          )}
+          <button onClick={() => setShowInvite(true)} className="btn-primary text-xs h-8 px-3" id="btn-invite-user">
+            <Plus size={14} /> Mời người dùng
+          </button>
+        </div>
       </div>
 
       {/* Role stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { role: 'ADMIN', label: 'Quản trị viên', icon: <Shield size={18} />, color: 'bg-red-50 text-red-600' },
-          { role: 'DISPATCHER', label: 'Điều phối', icon: <UserCheck size={18} />, color: 'bg-violet-50 text-violet-600' },
-          { role: 'DRIVER', label: 'Tài xế', icon: <Truck size={18} />, color: 'bg-green-50 text-green-600' },
+          { role: 'ADMIN' as const, label: 'Quản trị viên', icon: <Shield size={16} />, color: 'bg-red-50 text-[#D92D20] border-red-200/80' },
+          { role: 'DISPATCHER' as const, label: 'Điều phối', icon: <UserCheck size={16} />, color: 'bg-indigo-50 text-indigo-600 border-indigo-200/80' },
+          { role: 'DRIVER' as const, label: 'Tài xế', icon: <Truck size={16} />, color: 'bg-emerald-50 text-emerald-600 border-emerald-200/80' },
         ].map((r) => (
-          <div key={r.role} className="card p-4 flex items-center gap-4 animate-fade-in">
-            <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center', r.color)}>
+          <div key={r.role} className="card p-4 flex items-center gap-3.5 animate-fade-in">
+            <div className={cn('w-9 h-9 rounded-md border flex items-center justify-center', r.color)}>
               {r.icon}
             </div>
             <div>
-              <p className="text-2xl font-700 text-gray-900">
-                {loading ? '...' : users.filter((u) => u.role === r.role).length}
+              <p className="text-xl font-semibold text-slate-900 tabular-nums">
+                {loading ? '...' : roleCounts[r.role]}
               </p>
-              <p className="text-xs text-gray-500">{r.label}</p>
+              <p className="text-xs text-slate-500">{r.label}</p>
             </div>
           </div>
         ))}
@@ -258,12 +312,7 @@ function UsersPage() {
         data={filteredUsers}
         columns={columns}
         loading={loading}
-        filterTabs={[
-          { label: 'Tất cả', value: 'ALL', count: users.length },
-          { label: 'Quản trị viên', value: 'ADMIN', count: users.filter((u) => u.role === 'ADMIN').length },
-          { label: 'Điều phối', value: 'DISPATCHER', count: users.filter((u) => u.role === 'DISPATCHER').length },
-          { label: 'Tài xế', value: 'DRIVER', count: users.filter((u) => u.role === 'DRIVER').length },
-        ]}
+        filterTabs={userFilterTabs}
         activeFilter={filter}
         onFilterChange={setFilter}
         searchValue={search}
@@ -275,14 +324,14 @@ function UsersPage() {
             <button
               onClick={(e) => { e.stopPropagation(); toggleUserStatus(row); }}
               className={cn(
-                'flex items-center justify-center w-7 h-7 rounded-lg transition-colors',
-                row.status === 'ACTIVE' ? 'text-red-500 hover:bg-red-50' : 'text-green-500 hover:bg-green-50'
+                'flex items-center justify-center w-7 h-7 rounded-md transition-colors',
+                row.status === 'ACTIVE' ? 'text-[#D92D20] hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'
               )}
               title={row.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
             >
               {row.status === 'ACTIVE' ? <Shield size={14} /> : <UserCheck size={14} />}
             </button>
-            <button className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+            <button className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors">
               <Pencil size={14} />
             </button>
           </>
@@ -316,6 +365,15 @@ function UsersPage() {
               console.error('Lỗi tạo user', err);
               toast.error('Lỗi tạo tài khoản', err instanceof Error ? err.message : 'Vui lòng kiểm tra lại thông tin.');
             }
+          }}
+        />
+      )}
+
+      {showImportExcel && currentUser?.role === 'ADMIN' && (
+        <ImportUsersExcelModal
+          onClose={() => setShowImportExcel(false)}
+          onSuccess={() => {
+            void loadUsers();
           }}
         />
       )}

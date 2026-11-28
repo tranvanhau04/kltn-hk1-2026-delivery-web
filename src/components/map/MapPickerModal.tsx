@@ -199,23 +199,22 @@ export default function MapPickerModal({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-[2px]"
     >
       <div
-        className="relative w-full max-w-2xl bg-white rounded-2xl overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.25)] flex flex-col"
+        className="relative w-full max-w-2xl bg-white rounded-lg border border-slate-200 overflow-hidden shadow-lg flex flex-col"
         style={{ height: '72vh' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-[#FFF0F0] flex items-center justify-center">
-              <MapPin size={16} className="text-[#FA7070]" />
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center">
+              <MapPin size={15} className="text-slate-700" />
             </div>
             <div>
-              <p className="text-sm font-600 text-gray-900">{title}</p>
+              <p className="text-sm font-semibold text-slate-900">{title}</p>
               {!readOnly && (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-slate-500">
                   {isServerSaveMode
                     ? 'Nhấn bản đồ để định vị, rồi "Lưu tọa độ" để cập nhật'
                     : 'Nhấn vào bản đồ để chọn vị trí'}
@@ -225,10 +224,10 @@ export default function MapPickerModal({
           </div>
           <button
             onClick={onClose}
-            className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+            className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
             id="btn-close-map-picker"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
@@ -238,22 +237,22 @@ export default function MapPickerModal({
           {!readOnly && (
             <div className="absolute top-3 left-4 right-4 z-20 max-w-md mx-auto">
               <div className="relative">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   placeholder="Tìm địa chỉ (VD: 12 Nguyễn Văn Bảo, Gò Vấp)..."
-                  className="w-full h-9 pl-9 pr-8 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl text-xs shadow-md focus:outline-none focus:ring-2 focus:ring-[#FA7070] text-gray-800 font-medium"
+                  className="w-full h-9 pl-9 pr-8 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-md text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 text-slate-800 font-medium"
                 />
                 {isSearching && (
-                  <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#FA7070]" />
+                  <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-600" />
                 )}
                 {searchQuery && !isSearching && (
                   <button
                     type="button"
                     onClick={() => { setSearchQuery(''); setShowDropdown(false); }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-xs"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-bold text-xs"
                     title="Xóa"
                   >
                     ×
@@ -263,15 +262,15 @@ export default function MapPickerModal({
 
               {/* Search dropdown results */}
               {showDropdown && searchResults.length > 0 && (
-                <div className="absolute top-10 left-0 right-0 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-30 max-h-52 overflow-y-auto divide-y divide-slate-50 animate-scale-in">
+                <div className="absolute top-10 left-0 right-0 bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden z-30 max-h-52 overflow-y-auto divide-y divide-slate-100 animate-scale-in">
                   {searchResults.map((item, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => handleSelectLocation(item)}
-                      className="w-full text-left p-2.5 text-xs text-gray-700 hover:bg-[#FFF0F0] hover:text-[#FA7070] transition-colors flex items-start gap-2"
+                      className="w-full text-left p-2.5 text-xs text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors flex items-start gap-2"
                     >
-                      <MapPin size={13} className="shrink-0 mt-0.5 text-[#FA7070]" />
+                      <MapPin size={13} className="shrink-0 mt-0.5 text-[#D92D20]" />
                       <span className="line-clamp-2 leading-relaxed">{item.display_name}</span>
                     </button>
                   ))}
@@ -296,17 +295,17 @@ export default function MapPickerModal({
           </MapContainer>
 
           {/* Coordinate + address overlay */}
-          <div className="absolute bottom-4 left-4 z-10 bg-white/95 backdrop-blur-sm rounded-xl px-4 py-2.5 shadow-lg border border-slate-100 max-w-xs">
-            <p className="text-xs font-600 text-gray-700 font-mono">
-              📍 {Number(lat || 0).toFixed(6)}, {Number(lng || 0).toFixed(6)}
+          <div className="absolute bottom-4 left-4 z-10 bg-white/95 backdrop-blur-sm rounded-md px-3.5 py-2 shadow-sm border border-slate-200 max-w-xs">
+            <p className="text-xs font-semibold text-slate-800 font-mono tabular-nums">
+              {Number(lat || 0).toFixed(6)}, {Number(lng || 0).toFixed(6)}
             </p>
             {isReverseLoading && (
-              <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
+              <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
                 <Loader2 size={10} className="animate-spin" /> Đang tra cứu địa chỉ...
               </p>
             )}
             {!isReverseLoading && reverseAddress && (
-              <p className="text-[10px] text-gray-500 mt-0.5 leading-snug line-clamp-2">
+              <p className="text-[10px] text-slate-500 mt-0.5 leading-snug line-clamp-2">
                 {reverseAddress}
               </p>
             )}
@@ -320,7 +319,7 @@ export default function MapPickerModal({
                 setLng(initialLng);
                 void doReverseGeocode(initialLat, initialLng);
               }}
-              className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-slate-100 text-xs text-gray-600 hover:bg-gray-50 transition-colors"
+              className="absolute top-4 right-4 z-10 flex items-center gap-1.5 px-2.5 py-1.5 bg-white/95 backdrop-blur-sm rounded-md shadow-xs border border-slate-200 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
               id="btn-reset-pin"
             >
               <RotateCcw size={12} /> Đặt lại
@@ -331,20 +330,20 @@ export default function MapPickerModal({
         {/* Toast notification */}
         {toast && (
           <div
-            className={`absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-xl text-sm font-500 transition-all ${
+            className={`absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3.5 py-2 rounded-md shadow-md text-xs font-medium transition-all ${
               toast.type === 'success'
-                ? 'bg-green-600 text-white'
-                : 'bg-red-600 text-white'
+                ? 'bg-emerald-700 text-white'
+                : 'bg-[#D92D20] text-white'
             }`}
           >
-            {toast.type === 'success' ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+            {toast.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
             {toast.message}
           </div>
         )}
 
         {/* Footer */}
         {!readOnly && (
-          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-slate-100 shrink-0">
+          <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 border-t border-slate-200 bg-slate-50/50 shrink-0">
             <button onClick={onClose} className="btn-secondary text-sm">
               Hủy
             </button>

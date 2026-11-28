@@ -2,47 +2,48 @@
 @import "tailwindcss";
 
 /* ============================================================
-   IUH Logistics – Design System Tokens (Tailwind v4 @theme)
+   IUH Logistics – Enterprise Design System Tokens (Tailwind v4)
    ============================================================ */
 @theme inline {
-  /* Brand */
-  --color-brand:          #FA7070;
-  --color-brand-hover:    #E85D5D;
-  --color-brand-subtle:   #FFF0F0;
-  --color-brand-dark:     #8B2626;
-  --color-brand-darker:   #7A1F1D;
+  /* Brand & Primary */
+  --color-brand:          #D92D20;
+  --color-brand-hover:    #B42318;
+  --color-brand-subtle:   #FEF3F2;
+  --color-brand-dark:     #912018;
+  --color-brand-darker:   #7A271A;
 
-  /* Canvas */
-  --color-canvas:         #F5F6F8;
+  /* Canvas & Surfaces */
+  --color-canvas:         #F8FAFC;
   --color-surface:        #FFFFFF;
 
-  /* Semantic status */
-  --color-status-new-bg:       #F4F4F5;
-  --color-status-new-text:     #71717A;
-  --color-status-assigned-bg:  #EDE9FE;
-  --color-status-assigned-text:#6D28D9;
-  --color-status-transit-bg:   #DBEAFE;
-  --color-status-transit-text: #1D4ED8;
-  --color-status-delivered-bg: #DCFCE7;
-  --color-status-delivered-text:#15803D;
-  --color-status-failed-bg:    #FEE2E2;
-  --color-status-failed-text:  #DC2626;
-  --color-status-rescheduled-bg:#FEF9C3;
-  --color-status-rescheduled-text:#854D0E;
+  /* Semantic status (understated enterprise tones) */
+  --color-status-new-bg:          #F8FAFC;
+  --color-status-new-text:        #334155;
+  --color-status-new-border:      #E2E8F0;
+  --color-status-assigned-bg:     #EEF2FF;
+  --color-status-assigned-text:   #4338CA;
+  --color-status-assigned-border: #C7D2FE;
+  --color-status-transit-bg:      #F0F9FF;
+  --color-status-transit-text:    #0369A1;
+  --color-status-transit-border:  #BAE6FD;
+  --color-status-delivered-bg:    #ECFDF5;
+  --color-status-delivered-text:  #047857;
+  --color-status-delivered-border:#A7F3D0;
+  --color-status-failed-bg:       #FEF2F2;
+  --color-status-failed-text:     #B91C1C;
+  --color-status-failed-border:   #FECACA;
+  --color-status-rescheduled-bg:  #FFFBEB;
+  --color-status-rescheduled-text:#B45309;
+  --color-status-rescheduled-border:#FDE68A;
 
   /* Typography */
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, 'Cascadia Code', monospace;
 
-  /* Radius */
-  --radius-xl:   12px;
-  --radius-2xl:  16px;
-  --radius-3xl:  24px;
-
   /* Shadow */
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.08);
-  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.18);
+  --shadow-card: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-card-hover: 0 1px 3px 0 rgba(15, 23, 42, 0.06);
+  --shadow-modal: 0 16px 36px -8px rgba(15, 23, 42, 0.16);
 }
 
 /* ============================================================
@@ -63,10 +64,10 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   background-color: var(--color-canvas);
-  color: #1A1A2E;
+  color: #0F172A;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 /* ============================================================
@@ -75,16 +76,16 @@ body {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
-  border-radius: 999px;
+  background: #CBD5E1;
+  border-radius: 3px;
 }
-::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
 /* ============================================================
    Focus Ring
    ============================================================ */
 :focus-visible {
-  outline: 2px solid var(--color-brand);
+  outline: 2px solid #0F172A;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -93,22 +94,22 @@ body {
    Animations & Keyframes
    ============================================================ */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(24px); }
+  from { opacity: 0; transform: translateX(16px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-24px); }
+  from { opacity: 0; transform: translateX(-16px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.96); }
+  from { opacity: 0; transform: scale(0.98); }
   to   { opacity: 1; transform: scale(1); }
 }
 
@@ -117,8 +118,8 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(250, 112, 112, 0.4); }
-  50%       { box-shadow: 0 0 0 12px rgba(250, 112, 112, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 45, 32, 0.25); }
+  50%       { box-shadow: 0 0 0 6px rgba(217, 45, 32, 0); }
 }
 
 @keyframes shimmer {
@@ -128,7 +129,7 @@ body {
 
 @keyframes floating {
   0%, 100% { transform: translateY(0px); }
-  50%      { transform: translateY(-8px); }
+  50%      { transform: translateY(-4px); }
 }
 
 @keyframes stepAppear {
@@ -138,7 +139,7 @@ body {
 
 @keyframes checkmarkPop {
   0%   { transform: scale(0); opacity: 0; }
-  60%  { transform: scale(1.2); }
+  60%  { transform: scale(1.15); }
   100% { transform: scale(1); opacity: 1; }
 }
 
@@ -161,17 +162,17 @@ body {
 /* ============================================================
    Animation Utilities
    ============================================================ */
-.animate-fade-in      { animation: fadeIn 0.3s ease both; }
-.animate-slide-right  { animation: slideInRight 0.3s ease both; }
-.animate-slide-left   { animation: slideInLeft 0.3s ease both; }
-.animate-scale-in     { animation: scaleIn 0.25s ease both; }
+.animate-fade-in      { animation: fadeIn 0.2s ease both; }
+.animate-slide-right  { animation: slideInRight 0.2s ease both; }
+.animate-slide-left   { animation: slideInLeft 0.2s ease both; }
+.animate-scale-in     { animation: scaleIn 0.18s ease both; }
 .animate-spin-slow    { animation: spin 1.2s linear infinite; }
 .animate-pulse-glow   { animation: pulse-glow 2s ease-in-out infinite; }
 .animate-floating     { animation: floating 3s ease-in-out infinite; }
-.animate-step-appear  { animation: stepAppear 0.3s ease both; }
-.animate-checkmark    { animation: checkmarkPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
-.animate-toast-slide-in  { animation: toast-slide-in 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) both; }
-.animate-toast-slide-out { animation: toast-slide-out 0.3s ease-in both; }
+.animate-step-appear  { animation: stepAppear 0.2s ease both; }
+.animate-checkmark    { animation: checkmarkPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
+.animate-toast-slide-in  { animation: toast-slide-in 0.28s cubic-bezier(0.21, 1.02, 0.73, 1) both; }
+.animate-toast-slide-out { animation: toast-slide-out 0.24s ease-in both; }
 
 /* Timeline connector for stop sequence */
 .timeline-item {
@@ -180,28 +181,28 @@ body {
 .timeline-item:not(:last-child)::after {
   content: '';
   position: absolute;
-  left: 14px;
+  left: 13px;
   top: 28px;
   bottom: -4px;
-  width: 2px;
+  width: 1px;
   background: #E2E8F0;
   z-index: 0;
 }
 
 /* Stagger children */
 .stagger > *:nth-child(1) { animation-delay: 0ms; }
-.stagger > *:nth-child(2) { animation-delay: 60ms; }
-.stagger > *:nth-child(3) { animation-delay: 120ms; }
-.stagger > *:nth-child(4) { animation-delay: 180ms; }
-.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
 
 /* ============================================================
    Layout Helpers
    ============================================================ */
 .dashboard-layout {
   display: grid;
-  grid-template-columns: 260px 1fr;
-  grid-template-rows: 64px 1fr;
+  grid-template-columns: 248px 1fr;
+  grid-template-rows: 56px 1fr;
   height: 100vh;
   overflow: hidden;
 }
@@ -223,98 +224,143 @@ body {
 }
 
 /* ============================================================
-   Card Component Base
+   Component Primitives (Sharp & Crisp Enterprise SaaS)
    ============================================================ */
 @layer components {
   .card {
     background: var(--color-surface);
-    border-radius: var(--radius-2xl);
-    border: 1px solid #F1F5F9;
-    box-shadow: var(--shadow-card);
-    transition: box-shadow 0.2s ease;
+    border-radius: 8px;
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+    transition: border-color 0.15s ease;
   }
 
-  .card:hover {
-    box-shadow: var(--shadow-card-hover);
-  }
-
-  /* ============================================================
-     Button Variants
-     ============================================================ */
   .btn-primary {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    height: 44px;
-    padding: 0 20px;
-    background: var(--color-brand);
-    color: white;
-    font-weight: 600;
-    font-size: 14px;
-    border: none;
-    border-radius: 10px;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    background: #0F172A;
+    color: #FFFFFF;
+    font-weight: 500;
+    font-size: 13px;
+    border: 1px solid #0F172A;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-    box-shadow: 0 2px 8px rgba(250, 112, 112, 0.35);
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+    transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
   }
 
   .btn-primary:hover {
-    background: var(--color-brand-hover);
-    box-shadow: 0 4px 16px rgba(250, 112, 112, 0.45);
-    transform: translateY(-1px);
+    background: #1E293B;
+    border-color: #1E293B;
   }
 
   .btn-primary:active {
-    transform: translateY(0);
+    background: #020617;
+  }
+
+  .btn-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    background: #D92D20;
+    color: #FFFFFF;
+    font-weight: 500;
+    font-size: 13px;
+    border: 1px solid #D92D20;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .btn-brand:hover {
+    background: #B42318;
+    border-color: #B42318;
   }
 
   .btn-secondary {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    height: 44px;
-    padding: 0 20px;
-    background: white;
-    color: #374151;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    background: #FFFFFF;
+    color: #334155;
     font-weight: 500;
-    font-size: 14px;
-    border: 1px solid #E5E7EB;
-    border-radius: 10px;
+    font-size: 13px;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.02);
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   }
 
   .btn-secondary:hover {
-    background: #F9FAFB;
-    border-color: #D1D5DB;
+    background: #F8FAFC;
+    border-color: #CBD5E1;
+    color: #0F172A;
   }
-}
 
-/* ============================================================
-   Input Base
-   ============================================================ */
-@layer components {
   .input-base {
-    height: 44px;
-    padding: 0 14px;
-    background: white;
-    border: 1.5px solid #E5E7EB;
-    border-radius: 10px;
-    font-size: 14px;
-    color: #1F2937;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    height: 36px;
+    padding: 0 12px;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #0F172A;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
     outline: none;
     width: 100%;
   }
 
+  .input-base:hover {
+    border-color: #CBD5E1;
+  }
+
   .input-base:focus {
-    border-color: var(--color-brand);
-    box-shadow: 0 0 0 3px rgba(250, 112, 112, 0.15);
+    border-color: #0F172A;
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.08);
   }
 
   .input-base::placeholder {
-    color: #9CA3AF;
+    color: #94A3B8;
   }
+
+  /* Status Badge Base */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .badge-new         { background: var(--color-status-new-bg);         color: var(--color-status-new-text);         border-color: var(--color-status-new-border); }
+  .badge-assigned    { background: var(--color-status-assigned-bg);    color: var(--color-status-assigned-text);    border-color: var(--color-status-assigned-border); }
+  .badge-transit     { background: var(--color-status-transit-bg);     color: var(--color-status-transit-text);     border-color: var(--color-status-transit-border); }
+  .badge-delivered   { background: var(--color-status-delivered-bg);   color: var(--color-status-delivered-text);   border-color: var(--color-status-delivered-border); }
+  .badge-failed      { background: var(--color-status-failed-bg);      color: var(--color-status-failed-text);      border-color: var(--color-status-failed-border); }
+  .badge-rescheduled { background: var(--color-status-rescheduled-bg); color: var(--color-status-rescheduled-text); border-color: var(--color-status-rescheduled-border); }
+}
+
+/* Numeric weight compatibility helpers */
+@layer utilities {
+  .font-400 { font-weight: 400; }
+  .font-500 { font-weight: 500; }
+  .font-600 { font-weight: 600; }
+  .font-700 { font-weight: 700; }
+  .font-800 { font-weight: 800; }
+  .font-900 { font-weight: 900; }
 }
 
 /* ============================================================
@@ -322,59 +368,49 @@ body {
    ============================================================ */
 .leaflet-container {
   font-family: var(--font-sans) !important;
-  border-radius: var(--radius-2xl);
+  border-radius: 8px;
 }
 
 .leaflet-control-zoom {
-  border: none !important;
-  box-shadow: var(--shadow-card) !important;
-  border-radius: 10px !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
+  border-radius: 6px !important;
   overflow: hidden;
 }
 
 .leaflet-control-zoom a {
-  color: #374151 !important;
+  color: #334155 !important;
   line-height: 28px !important;
   width: 28px !important;
   height: 28px !important;
-  font-size: 16px !important;
+  font-size: 15px !important;
 }
 
 /* ============================================================
    Recharts Overrides
    ============================================================ */
 .recharts-tooltip-wrapper {
-  border-radius: 12px !important;
+  border-radius: 6px !important;
+  outline: none !important;
 }
 
 .recharts-default-tooltip {
-  border-radius: 12px !important;
-  border: 1px solid #F1F5F9 !important;
-  box-shadow: var(--shadow-card) !important;
+  border-radius: 6px !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
 }
-
-/* ============================================================
-   Status Badge Utility Classes
-   ============================================================ */
-.badge { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; border-radius: 999px; padding: 3px 10px; font-size: 12px; white-space: nowrap; }
-.badge-new        { background: var(--color-status-new-bg);        color: var(--color-status-new-text); }
-.badge-assigned   { background: var(--color-status-assigned-bg);   color: var(--color-status-assigned-text); }
-.badge-transit    { background: var(--color-status-transit-bg);    color: var(--color-status-transit-text); }
-.badge-delivered  { background: var(--color-status-delivered-bg);  color: var(--color-status-delivered-text); }
-.badge-failed     { background: var(--color-status-failed-bg);     color: var(--color-status-failed-text); }
-.badge-rescheduled{ background: var(--color-status-rescheduled-bg);color: var(--color-status-rescheduled-text); }
 
 /* ============================================================
    Misc
    ============================================================ */
 .glass {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .shimmer {
-  background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }

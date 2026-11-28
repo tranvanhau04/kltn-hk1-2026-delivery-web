@@ -110,26 +110,26 @@ export function WaybillModal({ order, onClose }: WaybillModalProps) {
         }
       `}</style>
 
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-xl overflow-hidden animate-scale-in my-8">
+      <div className="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-xl overflow-hidden animate-scale-in my-8">
         {/* Modal Control Bar (Excluded from print) */}
-        <div className="p-4 bg-slate-900 text-white flex items-center justify-between no-print">
+        <div className="px-4 py-3 bg-slate-950 text-white flex items-center justify-between no-print">
           <div className="flex items-center gap-2">
-            <Printer size={18} className="text-[#FA7070]" />
-            <span className="font-600 text-sm">Xem & In Phiếu Gửi Vận Đơn (AWB)</span>
+            <Printer size={16} className="text-slate-300" />
+            <span className="font-medium text-xs">Xem & In Phiếu Gửi Vận Đơn (AWB)</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#FA7070] text-white hover:bg-[#e05b5b] font-600 text-xs transition-colors cursor-pointer shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#D92D20] text-white hover:bg-[#B42318] font-medium text-xs transition-colors cursor-pointer"
               id="btn-trigger-print"
             >
-              <Printer size={14} /> In phiếu (Print)
+              <Printer size={13} /> In phiếu (Print)
             </button>
             <button
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white transition-colors cursor-pointer"
+              className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
         </div>

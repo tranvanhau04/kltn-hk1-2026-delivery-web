@@ -29,17 +29,17 @@ const FAQS: FAQ[] = [
 
 function FaqAccordion({ faq, isOpen, onToggle }: { faq: FAQ; isOpen: boolean; onToggle: () => void }) {
   return (
-    <div className="border border-slate-100 rounded-xl overflow-hidden transition-all bg-white hover:border-[#FA7070]/30">
+    <div className="border border-slate-200/80 rounded-lg overflow-hidden transition-colors bg-white hover:border-slate-300">
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between p-4 text-left focus:outline-none"
       >
-        <span className="text-sm font-600 text-gray-800">{faq.question}</span>
-        {isOpen ? <ChevronUp size={18} className="text-[#FA7070]" /> : <ChevronDown size={18} className="text-gray-400" />}
+        <span className="text-sm font-medium text-slate-900">{faq.question}</span>
+        {isOpen ? <ChevronUp size={16} className="text-slate-700" /> : <ChevronDown size={16} className="text-slate-400" />}
       </button>
       {isOpen && (
         <div className="px-4 pb-4 animate-fade-in">
-          <p className="text-sm text-gray-500 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
+          <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-md border border-slate-200/60">
             {faq.answer}
           </p>
         </div>
@@ -72,53 +72,53 @@ export default function SupportPage() {
   return (
     <div className="space-y-6 animate-fade-in pb-10">
       <div>
-        <h2 className="text-xl font-700 text-gray-900">Trung tâm hỗ trợ</h2>
-        <p className="text-sm text-gray-400 mt-0.5">Tài liệu hướng dẫn và liên hệ bộ phận kỹ thuật</p>
+        <h2 className="text-lg font-semibold text-slate-900 tracking-tight">Trung tâm hỗ trợ</h2>
+        <p className="text-xs text-slate-500 mt-0.5">Tài liệu hướng dẫn và liên hệ bộ phận kỹ thuật</p>
       </div>
 
       {/* Top Search */}
       <div className="relative w-full max-w-2xl">
         <div className="relative flex items-center">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm kiếm câu hỏi, hướng dẫn sử dụng..."
-            className="w-full h-12 pl-12 pr-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#FA7070] focus:ring-4 focus:ring-[#FA7070]/10 transition-all shadow-sm"
+            className="input-base h-10 pl-10 pr-4 w-full"
           />
         </div>
       </div>
 
       {/* Quick Contact Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card p-5 flex items-center gap-4 hover:border-blue-200 transition-colors cursor-pointer group">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-            <Phone size={20} className="text-blue-600" />
+        <div className="card p-4 flex items-center gap-3.5 hover:border-slate-300 transition-colors cursor-pointer group">
+          <div className="w-10 h-10 rounded-md bg-slate-100 border border-slate-200/80 flex items-center justify-center">
+            <Phone size={18} className="text-slate-700" />
           </div>
           <div>
-            <p className="text-xs text-gray-400 mb-0.5">Hotline hỗ trợ kỹ thuật</p>
-            <p className="text-base font-700 text-gray-900">1900 1234</p>
+            <p className="text-xs text-slate-500 mb-0.5">Hotline hỗ trợ kỹ thuật</p>
+            <p className="text-sm font-semibold text-slate-900 tabular-nums">1900 1234</p>
           </div>
         </div>
         
-        <div className="card p-5 flex items-center gap-4 hover:border-[#FA7070]/30 transition-colors cursor-pointer group">
-          <div className="w-12 h-12 rounded-xl bg-[#FFF0F0] flex items-center justify-center group-hover:bg-[#FA7070]/20 transition-colors">
-            <Mail size={20} className="text-[#FA7070]" />
+        <div className="card p-4 flex items-center gap-3.5 hover:border-slate-300 transition-colors cursor-pointer group">
+          <div className="w-10 h-10 rounded-md bg-indigo-50 border border-indigo-200/80 flex items-center justify-center">
+            <Mail size={18} className="text-indigo-600" />
           </div>
           <div>
-            <p className="text-xs text-gray-400 mb-0.5">Email vận hành & điều phối</p>
-            <p className="text-base font-700 text-gray-900">support@smartexpress.vn</p>
+            <p className="text-xs text-slate-500 mb-0.5">Email vận hành & điều phối</p>
+            <p className="text-sm font-semibold text-slate-900">support@smartexpress.vn</p>
           </div>
         </div>
 
-        <div className="card p-5 flex items-center gap-4 hover:border-violet-200 transition-colors cursor-pointer group">
-          <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center group-hover:bg-violet-100 transition-colors">
-            <User size={20} className="text-violet-600" />
+        <div className="card p-4 flex items-center gap-3.5 hover:border-slate-300 transition-colors cursor-pointer group">
+          <div className="w-10 h-10 rounded-md bg-emerald-50 border border-emerald-200/80 flex items-center justify-center">
+            <User size={18} className="text-emerald-600" />
           </div>
           <div>
-            <p className="text-xs text-gray-400 mb-0.5">Quản trị viên hệ thống</p>
-            <p className="text-base font-700 text-gray-900">Admin IUH</p>
+            <p className="text-xs text-slate-500 mb-0.5">Quản trị viên hệ thống</p>
+            <p className="text-sm font-semibold text-slate-900">Admin IUH</p>
           </div>
         </div>
       </div>

@@ -1,16 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { Plus, Phone, Eye, Pencil, Navigation } from 'lucide-react';
+import { Plus, Phone, Eye, Pencil, Navigation, Download } from 'lucide-react';
 import { DataTable, type ColumnDef } from '@/components/common/DataTable';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Modal } from '@/components/common/Modal';
 import { CascadingRegionHubSelect } from '@/components/common/CascadingRegionHubSelect';
 import type { Driver, VehicleType, DriverShiftStatus } from '@/types/domain';
-import { fetchDrivers, fetchDepots, createUser, createDriver, updateDriverSpecs, updateShiftStatus, type ApiDepot } from '@/lib/api';
+import { fetchDrivers, fetchDepots, createDriverAccount, updateDriverSpecs, updateShiftStatus, type ApiDepot } from '@/lib/api';
 import { useToast } from '@/context/ToastContext';
+import { useDebounce } from '@/hooks/useDebounce';
 import { cn } from '@/lib/utils';
+
+const ImportDriversExcelModal = dynamic(
+  () => import('@/components/drivers/ImportDriversExcelModal'),
+  { ssr: false },
+);
 
 const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
   MOTORBIKE:  '🏍️ Xe máy',
@@ -30,19 +37,19 @@ const SHIFT_STATUS_LABELS: Record<DriverShiftStatus, string> = {
 
 const SHIFT_STATUSES: DriverShiftStatus[] = ['OFFLINE', 'ONLINE_READY', 'BUSY'];
 
-function DriverAvatarCell({ driver }: { driver: Driver }) {
+const DriverAvatarCell = React.memo(function DriverAvatarCell({ driver }: { driver: Driver }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FA7070]/20 to-[#8B2626]/20 flex items-center justify-center text-[#FA7070] font-700 text-sm shrink-0">
+    <div className="flex items-center gap-2.5">
+      <div className="w-8 h-8 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-semibold text-xs shrink-0">
         {driver.fullName.charAt(0)}
       </div>
       <div>
-        <p className="text-sm font-600 text-gray-800">{driver.fullName}</p>
-        <p className="text-xs text-gray-400">{driver.email}</p>
+        <p className="text-sm font-medium text-slate-900">{driver.fullName}</p>
+        <p className="text-xs text-slate-500">{driver.email}</p>
       </div>
     </div>
   );
-}
+});
 
 // ─── Add Driver Modal ─────────────────────────────────────────────────────────
 
@@ -153,12 +160,12 @@ function AddDriverModal({ onClose, onSubmit, depots }: {
           <input required value={form.licensePlate} onChange={(e) => setForm((f) => ({ ...f, licensePlate: e.target.value }))} placeholder="59G1-234.56" className="input-base" id="driver-plate" />
         </div>
         <div>
-          <label className="block text-sm font-500 text-gray-700 mb-2">Loại phương tiện *</label>
+          <label className="block text-xs font-medium text-slate-700 mb-2">Loại phương tiện *</label>
           <div className="grid grid-cols-2 gap-2">
             {VEHICLE_TYPES.map((vt) => (
               <button key={vt} type="button" onClick={() => handleVehicleChange(vt)} id={`vehicle-type-${vt}`}
-                className={cn('px-3 py-2.5 rounded-xl border text-sm font-500 transition-all text-left',
-                  form.vehicleType === vt ? 'border-[#FA7070] bg-[#FFF0F0] text-[#FA7070]' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50')}>
+                className={cn('px-3 py-2 rounded-md border text-xs font-medium transition-colors text-left',
+                  form.vehicleType === vt ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50')}>
                 {VEHICLE_TYPE_LABELS[vt]}
               </button>
             ))}
@@ -250,12 +257,12 @@ function EditDriverModal({ driver, depots, onClose, onSubmit }: {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-500 text-gray-700 mb-2">Trạng thái ca làm việc</label>
+          <label className="block text-xs font-medium text-slate-700 mb-2">Trạng thái ca làm việc</label>
           <div className="flex flex-col gap-2">
             {SHIFT_STATUSES.map((s) => (
               <button key={s} type="button" onClick={() => setForm((f) => ({ ...f, currentShiftStatus: s }))} id={`edit-shift-${s}`}
-                className={cn('px-3 py-2.5 rounded-xl border text-sm font-500 transition-all text-left',
-                  form.currentShiftStatus === s ? 'border-[#FA7070] bg-[#FFF0F0] text-[#FA7070]' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50')}>
+                className={cn('px-3 py-2 rounded-md border text-xs font-medium transition-colors text-left',
+                  form.currentShiftStatus === s ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50')}>
                 {SHIFT_STATUS_LABELS[s]}
               </button>
             ))}
@@ -297,7 +304,7 @@ function DriverDetailModal({
             }}
             className="btn-secondary flex items-center gap-1.5"
           >
-            <Navigation size={14} className="text-[#FA7070]" />
+            <Navigation size={14} className="text-slate-600" />
             Giám sát trực tiếp
           </button>
           <button
@@ -315,18 +322,18 @@ function DriverDetailModal({
     >
       <div className="space-y-4">
         {/* Top Header Card */}
-        <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl border border-red-100">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FA7070] to-[#8B2626] flex items-center justify-center text-white font-bold text-xl shadow-md shrink-0">
+        <div className="flex items-center gap-3.5 p-4 bg-slate-50/80 rounded-lg border border-slate-200/80">
+          <div className="w-12 h-12 rounded-md bg-slate-900 flex items-center justify-center text-white font-semibold text-lg shrink-0">
             {driver.fullName.charAt(0)}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-gray-900 truncate">{driver.fullName}</h3>
+              <h3 className="text-sm font-semibold text-slate-900 truncate">{driver.fullName}</h3>
               <StatusBadge status={driver.currentShiftStatus} />
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">{driver.email || 'Chưa cập nhật email'}</p>
-            <p className="text-xs font-semibold text-gray-700 mt-1 flex items-center gap-1">
-              <Phone size={12} className="text-gray-400" />
+            <p className="text-xs text-slate-500 mt-0.5">{driver.email || 'Chưa cập nhật email'}</p>
+            <p className="text-xs font-medium text-slate-700 mt-1 flex items-center gap-1 tabular-nums">
+              <Phone size={12} className="text-slate-400" />
               {driver.phone || 'Chưa có SĐT'}
             </p>
           </div>
@@ -334,26 +341,26 @@ function DriverDetailModal({
 
         {/* Vehicle and Capacity Grid */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
-            <span className="text-[11px] font-500 text-gray-400 block mb-1">Phương tiện</span>
-            <p className="text-sm font-semibold text-gray-800">{VEHICLE_TYPE_LABELS[driver.vehicleType]}</p>
-            <span className="text-xs font-mono font-medium text-gray-500 mt-0.5 block">{driver.licensePlate}</span>
+          <div className="p-3.5 bg-white rounded-lg border border-slate-200/80">
+            <span className="text-[11px] font-medium text-slate-500 block mb-1">Phương tiện</span>
+            <p className="text-sm font-semibold text-slate-900">{VEHICLE_TYPE_LABELS[driver.vehicleType]}</p>
+            <span className="text-xs font-mono font-medium text-slate-500 mt-0.5 block">{driver.licensePlate}</span>
           </div>
 
-          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
-            <span className="text-[11px] font-500 text-gray-400 block mb-1">Kho trực thuộc (Depot)</span>
-            <p className="text-sm font-semibold text-gray-800 truncate">{depotName}</p>
-            <span className="text-xs text-gray-500 mt-0.5 block">{driver.depot?.address || 'Khu vực TP.HCM'}</span>
+          <div className="p-3.5 bg-white rounded-lg border border-slate-200/80">
+            <span className="text-[11px] font-medium text-slate-500 block mb-1">Kho trực thuộc (Depot)</span>
+            <p className="text-sm font-semibold text-slate-900 truncate">{depotName}</p>
+            <span className="text-xs text-slate-500 mt-0.5 block">{driver.depot?.address || 'Khu vực TP.HCM'}</span>
           </div>
 
-          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
-            <span className="text-[11px] font-500 text-gray-400 block mb-1">Tải trọng tối đa</span>
-            <p className="text-base font-bold text-gray-900">{driver.maxWeightKg} <span className="text-xs font-normal text-gray-500">kg</span></p>
+          <div className="p-3.5 bg-white rounded-lg border border-slate-200/80">
+            <span className="text-[11px] font-medium text-slate-500 block mb-1">Tải trọng tối đa</span>
+            <p className="text-base font-semibold text-slate-900 tabular-nums">{driver.maxWeightKg} <span className="text-xs font-normal text-slate-500">kg</span></p>
           </div>
 
-          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
-            <span className="text-[11px] font-500 text-gray-400 block mb-1">Thể tích thùng xe</span>
-            <p className="text-base font-bold text-gray-900">{driver.maxVolumeM3} <span className="text-xs font-normal text-gray-500">m³</span></p>
+          <div className="p-3.5 bg-white rounded-lg border border-slate-200/80">
+            <span className="text-[11px] font-medium text-slate-500 block mb-1">Thể tích thùng xe</span>
+            <p className="text-base font-semibold text-slate-900 tabular-nums">{driver.maxVolumeM3} <span className="text-xs font-normal text-slate-500">m³</span></p>
           </div>
         </div>
       </div>
@@ -368,8 +375,10 @@ export default function DriversPage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [depots, setDepots] = useState<ApiDepot[]>([]);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [hubFilter, setHubFilter] = useState('');
   const [showAddDriver, setShowAddDriver] = useState(false);
+  const [showImportExcel, setShowImportExcel] = useState(false);
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [filter, setFilter] = useState('ALL');
@@ -391,85 +400,115 @@ export default function DriversPage() {
     void loadDrivers(hubFilter);
   }, [loadDrivers, hubFilter]);
 
-  const filteredDrivers = drivers.filter((d) => {
-    const matchSearch =
-      !search ||
-      d.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      d.licensePlate.toLowerCase().includes(search.toLowerCase()) ||
-      d.phone.includes(search);
-    const matchFilter = filter === 'ALL' || d.currentShiftStatus === filter;
-    return matchSearch && matchFilter;
-  });
+  const statusCounts = useMemo(() => {
+    const counts: Record<DriverShiftStatus, number> = {
+      ONLINE_READY: 0,
+      BUSY: 0,
+      OFFLINE: 0,
+    };
+    for (const d of drivers) {
+      if (d.currentShiftStatus in counts) {
+        counts[d.currentShiftStatus] += 1;
+      }
+    }
+    return counts;
+  }, [drivers]);
 
-  const columns: ColumnDef<Driver>[] = [
-    {
-      key: 'fullName',
-      header: 'Tài xế',
-      sortable: true,
-      render: (_, row) => <DriverAvatarCell driver={row as Driver} />,
-    },
-    {
-      key: 'depotId',
-      header: 'Kho trực thuộc',
-      render: (_, row) => {
-        const d = row as Driver;
-        return d.depot ? (
-          <span className="text-xs font-600 text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg">
-            {d.depot.name}
-          </span>
-        ) : (
-          <span className="text-xs text-gray-400 italic">Chưa gán</span>
-        );
+  const filteredDrivers = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    return drivers.filter((d) => {
+      const matchSearch =
+        !q ||
+        d.fullName.toLowerCase().includes(q) ||
+        d.licensePlate.toLowerCase().includes(q) ||
+        d.phone.includes(q);
+      const matchFilter = filter === 'ALL' || d.currentShiftStatus === filter;
+      return matchSearch && matchFilter;
+    });
+  }, [drivers, debouncedSearch, filter]);
+
+  const driverFilterTabs = useMemo(
+    () => [
+      { label: 'Tất cả',     value: 'ALL',          count: drivers.length },
+      { label: 'Sẵn sàng',  value: 'ONLINE_READY', count: statusCounts.ONLINE_READY },
+      { label: 'Đang giao', value: 'BUSY',         count: statusCounts.BUSY },
+      { label: 'Offline',   value: 'OFFLINE',      count: statusCounts.OFFLINE },
+    ],
+    [drivers.length, statusCounts],
+  );
+
+  const columns = useMemo<ColumnDef<Driver>[]>(
+    () => [
+      {
+        key: 'fullName',
+        header: 'Tài xế',
+        sortable: true,
+        render: (_, row) => <DriverAvatarCell driver={row as Driver} />,
       },
-    },
-    {
-      key: 'licensePlate',
-      header: 'Biển số',
-      render: (v) => (
-        <span className="font-mono text-sm font-600 text-gray-700 bg-gray-100 px-2 py-0.5 rounded-lg">{String(v)}</span>
-      ),
-    },
-    {
-      key: 'vehicleType',
-      header: 'Phương tiện',
-      render: (v) => <span className="text-sm text-gray-600">{VEHICLE_TYPE_LABELS[v as VehicleType]}</span>,
-    },
-    {
-      key: 'maxWeightKg',
-      header: 'Tải trọng',
-      align: 'center',
-      render: (v) => <span className="text-sm">{Number(v).toLocaleString()} kg</span>,
-    },
-    {
-      key: 'maxVolumeM3',
-      header: 'Thể tích',
-      align: 'center',
-      render: (v) => <span className="text-sm">{String(v)} m³</span>,
-    },
-    {
-      key: 'phone',
-      header: 'Liên hệ',
-      render: (v) => (
-        <div className="flex items-center gap-1 text-sm text-gray-600">
-          <Phone size={12} className="text-gray-400" /> {String(v)}
-        </div>
-      ),
-    },
-    {
-      key: 'currentShiftStatus',
-      header: 'Ca làm việc',
-      render: (v) => <StatusBadge status={v as DriverShiftStatus} />,
-    },
-  ];
+      {
+        key: 'depotId',
+        header: 'Kho trực thuộc',
+        render: (_, row) => {
+          const d = row as Driver;
+          return d.depot ? (
+            <span className="text-xs font-medium text-indigo-700 bg-indigo-50/70 border border-indigo-200/80 px-2 py-0.5 rounded">
+              {d.depot.name}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400 italic">Chưa gán</span>
+          );
+        },
+      },
+      {
+        key: 'licensePlate',
+        header: 'Biển số',
+        render: (v) => (
+          <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded">{String(v)}</span>
+        ),
+      },
+      {
+        key: 'vehicleType',
+        header: 'Phương tiện',
+        render: (v) => <span className="text-sm text-slate-700">{VEHICLE_TYPE_LABELS[v as VehicleType]}</span>,
+      },
+      {
+        key: 'maxWeightKg',
+        header: 'Tải trọng',
+        align: 'center',
+        render: (v) => <span className="text-sm text-slate-700 tabular-nums">{Number(v).toLocaleString()} kg</span>,
+      },
+      {
+        key: 'maxVolumeM3',
+        header: 'Thể tích',
+        align: 'center',
+        render: (v) => <span className="text-sm text-slate-700 tabular-nums">{String(v)} m³</span>,
+      },
+      {
+        key: 'phone',
+        header: 'Liên hệ',
+        render: (v) => (
+          <div className="flex items-center gap-1 text-sm text-slate-600 tabular-nums">
+            <Phone size={12} className="text-slate-400" /> {String(v)}
+          </div>
+        ),
+      },
+      {
+        key: 'currentShiftStatus',
+        header: 'Ca làm việc',
+        render: (v) => <StatusBadge status={v as DriverShiftStatus} />,
+      },
+    ],
+    [],
+  );
 
   return (
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-xl font-700 text-gray-900">Tài xế</h2>
-          <p className="text-sm text-gray-400 mt-0.5">{drivers.length} tài xế trong hệ thống</p>
+          <h2 className="text-lg font-semibold text-slate-900 tracking-tight">Tài xế</h2>
+          <p className="text-xs text-slate-500 mt-0.5 tabular-nums">{drivers.length} tài xế trong hệ thống</p>
         </div>
-        <div className="flex items-center flex-wrap gap-2.5">
+        <div className="flex items-center flex-wrap gap-2">
           <CascadingRegionHubSelect
             selectedHubId={hubFilter}
             onHubChange={(hubId) => setHubFilter(hubId)}
@@ -477,24 +516,34 @@ export default function DriversPage() {
             allowAllHubs
             size="sm"
           />
-          <button onClick={() => setShowAddDriver(true)} className="btn-primary" id="btn-add-driver">
-            <Plus size={15} /> Thêm tài xế
+          <button
+            onClick={() => setShowImportExcel(true)}
+            className="inline-flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-md text-xs font-medium h-8 px-3 transition-colors"
+            id="btn-import-drivers-excel"
+          >
+            <Download size={14} /> Nhập Excel
+          </button>
+          <button onClick={() => setShowAddDriver(true)} className="btn-primary text-xs h-8 px-3" id="btn-add-driver">
+            <Plus size={14} /> Thêm tài xế
           </button>
         </div>
       </div>
 
       {/* Quick stats — aligned with backend: OFFLINE / ONLINE_READY / BUSY */}
-      <div className="grid grid-cols-3 gap-4 stagger">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 stagger">
         {[
-          { label: 'Sẵn sàng', key: 'ONLINE_READY', color: 'bg-green-50 text-green-700', border: 'border-green-100' },
-          { label: 'Đang giao', key: 'BUSY',         color: 'bg-blue-50 text-blue-700',   border: 'border-blue-100' },
-          { label: 'Offline',   key: 'OFFLINE',      color: 'bg-gray-50 text-gray-600',   border: 'border-gray-100' },
+          { label: 'Sẵn sàng', key: 'ONLINE_READY' as const, dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+          { label: 'Đang giao', key: 'BUSY' as const,         dot: 'bg-sky-500',     badge: 'bg-sky-50 text-sky-700 border-sky-200' },
+          { label: 'Offline',   key: 'OFFLINE' as const,      dot: 'bg-slate-400',   badge: 'bg-slate-100 text-slate-700 border-slate-200' },
         ].map((s) => (
-          <div key={s.key} className={cn('card p-4 border animate-fade-in flex items-center gap-4', s.border)}>
-            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-700', s.color)}>
-              {drivers.filter((d) => d.currentShiftStatus === s.key).length}
+          <div key={s.key} className="card p-4 flex items-center justify-between animate-fade-in">
+            <div className="flex items-center gap-2.5">
+              <span className={cn('w-2 h-2 rounded-full', s.dot)} />
+              <p className="text-xs font-medium text-slate-600 uppercase tracking-wider">{s.label}</p>
             </div>
-            <p className="text-sm text-gray-600 font-500">{s.label}</p>
+            <div className={cn('px-2.5 py-1 rounded border text-lg font-semibold tabular-nums', s.badge)}>
+              {statusCounts[s.key]}
+            </div>
           </div>
         ))}
       </div>
@@ -502,12 +551,7 @@ export default function DriversPage() {
       <DataTable
         data={filteredDrivers}
         columns={columns}
-        filterTabs={[
-          { label: 'Tất cả',    value: 'ALL',          count: drivers.length },
-          { label: 'Sẵn sàng', value: 'ONLINE_READY',  count: drivers.filter((d) => d.currentShiftStatus === 'ONLINE_READY').length },
-          { label: 'Đang giao',value: 'BUSY',           count: drivers.filter((d) => d.currentShiftStatus === 'BUSY').length },
-          { label: 'Offline',  value: 'OFFLINE',        count: drivers.filter((d) => d.currentShiftStatus === 'OFFLINE').length },
-        ]}
+        filterTabs={driverFilterTabs}
         activeFilter={filter}
         onFilterChange={setFilter}
         searchValue={search}
@@ -519,7 +563,7 @@ export default function DriversPage() {
           <>
             <button
               onClick={(e) => { e.stopPropagation(); setSelectedDriver(row as Driver); }}
-              className="flex items-center justify-center w-7 h-7 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"
+              className="flex items-center justify-center w-7 h-7 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               title="Xem chi tiết"
               id={`btn-view-driver-${(row as Driver).userId}`}
             >
@@ -528,7 +572,7 @@ export default function DriversPage() {
             {/* Pencil now opens EditDriverModal — Bug #7 fix */}
             <button
               onClick={(e) => { e.stopPropagation(); setEditingDriver(row as Driver); }}
-              className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-center w-7 h-7 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               title="Chỉnh sửa thông số xe"
               id={`btn-edit-driver-${(row as Driver).userId}`}
             >
@@ -545,14 +589,11 @@ export default function DriversPage() {
           onClose={() => setShowAddDriver(false)}
           onSubmit={async (data) => {
             try {
-              const user = await createUser({
+              await createDriverAccount({
                 fullName: data.fullName,
                 email: data.email || undefined,
                 phone: data.phone,
                 password: 'Password123!',
-                role: 'DRIVER',
-              });
-              await createDriver(user.id, {
                 licensePlate: data.licensePlate,
                 vehicleType: data.vehicleType,
                 depotId: data.depotId,
@@ -608,6 +649,16 @@ export default function DriversPage() {
             const target = selectedDriver;
             setSelectedDriver(null);
             setEditingDriver(target);
+          }}
+        />
+      )}
+
+      {/* Import Drivers Excel Modal */}
+      {showImportExcel && (
+        <ImportDriversExcelModal
+          onClose={() => setShowImportExcel(false)}
+          onSuccess={() => {
+            void loadDrivers(hubFilter);
           }}
         />
       )}
