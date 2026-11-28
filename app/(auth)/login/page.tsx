@@ -28,39 +28,39 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
-      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.2)] animate-scale-in p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-[2px]">
+      <div className="relative w-full max-w-md bg-white rounded-lg border border-slate-200 shadow-lg animate-scale-in p-6">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+          className="absolute top-4 right-4 flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
 
         {step === 'email' ? (
           <>
-            <div className="w-12 h-12 rounded-2xl bg-[#FFF0F0] flex items-center justify-center mb-4">
-              <Lock size={22} className="text-[#FA7070]" />
+            <div className="w-10 h-10 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center mb-4">
+              <Lock size={18} className="text-slate-700" />
             </div>
-            <h2 className="text-xl font-700 text-gray-900 mb-1">Quên mật khẩu?</h2>
-            <p className="text-sm text-gray-500 mb-6">Nhập email của bạn để nhận liên kết đặt lại mật khẩu.</p>
+            <h2 className="text-base font-semibold text-slate-900 mb-1">Quên mật khẩu?</h2>
+            <p className="text-xs text-slate-500 mb-5">Nhập email của bạn để nhận liên kết đặt lại mật khẩu.</p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-500 text-gray-700 mb-1.5">Địa chỉ email</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">Địa chỉ email</label>
                 <div className="relative flex items-center">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="admin@iuhlogistics.vn"
                     required
-                    className="input-base pl-11 w-full"
+                    className="input-base pl-9 w-full"
                     id="forgot-email"
                   />
                 </div>
               </div>
-              {error && <p className="text-xs text-red-500">{error}</p>}
+              {error && <p className="text-xs text-[#D92D20]">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
@@ -69,19 +69,19 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
                 {loading ? (
                   <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin-slow" />
                 ) : (
-                  <>Gửi liên kết đặt lại <ArrowRight size={16} /></>
+                  <>Gửi liên kết đặt lại <ArrowRight size={15} /></>
                 )}
               </button>
             </form>
           </>
         ) : (
-          <div className="text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
-              <Mail size={28} className="text-green-500" />
+          <div className="text-center py-3">
+            <div className="w-12 h-12 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto mb-3">
+              <Mail size={22} className="text-emerald-600" />
             </div>
-            <h2 className="text-xl font-700 text-gray-900 mb-2">Email đã được gửi!</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Kiểm tra hộp thư của <strong>{email}</strong> và làm theo hướng dẫn.
+            <h2 className="text-base font-semibold text-slate-900 mb-1.5">Email đã được gửi</h2>
+            <p className="text-xs text-slate-500 mb-5">
+              Kiểm tra hộp thư của <strong className="text-slate-800">{email}</strong> và làm theo hướng dẫn.
             </p>
             <button onClick={onClose} className="btn-primary w-full justify-center">
               Quay lại đăng nhập
@@ -129,89 +129,96 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* ---- Left Hero Panel ---- */}
-      <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden bg-gradient-to-br from-[#8B2626] via-[#C0392B] to-[#FA7070]">
-        {/* Decorative circles */}
-        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-white/5" />
-        <div className="absolute top-40 -right-32 w-64 h-64 rounded-full bg-white/5" />
-        <div className="absolute bottom-20 left-20 w-48 h-48 rounded-full bg-white/5" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-black/10" />
+    <div className="min-h-screen flex bg-white">
+      {/* ---- Left Branding Panel ---- */}
+      <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden bg-slate-950 border-r border-slate-800">
+        {/* Subtle architectural grid pattern */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, rgba(148, 163, 184, 0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(148, 163, 184, 0.06) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+          }}
+        />
 
         {/* Content */}
         <div className="relative z-10 flex flex-col h-full px-12 py-10">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/20">
-              <Zap size={22} className="text-white" />
+            <div className="flex items-center justify-center w-9 h-9 rounded-md bg-[#D92D20] border border-white/10">
+              <Zap size={18} className="text-white" />
             </div>
             <div>
-              <p className="text-white font-800 text-base tracking-wide">IUH LOGISTICS</p>
-              <p className="text-white/60 text-xs">SmartExpress Platform</p>
+              <p className="text-white font-semibold text-sm tracking-tight">IUH LOGISTICS</p>
+              <p className="text-slate-400 text-xs">SmartExpress Enterprise</p>
             </div>
           </div>
 
           {/* Main hero text */}
-          <div className="flex-1 flex flex-col justify-center">
-            <p className="text-white/70 text-sm font-400 mb-4 uppercase tracking-widest">
-              Hệ thống quản lý giao vận
-            </p>
-            <h2 className="text-4xl xl:text-5xl font-800 text-white leading-tight mb-6">
+          <div className="flex-1 flex flex-col justify-center max-w-lg">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded border border-slate-800 bg-slate-900/80 w-fit mb-5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#D92D20]" />
+              <span className="text-slate-300 text-[11px] font-medium uppercase tracking-wider">
+                Hệ thống quản lý giao vận
+              </span>
+            </div>
+            <h2 className="text-3xl xl:text-4xl font-semibold text-white tracking-tight leading-tight mb-4">
               Precision in<br />
-              <span className="text-white/80">every movement.</span>
+              <span className="text-slate-400">every movement.</span>
             </h2>
-            <p className="text-white/70 text-base leading-relaxed max-w-sm mb-10">
-              Nền tảng tối ưu hóa logistics thông minh – từ đơn hàng đến cánh cửa khách hàng, mọi chuyến đi đều được tính toán hoàn hảo.
+            <p className="text-slate-400 text-sm leading-relaxed max-w-md mb-8">
+              Nền tảng điều phối và tối ưu hóa lộ trình giao hàng cấp doanh nghiệp — kiểm soát đơn hàng, đội xe và đối soát COD theo thời gian thực.
             </p>
 
-            {/* Feature pills */}
-            <div className="space-y-3">
+            {/* Feature list */}
+            <div className="space-y-2.5">
               {FEATURES.map((f, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 animate-fade-in"
-                  style={{ animationDelay: `${i * 100}ms` }}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-slate-900/70 border border-slate-800/90 animate-fade-in"
+                  style={{ animationDelay: `${i * 80}ms` }}
                 >
-                  <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/15 text-white shrink-0">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-md bg-slate-800 text-slate-200 shrink-0">
                     {f.icon}
                   </div>
-                  <span className="text-white/80 text-sm">{f.text}</span>
+                  <span className="text-slate-300 text-xs font-medium tabular-nums">{f.text}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Footer text */}
-          <p className="text-white/40 text-xs">© 2026 IUH Logistics. KLTN – Hệ thống quản lý giao vận thông minh.</p>
+          <p className="text-slate-500 text-xs tabular-nums">© 2026 IUH Logistics · SmartExpress Dispatch Console</p>
         </div>
       </div>
 
-      {/* ---- Right Auth Panel ---- */}
-      <div className="w-full lg:w-[480px] xl:w-[520px] flex items-center justify-center p-8 bg-[#F5F6F8]">
+      {/* ---- Right Form Panel ---- */}
+      <div className="w-full lg:w-[480px] xl:w-[520px] flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-[#FA7070] to-[#8B2626]">
-              <Zap size={20} className="text-white" />
+          <div className="lg:hidden flex items-center gap-2.5 mb-8">
+            <div className="flex items-center justify-center w-8 h-8 rounded-md bg-slate-900">
+              <Zap size={16} className="text-white" />
             </div>
-            <p className="font-800 text-[#8B2626] text-base tracking-wide">IUH LOGISTICS</p>
+            <p className="font-semibold text-slate-900 text-sm tracking-tight">IUH LOGISTICS</p>
           </div>
 
-          {/* Card */}
-          <div className="card p-8 animate-fade-in">
-            <div className="mb-7">
-              <h1 className="text-2xl font-700 text-gray-900">Đăng nhập</h1>
-              <p className="text-sm text-gray-500 mt-1">Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.</p>
+          {/* Form container */}
+          <div className="animate-fade-in">
+            <div className="mb-6">
+              <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Đăng nhập</h1>
+              <p className="text-xs text-slate-500 mt-1">Nhập thông tin tài khoản điều hành để tiếp tục.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div>
-                <label htmlFor="login-email" className="block text-sm font-500 text-gray-700 mb-1.5">
+                <label htmlFor="login-email" className="block text-xs font-medium text-slate-700 mb-1.5">
                   Email
                 </label>
                 <div className="relative flex items-center">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
                   <input
                     id="login-email"
                     type="email"
@@ -220,7 +227,7 @@ export default function LoginPage() {
                     placeholder="admin@iuhlogistics.vn"
                     required
                     autoComplete="email"
-                    className="input-base pl-11 w-full"
+                    className="input-base pl-9 h-9 w-full"
                   />
                 </div>
               </div>
@@ -228,18 +235,18 @@ export default function LoginPage() {
               {/* Password */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label htmlFor="login-password" className="text-sm font-500 text-gray-700">Mật khẩu</label>
+                  <label htmlFor="login-password" className="text-xs font-medium text-slate-700">Mật khẩu</label>
                   <button
                     type="button"
                     onClick={() => setShowForgot(true)}
-                    className="text-xs text-[#FA7070] hover:text-[#E85D5D] font-500 hover:underline"
+                    className="text-xs text-slate-600 hover:text-slate-900 font-medium hover:underline"
                     id="btn-forgot-password"
                   >
                     Quên mật khẩu?
                   </button>
                 </div>
                 <div className="relative flex items-center">
-                  <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
                   <input
                     id="login-password"
                     type={showPassword ? 'text' : 'password'}
@@ -248,24 +255,24 @@ export default function LoginPage() {
                     placeholder="••••••••"
                     required
                     autoComplete="current-password"
-                    className="input-base pl-11 pr-10 w-full"
+                    className="input-base pl-9 pr-9 h-9 w-full"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                     id="toggle-password"
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
 
               {/* Error */}
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl animate-fade-in">
-                  <span className="w-4 h-4 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-[10px] shrink-0">!</span>
-                  <p className="text-xs text-red-600">{error}</p>
+                <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-md animate-fade-in">
+                  <span className="w-4 h-4 rounded bg-red-100 flex items-center justify-center text-[#D92D20] text-[10px] font-bold shrink-0">!</span>
+                  <p className="text-xs text-[#D92D20]">{error}</p>
                 </div>
               )}
 
@@ -273,11 +280,11 @@ export default function LoginPage() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 accent-[#FA7070] rounded"
+                  className="w-3.5 h-3.5 accent-slate-900 rounded"
                   id="remember-me"
                   defaultChecked
                 />
-                <span className="text-sm text-gray-600">Ghi nhớ đăng nhập</span>
+                <span className="text-xs text-slate-600">Ghi nhớ đăng nhập</span>
               </label>
 
               {/* Submit */}
@@ -285,22 +292,22 @@ export default function LoginPage() {
                 id="btn-sign-in"
                 type="submit"
                 disabled={loading}
-                className="btn-primary w-full justify-center mt-2 disabled:opacity-70"
+                className="btn-primary w-full h-9 justify-center mt-1 disabled:opacity-70"
               >
                 {loading ? (
                   <>
-                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin-slow" />
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin-slow" />
                     Đang đăng nhập...
                   </>
                 ) : (
-                  <>Đăng nhập <ArrowRight size={16} /></>
+                  <>Đăng nhập <ArrowRight size={15} /></>
                 )}
               </button>
             </form>
 
             {/* Quick Demo Accounts */}
-            <div className="mt-5 p-3.5 bg-slate-50 border border-slate-100 rounded-2xl">
-              <p className="text-xs font-600 text-gray-700 mb-2">Đăng nhập nhanh tài khoản mẫu:</p>
+            <div className="mt-6 pt-5 border-t border-slate-200">
+              <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-2.5">Tài khoản dùng thử nhanh</p>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -308,10 +315,10 @@ export default function LoginPage() {
                     setEmail('admin@smartexpress.vn');
                     setPassword('123456');
                   }}
-                  className="px-2 py-1.5 text-[11px] font-600 bg-white border border-slate-200 hover:border-[#FA7070] hover:text-[#FA7070] rounded-xl text-gray-700 transition-colors shadow-2xs"
+                  className="px-2.5 py-1.5 text-xs font-medium bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:border-slate-300 rounded-md text-slate-700 transition-colors"
                   id="btn-quick-admin"
                 >
-                  👑 Admin
+                  Admin
                 </button>
                 <button
                   type="button"
@@ -319,10 +326,10 @@ export default function LoginPage() {
                     setEmail('dieupoi01@smartexpress.vn');
                     setPassword('123456');
                   }}
-                  className="px-2 py-1.5 text-[11px] font-600 bg-white border border-slate-200 hover:border-violet-500 hover:text-violet-600 rounded-xl text-gray-700 transition-colors shadow-2xs"
+                  className="px-2.5 py-1.5 text-xs font-medium bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:border-slate-300 rounded-md text-slate-700 transition-colors"
                   id="btn-quick-dispatcher"
                 >
-                  ⚡ Điều phối
+                  Điều phối
                 </button>
                 <button
                   type="button"
@@ -330,17 +337,17 @@ export default function LoginPage() {
                     setEmail('driver01@smartexpress.vn');
                     setPassword('123456');
                   }}
-                  className="px-2 py-1.5 text-[11px] font-600 bg-white border border-slate-200 hover:border-emerald-500 hover:text-emerald-600 rounded-xl text-gray-700 transition-colors shadow-2xs"
+                  className="px-2.5 py-1.5 text-xs font-medium bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:border-slate-300 rounded-md text-slate-700 transition-colors"
                   id="btn-quick-driver"
                 >
-                  🚚 Tài xế
+                  Tài xế
                 </button>
               </div>
             </div>
           </div>
 
           {/* Bottom note */}
-          <p className="text-center text-xs text-gray-400 mt-6">
+          <p className="text-center text-[11px] text-slate-400 mt-8 tabular-nums">
             © 2026 IUH Logistics · Hệ thống nội bộ
           </p>
         </div>

@@ -168,15 +168,55 @@ export async function resetPassword(token: string, newPassword: string, email: s
 
 // ─── API Functions ────────────────────────────────────────────────────────────
 
-/** Fetch all regions from the backend */
+const REFERENCE_CACHE_TTL_MS = 30_000;
+let regionsCache: { data: Region[]; expiresAt: number } | null = null;
+let regionsInFlight: Promise<Region[]> | null = null;
+const depotsCache = new Map<string, { data: ApiDepot[]; expiresAt: number }>();
+const depotsInFlight = new Map<string, Promise<ApiDepot[]>>();
+
+/** Fetch all regions from the backend (deduplicated + 30s TTL cache) */
 export async function fetchRegions(): Promise<Region[]> {
-  return apiFetch<Region[]>('/regions');
+  const now = Date.now();
+  if (regionsCache && regionsCache.expiresAt > now) {
+    return regionsCache.data;
+  }
+  if (regionsInFlight) {
+    return regionsInFlight;
+  }
+  regionsInFlight = apiFetch<Region[]>('/regions')
+    .then((data) => {
+      regionsCache = { data, expiresAt: Date.now() + REFERENCE_CACHE_TTL_MS };
+      return data;
+    })
+    .finally(() => {
+      regionsInFlight = null;
+    });
+  return regionsInFlight;
 }
 
-/** Fetch depots from the backend, optionally filtered by region */
+/** Fetch depots from the backend, optionally filtered by region (deduplicated + 30s TTL cache) */
 export async function fetchDepots(regionId?: string): Promise<ApiDepot[]> {
+  const cacheKey = regionId || '__ALL__';
+  const now = Date.now();
+  const cached = depotsCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.data;
+  }
+  const existingReq = depotsInFlight.get(cacheKey);
+  if (existingReq) {
+    return existingReq;
+  }
   const query = regionId ? `?regionId=${encodeURIComponent(regionId)}` : '';
-  return apiFetch<ApiDepot[]>(`/depots${query}`);
+  const req = apiFetch<ApiDepot[]>(`/depots${query}`)
+    .then((data) => {
+      depotsCache.set(cacheKey, { data, expiresAt: Date.now() + REFERENCE_CACHE_TTL_MS });
+      return data;
+    })
+    .finally(() => {
+      depotsInFlight.delete(cacheKey);
+    });
+  depotsInFlight.set(cacheKey, req);
+  return req;
 }
 
 /** Fetch all orders from the backend */
@@ -403,6 +443,27 @@ export async function fetchOnlineDrivers(hubId?: string, regionId?: string): Pro
   }));
 }
 
+export interface CreateDriverAccountPayload {
+  fullName: string;
+  phone: string;
+  email?: string;
+  password?: string;
+  licensePlate: string;
+  vehicleType: string;
+  depotId?: string;
+  maxWeightKg: number;
+  maxVolumeM3: number;
+  currentShiftStatus?: string;
+}
+
+/** Atomically create User (DRIVER) + Driver vehicle profile (ADMIN & DISPATCHER) */
+export async function createDriverAccount(data: CreateDriverAccountPayload): Promise<Driver> {
+  return apiFetch<Driver>('/drivers', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 /** Create Driver profile */
 export async function createDriver(userId: string, data: Partial<Driver>): Promise<Driver> {
   return apiFetch<Driver>(`/drivers/${userId}`, {
@@ -456,6 +517,135 @@ export async function updateUserStatus(userId: string, status: string): Promise<
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
+}
+
+// ─── Bulk Excel Import & Templates (Users & Drivers) ─────────────────────────
+
+export interface ExcelImportErrorItem {
+  row: number;
+  field?: string;
+  message: string;
+}
+
+export interface BulkExcelImportResult {
+  totalRows?: number;
+  successCount: number;
+  failedCount: number;
+  errors: ExcelImportErrorItem[];
+}
+
+function getStoredAccessToken(): string | null {
+  let token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  if (!token && typeof document !== 'undefined') {
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)(?:accessToken|token)=([^;]+)/);
+    if (cookieMatch) token = decodeURIComponent(cookieMatch[1]);
+  }
+  return token;
+}
+
+async function parseErrorResponseMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = (await res.json()) as { message?: string | string[] };
+    if (Array.isArray(data.message)) return data.message.join('; ');
+    if (typeof data.message === 'string' && data.message.trim()) return data.message;
+  } catch {
+    // ignore JSON parse errors
+  }
+  return `${fallback} (${res.status})`;
+}
+
+/** POST /users/import — Bulk import users from Excel (.xlsx / .xls) */
+export async function importUsersExcel(file: File): Promise<BulkExcelImportResult> {
+  const fullUrl = `${API_BASE}/users/import`;
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const token = getStoredAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(fullUrl, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const message = await parseErrorResponseMessage(res, 'Nhập danh sách người dùng thất bại');
+    throw new Error(message);
+  }
+  return res.json() as Promise<BulkExcelImportResult>;
+}
+
+/** GET /users/import/template — Download sample .xlsx template for Users import */
+export async function downloadUsersTemplate(): Promise<void> {
+  const fullUrl = `${API_BASE}/users/import/template`;
+  const token = getStoredAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(fullUrl, { headers });
+  if (!res.ok) {
+    const message = await parseErrorResponseMessage(res, 'Không thể tải file mẫu người dùng');
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const objectUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = 'mau_nhap_nguoi_dung.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(objectUrl);
+}
+
+/** POST /drivers/import — Bulk import drivers from Excel (.xlsx / .xls) */
+export async function importDriversExcel(file: File): Promise<BulkExcelImportResult> {
+  const fullUrl = `${API_BASE}/drivers/import`;
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const token = getStoredAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(fullUrl, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const message = await parseErrorResponseMessage(res, 'Nhập danh sách tài xế thất bại');
+    throw new Error(message);
+  }
+  return res.json() as Promise<BulkExcelImportResult>;
+}
+
+/** GET /drivers/import/template — Download sample .xlsx template for Drivers import */
+export async function downloadDriversTemplate(): Promise<void> {
+  const fullUrl = `${API_BASE}/drivers/import/template`;
+  const token = getStoredAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(fullUrl, { headers });
+  if (!res.ok) {
+    const message = await parseErrorResponseMessage(res, 'Không thể tải file mẫu tài xế');
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const objectUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = 'mau_nhap_tai_xe.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(objectUrl);
 }
 
 export async function importOrdersExcel(file: File): Promise<{ totalRows: number; importedCount: number; failedCount: number; errors: string[] }> {
@@ -586,6 +776,15 @@ export async function unassignDriverFromZone(
   driverId: string,
 ): Promise<ApiZone> {
   return apiFetch<ApiZone>(`/zones/${zoneId}/drivers/${driverId}`, {
+    method: 'DELETE',
+  });
+}
+
+/** DELETE /zones/:id — delete zone */
+export async function deleteZone(
+  zoneId: string,
+): Promise<{ success: boolean; deletedId: string }> {
+  return apiFetch<{ success: boolean; deletedId: string }>(`/zones/${zoneId}`, {
     method: 'DELETE',
   });
 }

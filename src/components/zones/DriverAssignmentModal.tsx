@@ -116,42 +116,41 @@ export default function DriverAssignmentModal({
     : metrics.demandVolume > 0 ? 200 : 0;
 
   const severityColors: Record<string, string> = {
-    NORMAL: 'bg-green-100 text-green-700',
-    WARNING: 'bg-amber-100 text-amber-700',
-    CRITICAL: 'bg-red-100 text-red-700',
+    NORMAL: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    WARNING: 'bg-amber-50 text-amber-700 border-amber-200',
+    CRITICAL: 'bg-red-50 text-red-700 border-red-200',
   };
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-[2px]"
     >
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col max-h-[88vh]" style={{ zIndex: 10000 }}>
+      <div className="relative w-full max-w-2xl bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden flex flex-col max-h-[88vh]" style={{ zIndex: 10000 }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-              <Users size={18} className="text-blue-600" />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center">
+              <Users size={16} className="text-slate-700" />
             </div>
             <div>
-              <h2 className="text-sm font-700 text-gray-900">Phân công tài xế</h2>
-              <p className="text-xs text-gray-400">{zone.name}</p>
+              <h2 className="text-sm font-semibold text-slate-900">Phân công tài xế</h2>
+              <p className="text-xs text-slate-500">{zone.name}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
             id="btn-close-driver-modal"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Capacity Metrics */}
-        <div className="px-6 py-4 bg-gray-50 border-b border-slate-100 shrink-0">
+        <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-200 shrink-0 tabular-nums">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-700 text-gray-500 uppercase tracking-wider">Tình trạng tải</p>
-            <span className={cn('text-[11px] font-700 px-2.5 py-0.5 rounded-full', severityColors[metrics.overloadSeverity])}>
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tình trạng tải</p>
+            <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded border', severityColors[metrics.overloadSeverity])}>
               {metrics.overloadSeverity === 'NORMAL' ? 'An toàn' : metrics.overloadSeverity === 'WARNING' ? 'Sắp đầy' : 'QUÁ TẢI'}
             </span>
           </div>
@@ -159,47 +158,48 @@ export default function DriverAssignmentModal({
             {/* Weight */}
             <div>
               <div className="flex justify-between mb-1">
-                <span className="text-[11px] text-gray-500">Trọng lượng</span>
-                <span className="text-[11px] font-600 text-gray-700">
+                <span className="text-[11px] text-slate-500">Trọng lượng</span>
+                <span className="text-[11px] font-semibold text-slate-700">
                   {metrics.demandWeight}kg / {metrics.fleetCapacityWeight}kg
                 </span>
               </div>
-              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-slate-200 rounded-xs overflow-hidden">
                 <div
-                  className={cn('h-full rounded-full transition-all', weightPct > 100 ? 'bg-red-500' : weightPct > 80 ? 'bg-amber-500' : 'bg-green-500')}
+                  className={cn('h-full transition-all', weightPct > 100 ? 'bg-[#D92D20]' : weightPct > 80 ? 'bg-amber-500' : 'bg-emerald-600')}
                   style={{ width: `${Math.min(100, weightPct)}%` }}
                 />
               </div>
-              <p className="text-[10px] text-gray-400 mt-0.5">{weightPct}%</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{weightPct}%</p>
             </div>
             {/* Volume */}
             <div>
               <div className="flex justify-between mb-1">
-                <span className="text-[11px] text-gray-500">Thể tích</span>
-                <span className="text-[11px] font-600 text-gray-700">
+                <span className="text-[11px] text-slate-500">Thể tích</span>
+                <span className="text-[11px] font-semibold text-slate-700">
                   {metrics.demandVolume}m³ / {metrics.fleetCapacityVolume}m³
                 </span>
               </div>
-              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-slate-200 rounded-xs overflow-hidden">
                 <div
-                  className={cn('h-full rounded-full transition-all', volumePct > 100 ? 'bg-red-500' : volumePct > 80 ? 'bg-amber-500' : 'bg-green-500')}
+                  className={cn('h-full transition-all', volumePct > 100 ? 'bg-[#D92D20]' : volumePct > 80 ? 'bg-amber-500' : 'bg-emerald-600')}
                   style={{ width: `${Math.min(100, volumePct)}%` }}
                 />
               </div>
-              <p className="text-[10px] text-gray-400 mt-0.5">{volumePct}%</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{volumePct}%</p>
             </div>
           </div>
-          <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-            <span>📦 {metrics.totalOrders} đơn chờ</span>
-            <span>🚗 {metrics.activeDriversCount} tài xế hoạt động</span>
+          <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
+            <span>{metrics.totalOrders} đơn chờ</span>
+            <span>·</span>
+            <span>{metrics.activeDriversCount} tài xế hoạt động</span>
           </div>
         </div>
 
         {/* Error banner */}
         {error && (
-          <div className="mx-6 mt-3 p-3 bg-red-50 rounded-xl border border-red-100 flex items-center gap-2 shrink-0">
-            <AlertCircle size={15} className="text-red-500 shrink-0" />
-            <p className="text-xs text-red-600">{error}</p>
+          <div className="mx-6 mt-3 p-2.5 bg-red-50 rounded-md border border-red-200 flex items-center gap-2 shrink-0">
+            <AlertCircle size={14} className="text-[#D92D20] shrink-0" />
+            <p className="text-xs text-red-700">{error}</p>
           </div>
         )}
 
@@ -207,40 +207,40 @@ export default function DriverAssignmentModal({
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
           {/* Currently Assigned */}
           <div>
-            <p className="text-xs font-700 text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 tabular-nums">
               <UserCheck size={13} />
               Đang phân công ({assignedDrivers.length})
             </p>
             {assignedDrivers.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">Chưa có tài xế nào được phân công.</p>
+              <p className="text-xs text-slate-400 italic">Chưa có tài xế nào được phân công.</p>
             ) : (
               <div className="space-y-2">
                 {assignedDrivers.map((d) => {
-                  const shift = SHIFT_STATUS_LABELS[d.currentShiftStatus] ?? { label: d.currentShiftStatus, color: 'text-gray-400 bg-gray-100' };
+                  const shift = SHIFT_STATUS_LABELS[d.currentShiftStatus] ?? { label: d.currentShiftStatus, color: 'text-slate-500 bg-slate-100' };
                   return (
                     <div
                       key={d.userId}
-                      className="flex items-center justify-between p-3 bg-blue-50/60 rounded-xl border border-blue-100"
+                      className="flex items-center justify-between p-2.5 bg-slate-50 rounded-md border border-slate-200/80"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                          <Truck size={14} className="text-blue-600" />
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-md bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                          <Truck size={13} className="text-slate-600" />
                         </div>
                         <div>
-                          <p className="text-sm font-600 text-gray-800">{d.fullName}</p>
-                          <p className="text-[11px] text-gray-400">
+                          <p className="text-sm font-medium text-slate-900">{d.fullName}</p>
+                          <p className="text-[11px] text-slate-500 tabular-nums">
                             {d.licensePlate} · {VEHICLE_LABELS[d.vehicleType] ?? d.vehicleType} · {d.maxWeightKg}kg
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={cn('text-[10px] font-600 px-2 py-0.5 rounded-full', shift.color)}>
+                        <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded border border-slate-200/60', shift.color)}>
                           {shift.label}
                         </span>
                         <button
                           onClick={() => handleUnassign(d.userId)}
                           disabled={loadingId === d.userId}
-                          className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:bg-red-100 hover:text-red-500 transition-colors disabled:opacity-40"
+                          className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-red-50 hover:text-[#D92D20] transition-colors disabled:opacity-40"
                           title="Hủy phân công"
                           id={`btn-unassign-${d.userId}`}
                         >
@@ -256,13 +256,13 @@ export default function DriverAssignmentModal({
 
           {/* Available to Assign */}
           <div>
-            <p className="text-xs font-700 text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 tabular-nums">
               <Users size={13} />
               Tài xế có thể thêm ({availableDrivers.length})
             </p>
             {availableDrivers.length === 0 ? (
-              <div className="p-4 bg-gray-50 border border-dashed border-gray-200 rounded-xl text-center">
-                <p className="text-xs text-gray-500">
+              <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-lg text-center">
+                <p className="text-xs text-slate-500">
                   Tất cả tài xế hiện đều đã được phân công khu vực. Hãy gỡ tài xế ở khu vực khác nếu muốn điều chuyển.
                 </p>
               </div>
@@ -270,33 +270,33 @@ export default function DriverAssignmentModal({
               <div className="space-y-2">
                 {availableDrivers.map((d) => {
                   const isSelected = pendingAdd.has(d.userId);
-                  const shift = SHIFT_STATUS_LABELS[d.currentShiftStatus] ?? { label: d.currentShiftStatus, color: 'text-gray-400 bg-gray-100' };
+                  const shift = SHIFT_STATUS_LABELS[d.currentShiftStatus] ?? { label: d.currentShiftStatus, color: 'text-slate-500 bg-slate-100' };
                   return (
                     <button
                       key={d.userId}
                       onClick={() => togglePendingAdd(d.userId)}
                       className={cn(
-                        'w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left',
+                        'w-full flex items-center justify-between p-2.5 rounded-md border transition-colors text-left',
                         isSelected
-                          ? 'bg-[#FFF0F0] border-[#FA7070] shadow-sm'
-                          : 'bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm',
+                          ? 'bg-slate-50 border-slate-900'
+                          : 'bg-white border-slate-200/80 hover:border-slate-300',
                       )}
                       id={`btn-select-driver-${d.userId}`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={cn('w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors',
-                          isSelected ? 'bg-[#FA7070]' : 'bg-gray-100'
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn('w-7 h-7 rounded-md flex items-center justify-center shrink-0 border transition-colors',
+                          isSelected ? 'bg-slate-900 border-slate-900' : 'bg-slate-50 border-slate-200'
                         )}>
-                          {isSelected ? <Check size={14} className="text-white" /> : <Truck size={14} className="text-gray-400" />}
+                          {isSelected ? <Check size={13} className="text-white" /> : <Truck size={13} className="text-slate-400" />}
                         </div>
                         <div>
-                          <p className="text-sm font-600 text-gray-800">{d.fullName}</p>
-                          <p className="text-[11px] text-gray-400">
+                          <p className="text-sm font-medium text-slate-900">{d.fullName}</p>
+                          <p className="text-[11px] text-slate-500 tabular-nums">
                             {d.licensePlate} · {VEHICLE_LABELS[d.vehicleType] ?? d.vehicleType} · {d.maxWeightKg}kg / {d.maxVolumeM3}m³
                           </p>
                         </div>
                       </div>
-                      <span className={cn('text-[10px] font-600 px-2 py-0.5 rounded-full shrink-0', shift.color)}>
+                      <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded border border-slate-200/60 shrink-0', shift.color)}>
                         {shift.label}
                       </span>
                     </button>
@@ -308,7 +308,7 @@ export default function DriverAssignmentModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 shrink-0">
+        <div className="flex items-center justify-end gap-2.5 px-6 py-3.5 border-t border-slate-200 bg-slate-50/50 shrink-0">
           <button onClick={onClose} className="btn-secondary text-sm">
             Đóng
           </button>

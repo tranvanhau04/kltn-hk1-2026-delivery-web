@@ -60,27 +60,27 @@ function DeliveryProgressStepper({ status }: { status: OrderStatus }) {
           <React.Fragment key={i}>
             <div className="flex flex-col items-center gap-1.5 min-w-0">
               <div className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center transition-all',
-                done  ? 'bg-[#FA7070] text-white' :
-                active && isFailed ? 'bg-red-100 text-red-600 ring-2 ring-red-200' :
-                active ? 'bg-[#FFF0F0] text-[#FA7070] ring-2 ring-[#FA7070]/30' :
-                'bg-gray-100 text-gray-300'
+                'w-7 h-7 rounded-md flex items-center justify-center border transition-colors',
+                done  ? 'bg-slate-900 border-slate-900 text-white' :
+                active && isFailed ? 'bg-red-50 border-red-200 text-[#D92D20]' :
+                active ? 'bg-slate-100 border-slate-900 text-slate-900' :
+                'bg-white border-slate-200 text-slate-300'
               )}>
                 {step.icon}
               </div>
               <span className={cn(
                 'text-[10px] text-center leading-tight px-1',
-                done ? 'text-[#FA7070] font-600' :
-                active ? (isFailed ? 'text-red-600 font-600' : 'text-[#FA7070] font-600') :
-                'text-gray-400'
+                done ? 'text-slate-900 font-medium' :
+                active ? (isFailed ? 'text-[#D92D20] font-semibold' : 'text-slate-900 font-semibold') :
+                'text-slate-400'
               )}>
                 {step.label}
               </span>
             </div>
             {!isLast && (
               <div className={cn(
-                'flex-1 h-0.5 mx-1 mb-5 rounded-full',
-                done ? 'bg-[#FA7070]' : 'bg-gray-200'
+                'flex-1 h-[1.5px] mx-1.5 mb-5',
+                done ? 'bg-slate-900' : 'bg-slate-200'
               )} />
             )}
           </React.Fragment>
@@ -181,57 +181,57 @@ function OrderDetailModal({
         <div className="space-y-5">
           {/* Customer Info */}
           <div>
-            <h3 className="text-xs font-700 text-gray-400 uppercase tracking-wider mb-3">Thông tin khách hàng</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                <div className="w-8 h-8 rounded-full bg-[#FFF0F0] flex items-center justify-center shrink-0">
-                  <User size={15} className="text-[#FA7070]" />
+            <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Thông tin khách hàng</h3>
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-3 p-3 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+                <div className="w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                  <User size={14} className="text-slate-600" />
                 </div>
                 <div>
-                  <p className="text-[11px] text-gray-400">Người nhận</p>
-                  <p className="text-sm font-600 text-gray-800">{order.receiverName}</p>
+                  <p className="text-[11px] text-slate-400">Người nhận</p>
+                  <p className="text-sm font-medium text-slate-900">{order.receiverName}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                <div className="w-8 h-8 rounded-full bg-[#FFF0F0] flex items-center justify-center shrink-0">
-                  <Phone size={15} className="text-[#FA7070]" />
+              <div className="flex items-center gap-3 p-3 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+                <div className="w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                  <Phone size={14} className="text-slate-600" />
                 </div>
                 <div>
-                  <p className="text-[11px] text-gray-400">Số điện thoại</p>
-                  <p className="text-sm font-600 text-gray-800">{order.receiverPhone}</p>
+                  <p className="text-[11px] text-slate-400">Số điện thoại</p>
+                  <p className="text-sm font-medium text-slate-900 tabular-nums">{order.receiverPhone}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-                <div className="w-8 h-8 rounded-full bg-[#FFF0F0] flex items-center justify-center shrink-0 mt-0.5">
-                  <MapPin size={15} className="text-[#FA7070]" />
+              <div className="flex items-start gap-3 p-3 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+                <div className="w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center shrink-0 mt-0.5">
+                  <MapPin size={14} className="text-slate-600" />
                 </div>
                 <div>
-                  <p className="text-[11px] text-gray-400">Địa chỉ giao hàng</p>
-                  <p className="text-sm font-600 text-gray-800">{order.deliveryAddress}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-[11px] text-slate-400">Địa chỉ giao hàng</p>
+                  <p className="text-sm font-medium text-slate-900">{order.deliveryAddress}</p>
+                  <p className="text-xs font-mono text-slate-400 mt-0.5 tabular-nums">
                     {Number(order.latitude || 0).toFixed(4)}, {Number(order.longitude || 0).toFixed(4)}
                   </p>
                   {needsGeoReview && (
-                    <p className="text-[10px] text-amber-600 font-600 mt-1 flex items-center gap-1">
-                      <AlertCircle size={10} /> Tọa độ chưa geocode – cần xác nhận lại
+                    <p className="text-[11px] text-amber-700 font-medium mt-1 flex items-center gap-1">
+                      <AlertCircle size={11} /> Tọa độ chưa geocode – cần xác nhận lại
                     </p>
                   )}
                 </div>
               </div>
               {order.driverName && (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <div className="w-8 h-8 rounded-full bg-violet-50 flex items-center justify-center shrink-0">
-                    <Truck size={15} className="text-violet-600" />
+                <div className="flex items-center gap-3 p-3 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+                  <div className="w-8 h-8 rounded-md bg-indigo-50 border border-indigo-200/80 flex items-center justify-center shrink-0">
+                    <Truck size={14} className="text-indigo-600" />
                   </div>
                   <div>
-                    <p className="text-[11px] text-gray-400">Tài xế phụ trách</p>
-                    <p className="text-sm font-600 text-gray-800">{order.driverName}</p>
+                    <p className="text-[11px] text-slate-400">Tài xế phụ trách</p>
+                    <p className="text-sm font-medium text-slate-900">{order.driverName}</p>
                   </div>
                 </div>
               )}
               {order.notes && (
-                <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
-                  <p className="text-[11px] text-amber-700 font-600 mb-0.5">Ghi chú</p>
+                <div className="p-3 bg-amber-50/70 rounded-lg border border-amber-200">
+                  <p className="text-[11px] text-amber-800 font-semibold mb-0.5">Ghi chú</p>
                   <p className="text-xs text-amber-700">{order.notes}</p>
                 </div>
               )}
@@ -240,12 +240,12 @@ function OrderDetailModal({
 
           {/* Delivery Progress */}
           <div>
-            <h3 className="text-xs font-700 text-gray-400 uppercase tracking-wider mb-3">Tiến độ giao hàng</h3>
-            <div className="p-4 bg-gray-50 rounded-xl">
-              <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Tiến độ giao hàng</h3>
+            <div className="p-4 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+              <div className="mb-3.5 flex items-center justify-between">
                 <StatusBadge status={order.status} />
                 {order.estimatedDelivery && (
-                  <div className="flex items-center gap-1 text-xs text-gray-400">
+                  <div className="flex items-center gap-1 text-xs text-slate-500 tabular-nums">
                     <Clock size={12} /> {formatDateTime(order.estimatedDelivery)}
                   </div>
                 )}
@@ -259,25 +259,25 @@ function OrderDetailModal({
         <div className="space-y-5">
           {/* Package Specs */}
           <div>
-            <h3 className="text-xs font-700 text-gray-400 uppercase tracking-wider mb-3">Thông số kiện hàng</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-gray-50 rounded-xl text-center">
-                <Weight size={20} className="text-[#FA7070] mx-auto mb-1" />
-                <p className="text-lg font-700 text-gray-900">{order.weightKg}</p>
-                <p className="text-xs text-gray-400">kg</p>
+            <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Thông số kiện hàng</h3>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-3 bg-slate-50/70 border border-slate-200/70 rounded-lg text-center">
+                <Weight size={18} className="text-slate-600 mx-auto mb-1" />
+                <p className="text-lg font-semibold text-slate-900 tabular-nums">{order.weightKg}</p>
+                <p className="text-xs text-slate-500">kg</p>
               </div>
-              <div className="p-3 bg-gray-50 rounded-xl text-center">
-                <Box size={20} className="text-blue-500 mx-auto mb-1" />
-                <p className="text-lg font-700 text-gray-900">{order.volumeM3}</p>
-                <p className="text-xs text-gray-400">m³</p>
+              <div className="p-3 bg-slate-50/70 border border-slate-200/70 rounded-lg text-center">
+                <Box size={18} className="text-indigo-600 mx-auto mb-1" />
+                <p className="text-lg font-semibold text-slate-900 tabular-nums">{order.volumeM3}</p>
+                <p className="text-xs text-slate-500">m³</p>
               </div>
-              <div className="col-span-2 p-3 bg-gray-50 rounded-xl">
+              <div className="col-span-2 p-3 bg-slate-50/70 border border-slate-200/70 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <DollarSign size={16} className="text-green-500" />
-                    <span className="text-sm text-gray-600">COD thu hộ</span>
+                    <DollarSign size={15} className="text-emerald-600" />
+                    <span className="text-xs font-medium text-slate-600">COD thu hộ</span>
                   </div>
-                  <span className="text-base font-700 text-gray-900">
+                  <span className="text-base font-semibold text-slate-900 tabular-nums">
                     {order.codAmount > 0 ? formatCurrency(order.codAmount) : '–'}
                   </span>
                 </div>
@@ -287,14 +287,14 @@ function OrderDetailModal({
 
           {/* Proof of Delivery */}
           <div>
-            <h3 className="text-xs font-700 text-gray-400 uppercase tracking-wider mb-3">Bằng chứng giao hàng (POD)</h3>
+            <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Bằng chứng giao hàng (POD)</h3>
             {podLoading ? (
               /* Skeleton shimmer khi đang load */
-              <div className="h-32 bg-gray-100 rounded-xl animate-pulse" />
+              <div className="h-32 bg-slate-100 rounded-lg animate-pulse" />
             ) : isDelivered && fullPhotoUrl && !imgError ? (
               /* Ảnh POD thực tế */
-              <div className="rounded-xl overflow-hidden border border-slate-100">
-                <div className="relative h-48 bg-gray-100">
+              <div className="rounded-lg overflow-hidden border border-slate-200">
+                <div className="relative h-48 bg-slate-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={fullPhotoUrl}
@@ -304,15 +304,15 @@ function OrderDetailModal({
                     onError={() => setImgError(true)}
                   />
                 </div>
-                <div className="p-3 bg-green-50">
-                  <div className="flex items-center gap-2 text-green-700">
+                <div className="p-3 bg-emerald-50/70 border-t border-emerald-200/80">
+                  <div className="flex items-center gap-2 text-emerald-700">
                     <CheckCircle size={14} />
-                    <span className="text-xs font-600">
+                    <span className="text-xs font-medium tabular-nums">
                       Xác nhận lúc {podData?.confirmedAt ? formatDateTime(podData.confirmedAt) : '—'}
                     </span>
                   </div>
                   {podData?.codCollected !== undefined && podData.codCollected > 0 && (
-                    <p className="text-xs text-green-600 mt-1">
+                    <p className="text-xs text-emerald-700 mt-1 tabular-nums">
                       COD đã thu: {formatCurrency(podData.codCollected)}
                     </p>
                   )}
@@ -320,48 +320,48 @@ function OrderDetailModal({
               </div>
             ) : isDelivered && imgError ? (
               /* Ảnh lỗi / không tải được */
-              <div className="flex flex-col items-center justify-center h-28 bg-red-50 rounded-xl border border-red-100 gap-2">
-                <AlertCircle size={24} className="text-red-300" />
-                <p className="text-xs text-red-400">Ảnh POD không tải được</p>
+              <div className="flex flex-col items-center justify-center h-28 bg-red-50/70 rounded-lg border border-red-200 gap-1.5">
+                <AlertCircle size={20} className="text-red-400" />
+                <p className="text-xs text-red-600">Ảnh POD không tải được</p>
               </div>
             ) : order.status === 'FAILED' ? (
               /* Đơn thất bại */
-              <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                <div className="flex items-center gap-2 text-red-600 mb-2">
-                  <AlertCircle size={16} />
-                  <span className="text-sm font-600">Giao hàng thất bại</span>
+              <div className="p-3.5 bg-red-50/70 rounded-lg border border-red-200">
+                <div className="flex items-center gap-2 text-[#D92D20] mb-1.5">
+                  <AlertCircle size={15} />
+                  <span className="text-xs font-semibold">Giao hàng thất bại</span>
                 </div>
-                <p className="text-xs text-red-500">
+                <p className="text-xs text-red-600">
                   {podData?.failureReason ?? order.notes ?? 'Không liên lạc được khách hàng'}
                 </p>
               </div>
             ) : (
               /* Chưa giao */
-              <div className="flex flex-col items-center justify-center h-28 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 gap-2">
-                <ImageIcon size={24} className="text-gray-300" />
-                <p className="text-xs text-gray-400">Chưa có ảnh POD</p>
+              <div className="flex flex-col items-center justify-center h-28 bg-slate-50/70 rounded-lg border border-dashed border-slate-200 gap-1.5">
+                <ImageIcon size={20} className="text-slate-300" />
+                <p className="text-xs text-slate-400">Chưa có ảnh POD</p>
               </div>
             )}
           </div>
 
           {/* Order meta */}
-          <div className="p-4 bg-gray-50 rounded-xl space-y-2">
+          <div className="p-3.5 bg-slate-50/70 border border-slate-200/70 rounded-lg space-y-2">
             <div className="flex justify-between text-xs">
-              <span className="text-gray-400">Mã đơn</span>
-              <span className="font-600 text-gray-700 font-mono">{order.code}</span>
+              <span className="text-slate-500">Mã đơn</span>
+              <span className="font-semibold text-slate-900 font-mono tabular-nums">{order.code}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-gray-400">Khu vực</span>
-              <span className="font-600 text-gray-700">{order.zoneId ?? '–'}</span>
+              <span className="text-slate-500">Khu vực</span>
+              <span className="font-medium text-slate-700">{order.zoneId ?? '–'}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-gray-400">Ngày tạo</span>
-              <span className="font-600 text-gray-700">{formatDateTime(order.createdAt)}</span>
+              <span className="text-slate-500">Ngày tạo</span>
+              <span className="font-medium text-slate-700 tabular-nums">{formatDateTime(order.createdAt)}</span>
             </div>
             {order.estimatedDelivery && (
               <div className="flex justify-between text-xs">
-                <span className="text-gray-400">Dự kiến giao</span>
-                <span className="font-600 text-gray-700">{formatDateTime(order.estimatedDelivery)}</span>
+                <span className="text-slate-500">Dự kiến giao</span>
+                <span className="font-medium text-slate-700 tabular-nums">{formatDateTime(order.estimatedDelivery)}</span>
               </div>
             )}
           </div>
@@ -692,7 +692,7 @@ export default function OrdersPage() {
       header: 'Mã đơn',
       sortable: true,
       render: (v) => (
-        <span className="font-mono text-xs font-600 text-[#FA7070]">{String(v)}</span>
+        <span className="font-mono text-xs font-semibold text-slate-900 tabular-nums">{String(v)}</span>
       ),
     },
     {
@@ -701,8 +701,8 @@ export default function OrdersPage() {
       sortable: true,
       render: (v, row) => (
         <div>
-          <p className="font-500 text-gray-800 text-sm">{String(v)}</p>
-          <p className="text-xs text-gray-400">{(row as Order).receiverPhone}</p>
+          <p className="font-medium text-slate-900 text-sm">{String(v)}</p>
+          <p className="text-xs text-slate-500 tabular-nums">{(row as Order).receiverPhone}</p>
         </div>
       ),
     },
@@ -710,7 +710,7 @@ export default function OrdersPage() {
       key: 'deliveryAddress',
       header: 'Địa chỉ giao',
       render: (v) => (
-        <span className="text-xs text-gray-600 max-w-[200px] block truncate">{String(v)}</span>
+        <span className="text-xs text-slate-600 max-w-[200px] block truncate">{String(v)}</span>
       ),
     },
     {
@@ -718,7 +718,7 @@ export default function OrdersPage() {
       header: 'Trọng lượng',
       sortable: true,
       align: 'center',
-      render: (v) => <span className="text-sm">{String(v)} kg</span>,
+      render: (v) => <span className="text-sm text-slate-700 tabular-nums">{String(v)} kg</span>,
     },
     {
       key: 'codAmount',
@@ -726,7 +726,7 @@ export default function OrdersPage() {
       sortable: true,
       align: 'right',
       render: (v) => (
-        <span className={cn('text-sm font-600', Number(v) > 0 ? 'text-green-600' : 'text-gray-400')}>
+        <span className={cn('text-sm font-medium tabular-nums', Number(v) > 0 ? 'text-emerald-700' : 'text-slate-400')}>
           {Number(v) > 0 ? formatCurrency(Number(v)) : '–'}
         </span>
       ),
@@ -736,9 +736,9 @@ export default function OrdersPage() {
       header: 'Tài xế',
       render: (v) =>
         v ? (
-          <span className="text-sm text-gray-700">{String(v)}</span>
+          <span className="text-sm text-slate-700">{String(v)}</span>
         ) : (
-          <span className="text-xs text-gray-300 italic">Chưa gán</span>
+          <span className="text-xs text-slate-400 italic">Chưa gán</span>
         ),
     },
     {
@@ -751,7 +751,7 @@ export default function OrdersPage() {
       key: 'depotId',
       header: 'Kho / Hub',
       render: (_v, row) => (
-        <span className="text-xs font-500 text-gray-700 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-md inline-block max-w-[130px] truncate">
+        <span className="text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded inline-block max-w-[130px] truncate">
           {row.depot?.name || 'Hub 01 - Gò Vấp'}
         </span>
       ),
@@ -760,7 +760,7 @@ export default function OrdersPage() {
       key: 'createdAt',
       header: 'Ngày tạo',
       sortable: true,
-      render: (v) => <span className="text-xs text-gray-400">{formatDateTime(String(v))}</span>,
+      render: (v) => <span className="text-xs text-slate-500 tabular-nums">{formatDateTime(String(v))}</span>,
     },
   ];
 
@@ -778,16 +778,16 @@ export default function OrdersPage() {
   return (
     <div className="space-y-5 animate-fade-in">
       {/* Page header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-700 text-gray-900">Đơn hàng</h2>
-          <p className="text-sm text-gray-400 mt-0.5">
+          <h2 className="text-lg font-semibold text-slate-900 tracking-tight">Đơn hàng</h2>
+          <p className="text-xs text-slate-500 mt-0.5 tabular-nums">
             {totalOrders > 0
               ? `Hiển thị ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalOrders)} trong tổng số ${totalOrders} đơn hàng`
               : '0 đơn hàng'}
           </p>
         </div>
-        <div className="flex items-center flex-wrap gap-2.5">
+        <div className="flex items-center flex-wrap gap-2">
           {/* Cascading Region -> Hub Selector */}
           <CascadingRegionHubSelect
             selectedRegionId={selectedRegionId}
@@ -805,30 +805,30 @@ export default function OrdersPage() {
 
           <button
             onClick={() => setShowImportExcel(true)}
-            className="btn-secondary text-sm"
+            className="btn-secondary text-xs h-8 px-3"
             id="btn-import-excel"
           >
-            <Download size={15} /> Nhập Excel
+            <Download size={14} /> Nhập Excel
           </button>
           <button
             onClick={handleExportExcel}
             disabled={isExporting}
-            className="btn-secondary text-sm flex items-center gap-1.5"
+            className="btn-secondary text-xs h-8 px-3 flex items-center gap-1.5"
             id="btn-export-excel"
           >
             {isExporting ? (
-              <Loader2 size={15} className="animate-spin text-gray-500" />
+              <Loader2 size={14} className="animate-spin text-slate-500" />
             ) : (
-              <FileDown size={15} className="text-gray-600" />
+              <FileDown size={14} className="text-slate-600" />
             )}
             <span>{isExporting ? 'Đang xuất...' : 'Xuất Excel'}</span>
           </button>
           <button
             onClick={() => setShowNewOrder(true)}
-            className="btn-primary text-sm"
+            className="btn-primary text-xs h-8 px-3"
             id="btn-new-order"
           >
-            <Plus size={15} /> Thêm đơn hàng
+            <Plus size={14} /> Thêm đơn hàng
           </button>
         </div>
       </div>
@@ -855,21 +855,21 @@ export default function OrdersPage() {
           <>
             <button
               onClick={(e) => { e.stopPropagation(); setSelectedOrder(row); }}
-              className="flex items-center justify-center w-7 h-7 rounded-lg text-blue-400 hover:bg-blue-50 transition-colors"
+              className="flex items-center justify-center w-7 h-7 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               title="Xem chi tiết"
             >
               <Eye size={14} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setShowMapForOrder(row); }}
-              className="flex items-center justify-center w-7 h-7 rounded-lg text-[#FA7070] hover:bg-[#FFF0F0] transition-colors"
+              className="flex items-center justify-center w-7 h-7 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               title="Xem bản đồ"
             >
               <MapPin size={14} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setPrintingOrder(row); }}
-              className="flex items-center justify-center w-7 h-7 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+              className="flex items-center justify-center w-7 h-7 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               title="In phiếu gửi vận đơn (AWB)"
             >
               <Printer size={14} />
@@ -883,7 +883,7 @@ export default function OrdersPage() {
                 }
                 setEditingOrder(row);
               }}
-              className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-center w-7 h-7 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               title="Chỉnh sửa đơn hàng"
             >
               <Pencil size={14} />

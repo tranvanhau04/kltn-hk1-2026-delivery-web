@@ -19,10 +19,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-canvas">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-4 border-[#FA7070] border-t-transparent animate-spin-slow" />
-          <p className="text-sm text-gray-400">Đang tải...</p>
+          <div className="w-8 h-8 rounded-full border-2 border-slate-900 border-t-transparent animate-spin-slow" />
+          <p className="text-xs font-medium text-slate-500">Đang tải...</p>
         </div>
       </div>
     );
@@ -31,19 +31,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Intercept Driver role: Drivers cannot access Web Admin dispatching dashboards
   if (currentUser?.role === 'DRIVER') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-xl flex flex-col items-center text-center animate-fade-in">
-          <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-5 shadow-xs">
-            <Smartphone size={36} />
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#F8FAFC]">
+        <div className="max-w-md w-full bg-white rounded-lg p-8 border border-slate-200/80 shadow-xs flex flex-col items-center text-center animate-fade-in">
+          <div className="w-12 h-12 rounded-lg bg-amber-50 border border-amber-200/80 text-amber-600 flex items-center justify-center mb-4">
+            <Smartphone size={24} />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/70 text-amber-800 text-xs font-semibold mb-3 border border-amber-200">
-            <ShieldAlert size={14} />
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-50 text-amber-700 text-xs font-medium mb-3 border border-amber-200">
+            <ShieldAlert size={13} />
             Tài khoản Tài xế
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">
+          <h2 className="text-base font-semibold text-slate-900 mb-2">
             Tài khoản Tài xế chỉ sử dụng trên ứng dụng SmartExpress Mobile App
           </h2>
-          <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+          <p className="text-sm text-slate-600 mb-6 leading-relaxed">
             Hệ thống Web Admin này dành riêng cho <strong>Quản trị viên</strong> và <strong>Điều phối viên</strong>. Tài xế không có quyền truy cập vào các trang quản trị vận hành trên web. Vui lòng mở và đăng nhập trên ứng dụng <strong>SmartExpress Driver Mobile App</strong> để nhận chuyến, xem đơn và giao hàng.
           </p>
 
@@ -53,13 +53,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 logout();
                 router.replace('/login');
               }}
-              className="btn-primary w-full justify-center text-sm py-2.5 bg-gray-900 hover:bg-gray-800"
+              className="btn-primary w-full justify-center text-sm bg-slate-900 hover:bg-slate-800"
               id="btn-driver-logout"
             >
-              <LogOut size={16} /> Đăng xuất & Đổi tài khoản
+              <LogOut size={15} /> Đăng xuất & Đổi tài khoản
             </button>
-            <p className="text-[11px] text-gray-400">
-              💡 Hãy đăng nhập với Admin (admin@smartexpress.vn) hoặc Điều phối (dieupoi01@smartexpress.vn) để quản trị.
+            <p className="text-[11px] text-slate-400">
+              Hãy đăng nhập với Admin (admin@smartexpress.vn) hoặc Điều phối (dieupoi01@smartexpress.vn) để quản trị.
             </p>
           </div>
         </div>
@@ -68,10 +68,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="dashboard-layout">
+    <div className="dashboard-layout bg-[#F8FAFC]">
       <Sidebar />
       <Header />
-      <main className="main-content bg-canvas p-6">
+      <main className="main-content bg-[#F8FAFC] p-6">
         {children}
       </main>
     </div>

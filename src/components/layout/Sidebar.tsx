@@ -47,38 +47,35 @@ export function Sidebar() {
   });
 
   return (
-    <aside className="sidebar flex flex-col bg-white border-r border-slate-100 h-full overflow-hidden">
+    <aside className="sidebar flex flex-col bg-white border-r border-slate-200 h-full overflow-hidden">
       {/* Brand */}
-      <div className="px-5 pt-6 pb-5 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-[#FA7070] to-[#8B2626] shrink-0 shadow-md">
-            <Zap size={18} className="text-white" />
+      <div className="h-14 px-4 flex items-center border-b border-slate-200 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center w-8 h-8 rounded-md bg-slate-900 shrink-0">
+            <Zap size={16} className="text-white" />
           </div>
           <div>
-            <p className="text-[13px] font-800 text-[#8B2626] leading-tight tracking-wide">IUH LOGISTICS</p>
-            <p className="text-[10px] text-gray-400 font-400">SmartExpress Platform</p>
+            <p className="text-xs font-bold text-slate-900 leading-tight tracking-tight">IUH LOGISTICS</p>
+            <p className="text-[11px] text-slate-500 font-normal">SmartExpress Enterprise</p>
           </div>
         </div>
       </div>
 
       {/* New Shipment CTA */}
-      <div className="px-4 pb-4 shrink-0">
+      <div className="px-3 pt-3 pb-2 shrink-0">
         <button
           onClick={() => router.push('/orders')}
-          className="btn-primary w-full justify-center text-sm"
+          className="w-full h-9 px-3 inline-flex items-center justify-center gap-2 rounded-md bg-[#D92D20] hover:bg-[#B42318] text-white text-xs font-medium shadow-xs transition-colors cursor-pointer"
           id="sidebar-new-shipment"
         >
-          <Plus size={16} />
+          <Plus size={15} />
           Đơn hàng mới
         </button>
       </div>
 
-      {/* Divider */}
-      <div className="mx-4 border-t border-slate-100 mb-3 shrink-0" />
-
       {/* Nav */}
-      <nav className="flex-1 px-3 overflow-y-auto space-y-0.5">
-        <p className="px-2 pb-2 text-[10px] font-700 text-gray-400 uppercase tracking-widest">Menu chính</p>
+      <nav className="flex-1 px-3 py-2 overflow-y-auto space-y-0.5">
+        <p className="px-2.5 pb-1.5 pt-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Điều hành</p>
         {visibleNavItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
@@ -86,22 +83,18 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-500 transition-all relative group',
+                'flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-colors relative group',
                 isActive
-                  ? 'bg-[#FFF0F0] text-[#FA7070] font-600'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                  ? 'bg-slate-100 text-slate-900 font-medium border-l-2 border-[#D92D20] rounded-l-none'
+                  : 'text-slate-600 font-normal hover:bg-slate-50 hover:text-slate-900'
               )}
             >
-              {/* Active indicator bar */}
-              {isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#FA7070] rounded-r-full" />
-              )}
-              <span className={cn(isActive ? 'text-[#FA7070]' : 'text-gray-400 group-hover:text-gray-600')}>
+              <span className={cn(isActive ? 'text-[#D92D20]' : 'text-slate-400 group-hover:text-slate-600')}>
                 {item.icon}
               </span>
-              {item.label}
+              <span className="truncate">{item.label}</span>
               {item.badge !== undefined && (
-                <span className="ml-auto flex items-center justify-center w-5 h-5 text-[10px] font-700 bg-[#FA7070] text-white rounded-full">
+                <span className="ml-auto flex items-center justify-center min-w-5 h-5 px-1 text-[10px] font-semibold tabular-nums bg-slate-900 text-white rounded">
                   {item.badge}
                 </span>
               )}
@@ -111,36 +104,46 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="px-3 pb-5 pt-3 border-t border-slate-100 space-y-0.5 shrink-0">
+      <div className="px-3 pb-3 pt-2.5 border-t border-slate-200 space-y-0.5 shrink-0">
         {currentUser?.role === 'ADMIN' && (
           <Link
             href="/settings"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-500 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all"
+            className={cn(
+              'flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-colors',
+              pathname === '/settings'
+                ? 'bg-slate-100 text-slate-900 font-medium border-l-2 border-[#D92D20] rounded-l-none'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            )}
           >
-            <Settings size={18} className="text-gray-400" />
+            <Settings size={17} className={pathname === '/settings' ? 'text-[#D92D20]' : 'text-slate-400'} />
             Cài đặt
           </Link>
         )}
         <Link
           href="/support"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-500 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all"
+          className={cn(
+            'flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-colors',
+            pathname === '/support'
+              ? 'bg-slate-100 text-slate-900 font-medium border-l-2 border-[#D92D20] rounded-l-none'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+          )}
         >
-          <HelpCircle size={18} className="text-gray-400" />
+          <HelpCircle size={17} className={pathname === '/support' ? 'text-[#D92D20]' : 'text-slate-400'} />
           Hỗ trợ
         </Link>
 
-        {/* User pill */}
-        <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#FA7070] to-[#8B2626] flex items-center justify-center text-white text-xs font-700 shrink-0">
+        {/* User row */}
+        <div className="mt-2 flex items-center gap-2.5 px-2.5 py-2 rounded-md bg-slate-50 border border-slate-200/80">
+          <div className="w-7 h-7 rounded-md bg-slate-900 flex items-center justify-center text-white text-xs font-semibold shrink-0">
             {currentUser?.fullName?.charAt(0) ?? 'A'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-600 text-gray-700 truncate">{currentUser?.fullName ?? 'Admin'}</p>
-            <p className="text-[10px] text-gray-400 truncate">{currentUser?.role === 'ADMIN' ? 'Quản trị viên' : 'Điều phối'}</p>
+            <p className="text-xs font-medium text-slate-900 truncate">{currentUser?.fullName ?? 'Admin'}</p>
+            <p className="text-[11px] text-slate-500 truncate">{currentUser?.role === 'ADMIN' ? 'Quản trị viên' : 'Điều phối'}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-[#D92D20] hover:bg-red-50 transition-colors"
             title="Đăng xuất"
           >
             <LogOut size={14} />

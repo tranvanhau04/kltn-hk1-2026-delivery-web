@@ -123,10 +123,10 @@ export function EditOrderModal({ order, onClose, onSubmit }: EditOrderModalProps
               title="Chọn tọa độ trên bản đồ"
               id="btn-edit-pick-map"
             >
-              <MapPin size={14} className="text-[#FA7070]" />
+              <MapPin size={14} className="text-slate-600" />
             </button>
           </div>
-          <p className="text-[11px] text-gray-400 mt-1">
+          <p className="text-[11px] font-mono text-slate-400 mt-1 tabular-nums">
             Tọa độ: {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
           </p>
         </div>

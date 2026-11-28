@@ -170,70 +170,70 @@ function VrpLoadingOverlay({ orderCount }: { orderCount: number }) {
   }, []);
 
   return (
-    <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-gray-100 flex flex-col items-center animate-fade-in select-none">
+    <div className="w-full max-w-md bg-white rounded-lg p-6 shadow-xl border border-slate-200 flex flex-col items-center animate-fade-in select-none">
       {/* Animated Icon */}
       <div className="relative mb-4">
-          <div className="w-16 h-16 rounded-full border-4 border-[#FA7070]/20 border-t-[#FA7070] animate-spin-slow flex items-center justify-center" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Zap size={22} className="text-[#FA7070] animate-pulse" />
-          </div>
-        </div>
-
-        {/* Title & Subtitle */}
-        <h3 className="text-base font-700 text-gray-900 mb-1 text-center">
-          Đang tối ưu hóa tuyến đường VRP...
-        </h3>
-        <p className="text-xs text-gray-500 mb-5 text-center">
-          Hệ thống đang xử lý và phân bổ <span className="font-semibold text-gray-800">{orderCount} đơn hàng</span> cho đội xe
-        </p>
-
-        {/* Step list */}
-        <div className="w-full space-y-2 mb-5">
-          {VRP_STEPS.map((step, idx) => {
-            const isDone = idx < currentStep;
-            const isCurrent = idx === currentStep;
-            const isPending = idx > currentStep;
-
-            return (
-              <div
-                key={step}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-xl text-xs transition-all duration-300',
-                  isDone && 'bg-emerald-50/70 text-emerald-700 font-medium',
-                  isCurrent && 'bg-[#FFF0F0] text-[#8B2626] font-semibold shadow-xs',
-                  isPending && 'text-gray-400 opacity-60'
-                )}
-              >
-                <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                  {isDone ? (
-                    <CheckCircle size={15} className="text-emerald-500 animate-checkmark" />
-                  ) : isCurrent ? (
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#FA7070] animate-pulse" />
-                  ) : (
-                    <span className="w-2 h-2 rounded-full bg-gray-300" />
-                  )}
-                </div>
-                <span className="flex-1 truncate">{step}</span>
-                {isCurrent && (
-                  <span className="text-[10px] text-[#FA7070] animate-pulse shrink-0 font-bold">
-                    Đang chạy...
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Elapsed Timer & Hint */}
-        <div className="w-full pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-            <span>Thời gian đã trôi:</span>
-            <span className="font-mono font-600 text-gray-700">{elapsedSeconds}s</span>
-          </div>
-          <span>Ước tính: ~3-8s</span>
+        <div className="w-14 h-14 rounded-full border-2 border-slate-200 border-t-slate-900 animate-spin-slow flex items-center justify-center" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Zap size={18} className="text-[#D92D20]" />
         </div>
       </div>
+
+      {/* Title & Subtitle */}
+      <h3 className="text-sm font-semibold text-slate-900 mb-1 text-center">
+        Đang tối ưu hóa tuyến đường VRP...
+      </h3>
+      <p className="text-xs text-slate-500 mb-5 text-center tabular-nums">
+        Hệ thống đang xử lý và phân bổ <span className="font-semibold text-slate-900">{orderCount} đơn hàng</span> cho đội xe
+      </p>
+
+      {/* Step list */}
+      <div className="w-full space-y-1.5 mb-5">
+        {VRP_STEPS.map((step, idx) => {
+          const isDone = idx < currentStep;
+          const isCurrent = idx === currentStep;
+          const isPending = idx > currentStep;
+
+          return (
+            <div
+              key={step}
+              className={cn(
+                'flex items-center gap-2.5 px-3 py-2 rounded-md text-xs transition-all duration-200',
+                isDone && 'bg-emerald-50/70 text-emerald-700 font-medium border border-emerald-200/70',
+                isCurrent && 'bg-slate-100 text-slate-900 font-medium border border-slate-200',
+                isPending && 'text-slate-400 opacity-60'
+              )}
+            >
+              <div className="w-4 h-4 flex items-center justify-center shrink-0">
+                {isDone ? (
+                  <CheckCircle size={14} className="text-emerald-600 animate-checkmark" />
+                ) : isCurrent ? (
+                  <span className="w-2 h-2 rounded-full bg-[#D92D20] animate-pulse" />
+                ) : (
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                )}
+              </div>
+              <span className="flex-1 truncate">{step}</span>
+              {isCurrent && (
+                <span className="text-[10px] text-slate-700 shrink-0 font-semibold">
+                  Đang chạy...
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Elapsed Timer & Hint */}
+      <div className="w-full pt-3 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400 tabular-nums">
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span>Thời gian đã trôi:</span>
+          <span className="font-mono font-semibold text-slate-800">{elapsedSeconds}s</span>
+        </div>
+        <span>Ước tính: ~3-8s</span>
+      </div>
+    </div>
   );
 }
 
@@ -264,56 +264,56 @@ function RouteSummaryCard({
 
   return (
     <div
-      className="card overflow-hidden shrink-0 transition-all flex flex-col min-h-0 border shadow-xs"
+      className="card overflow-hidden shrink-0 transition-colors flex flex-col min-h-0 border shadow-2xs"
       style={{ borderColor: route.color + '40' }}
     >
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-3 p-3.5 hover:bg-gray-50/80 transition-colors text-left"
+        className="w-full flex items-center gap-3 p-3.5 hover:bg-slate-50/80 transition-colors text-left"
       >
         <div
-          className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs"
+          className="w-3 h-3 rounded-full shrink-0"
           style={{ background: route.color }}
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-xs font-700 text-gray-900 truncate">
+            <p className="text-xs font-semibold text-slate-900 truncate">
               Tuyến {routeIndex + 1}: {route.driver.fullName}
             </p>
             {isOverweight && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-700 bg-red-100 text-red-700 shrink-0">
+              <span className="px-1.5 py-0.5 rounded border border-red-200 text-[10px] font-medium bg-red-50 text-[#D92D20] shrink-0">
                 Quá tải
               </span>
             )}
           </div>
-          <p className="text-[11px] text-gray-400 mt-0.5 truncate">
+          <p className="text-[11px] text-slate-500 mt-0.5 truncate tabular-nums">
             {route.stops.length} điểm · {route.totalDistanceKm.toFixed(1)} km · {route.totalEstimatedTimeMin.toFixed(0)} phút
             {fuelLiters ? ` · ~${fuelLiters}L` : ''}
             {fuelCostVnd ? ` (${formatCurrency(fuelCostVnd)})` : ''}
           </p>
         </div>
         <ChevronRight
-          size={16}
-          className={cn('text-gray-400 transition-transform shrink-0', open && 'rotate-90')}
+          size={15}
+          className={cn('text-slate-400 transition-transform shrink-0', open && 'rotate-90')}
         />
       </button>
 
       {open && (
-        <div className="border-t px-4 pb-4 pt-3 space-y-3.5 bg-slate-50/30" style={{ borderColor: route.color + '20' }}>
+        <div className="border-t px-4 pb-4 pt-3 space-y-3 bg-slate-50/40" style={{ borderColor: route.color + '20' }}>
           {/* Driver change dropdown */}
-          <div className="p-2.5 bg-white rounded-xl border border-gray-100 shadow-xs space-y-1.5">
+          <div className="p-2.5 bg-white rounded-md border border-slate-200/80 space-y-1.5">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-600 text-gray-700 flex items-center gap-1.5">
-                <Truck size={13} className="text-[#FA7070]" /> Tài xế phụ trách:
+              <span className="font-medium text-slate-700 flex items-center gap-1.5">
+                <Truck size={13} className="text-slate-500" /> Tài xế phụ trách:
               </span>
-              <span className="text-[10px] text-gray-400 font-mono">
+              <span className="text-[10px] text-slate-500 font-mono">
                 {route.driver.licensePlate || 'N/A'}
               </span>
             </div>
             <select
               value={route.driver.userId}
               onChange={(e) => onChangeDriver(routeIndex, e.target.value)}
-              className="w-full text-xs font-500 text-gray-800 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#FA7070] cursor-pointer"
+              className="w-full text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 cursor-pointer"
             >
               {availableDrivers.map((d) => (
                 <option key={d.userId} value={d.userId}>
@@ -322,31 +322,31 @@ function RouteSummaryCard({
               ))}
             </select>
             {isOverweight && (
-              <p className="text-[10px] text-red-600 font-medium">
-                ⚠️ Tải hàng ({route.totalWeightKg.toFixed(1)}kg) vượt sức chở tài xế ({route.driver.maxWeightKg}kg)
+              <p className="text-[10px] text-[#D92D20] font-medium tabular-nums">
+                Tải hàng ({route.totalWeightKg.toFixed(1)}kg) vượt sức chở tài xế ({route.driver.maxWeightKg}kg)
               </p>
             )}
           </div>
 
           {/* KPI grid */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 bg-white rounded-xl border border-gray-100 text-center">
-              <p className="text-[10px] text-gray-400">Khoảng cách</p>
-              <p className="text-xs font-700 text-gray-800 mt-0.5">{route.totalDistanceKm.toFixed(1)} km</p>
+          <div className="grid grid-cols-2 gap-2 tabular-nums">
+            <div className="p-2 bg-white rounded-md border border-slate-200/80 text-center">
+              <p className="text-[10px] text-slate-400">Khoảng cách</p>
+              <p className="text-xs font-semibold text-slate-900 mt-0.5">{route.totalDistanceKm.toFixed(1)} km</p>
             </div>
-            <div className="p-2 bg-white rounded-xl border border-gray-100 text-center">
-              <p className="text-[10px] text-gray-400">Thời gian</p>
-              <p className="text-xs font-700 text-gray-800 mt-0.5">{route.totalEstimatedTimeMin.toFixed(0)} phút</p>
+            <div className="p-2 bg-white rounded-md border border-slate-200/80 text-center">
+              <p className="text-[10px] text-slate-400">Thời gian</p>
+              <p className="text-xs font-semibold text-slate-900 mt-0.5">{route.totalEstimatedTimeMin.toFixed(0)} phút</p>
             </div>
-            <div className="p-2 bg-white rounded-xl border border-gray-100 text-center">
-              <p className="text-[10px] text-gray-400">Tải trọng</p>
-              <p className={cn('text-xs font-700 mt-0.5', isOverweight ? 'text-red-600' : 'text-gray-800')}>
+            <div className="p-2 bg-white rounded-md border border-slate-200/80 text-center">
+              <p className="text-[10px] text-slate-400">Tải trọng</p>
+              <p className={cn('text-xs font-semibold mt-0.5', isOverweight ? 'text-[#D92D20]' : 'text-slate-900')}>
                 {route.totalWeightKg.toFixed(1)} / {route.driver.maxWeightKg} kg
               </p>
             </div>
-            <div className="p-2 bg-white rounded-xl border border-gray-100 text-center">
-              <p className="text-[10px] text-gray-400">Tổng COD</p>
-              <p className="text-xs font-700 text-emerald-700 mt-0.5">
+            <div className="p-2 bg-white rounded-md border border-slate-200/80 text-center">
+              <p className="text-[10px] text-slate-400">Tổng COD</p>
+              <p className="text-xs font-semibold text-emerald-700 mt-0.5">
                 {formatCurrency(route.stops.reduce((s, o) => s + (o.codAmount || 0), 0))}
               </p>
             </div>
@@ -355,24 +355,24 @@ function RouteSummaryCard({
           {/* Timeline of Stops 1 -> N */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-700 text-gray-800">
+              <p className="text-xs font-semibold text-slate-800 tabular-nums">
                 Lộ trình di chuyển (1 → {route.stops.length})
               </p>
-              <span className="text-[10px] text-gray-400">Khứ hồi</span>
+              <span className="text-[10px] text-slate-400">Khứ hồi</span>
             </div>
 
-            <div className="max-h-72 overflow-y-auto pr-1 space-y-2.5">
+            <div className="max-h-72 overflow-y-auto pr-1 space-y-2">
               {/* Departure Depot Stop */}
               <div className="timeline-item flex items-start gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs shrink-0 shadow-xs z-10">
-                  🏭
+                <div className="w-7 h-7 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-semibold shrink-0 z-10">
+                  HUB
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-700 text-gray-800">Xuất phát: {depot.name}</span>
-                    <span className="text-[9px] font-600 text-slate-500 bg-slate-100 px-1 rounded">Kho</span>
+                    <span className="text-xs font-semibold text-slate-800">Xuất phát: {depot.name}</span>
+                    <span className="text-[9px] font-medium text-slate-600 bg-slate-100 border border-slate-200 px-1.5 rounded">Kho</span>
                   </div>
-                  <p className="text-[10px] text-gray-400 truncate mt-0.5">{depot.address}</p>
+                  <p className="text-[10px] text-slate-400 truncate mt-0.5">{depot.address}</p>
                 </div>
               </div>
 
@@ -380,27 +380,27 @@ function RouteSummaryCard({
               {route.stops.map((stop, si) => (
                 <div key={stop.id} className="timeline-item flex items-start gap-2.5">
                   <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-white font-700 text-xs shrink-0 shadow-xs z-10"
+                    className="w-7 h-7 rounded-md flex items-center justify-center text-white font-semibold text-xs shrink-0 tabular-nums z-10"
                     style={{ background: route.color }}
                   >
                     {si + 1}
                   </div>
-                  <div className="flex-1 min-w-0 pt-0.5 bg-white p-2 rounded-xl border border-gray-100 shadow-2xs">
+                  <div className="flex-1 min-w-0 pt-0.5 bg-white p-2 rounded-md border border-slate-200/80">
                     <div className="flex items-center justify-between gap-1 mb-0.5">
-                      <span className="font-600 text-xs text-gray-800 truncate">
+                      <span className="font-medium text-xs text-slate-900 truncate">
                         {stop.receiverName}
                       </span>
                       <div className="flex items-center gap-1 shrink-0">
-                        <span className="font-mono text-[9px] font-600 text-[#FA7070] bg-[#FFF0F0] px-1 rounded">
+                        <span className="font-mono text-[10px] font-medium text-slate-700 bg-slate-100 px-1.5 rounded tabular-nums">
                           {stop.code}
                         </span>
                         {onMoveStop && (
-                          <div className="flex items-center bg-gray-100 rounded-md p-0.5 ml-1">
+                          <div className="flex items-center bg-slate-100 rounded p-0.5 ml-1">
                             <button
                               type="button"
                               disabled={si === 0}
                               onClick={(e) => { e.stopPropagation(); onMoveStop(routeIndex, si, 'up'); }}
-                              className="text-gray-500 hover:text-black disabled:opacity-20 p-0.5 transition-colors"
+                              className="text-slate-500 hover:text-slate-900 disabled:opacity-20 p-0.5 transition-colors"
                               title="Đổi thứ tự lên trước"
                             >
                               <ChevronUp size={11} />
@@ -409,7 +409,7 @@ function RouteSummaryCard({
                               type="button"
                               disabled={si === route.stops.length - 1}
                               onClick={(e) => { e.stopPropagation(); onMoveStop(routeIndex, si, 'down'); }}
-                              className="text-gray-500 hover:text-black disabled:opacity-20 p-0.5 transition-colors"
+                              className="text-slate-500 hover:text-slate-900 disabled:opacity-20 p-0.5 transition-colors"
                               title="Đổi thứ tự xuống sau"
                             >
                               <ChevronDown size={11} />
@@ -418,19 +418,19 @@ function RouteSummaryCard({
                         )}
                       </div>
                     </div>
-                    <p className="text-[10px] text-gray-400 truncate flex items-center gap-1">
+                    <p className="text-[10px] text-slate-500 truncate flex items-center gap-1">
                       <MapPin size={9} className="shrink-0" /> {stop.deliveryAddress}
                     </p>
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-gray-500">
-                      <span className="flex items-center gap-1 text-gray-600">
+                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 tabular-nums">
+                      <span className="flex items-center gap-1 text-slate-600">
                         <Phone size={9} /> {stop.receiverPhone || 'N/A'}
                       </span>
-                      <span className="font-500">{stop.weightKg} kg</span>
+                      <span className="font-medium">{stop.weightKg} kg</span>
                     </div>
                     {stop.codAmount > 0 && (
-                      <div className="mt-1 pt-1 border-t border-gray-50 flex items-center justify-between text-[10px]">
-                        <span className="text-gray-400">COD thu:</span>
-                        <span className="font-600 text-emerald-600">{formatCurrency(stop.codAmount)}</span>
+                      <div className="mt-1 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px] tabular-nums">
+                        <span className="text-slate-400">COD thu:</span>
+                        <span className="font-semibold text-emerald-700">{formatCurrency(stop.codAmount)}</span>
                       </div>
                     )}
                   </div>
@@ -439,15 +439,15 @@ function RouteSummaryCard({
 
               {/* Return to Depot Stop */}
               <div className="timeline-item flex items-start gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs shrink-0 shadow-xs z-10">
-                  🏁
+                <div className="w-7 h-7 rounded-md bg-emerald-700 text-white flex items-center justify-center text-[10px] font-semibold shrink-0 z-10">
+                  END
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-700 text-gray-800">Kết thúc: Về lại {depot.name}</span>
-                    <span className="text-[9px] font-600 text-emerald-600 bg-emerald-50 px-1 rounded">Đích</span>
+                    <span className="text-xs font-semibold text-slate-800">Kết thúc: Về lại {depot.name}</span>
+                    <span className="text-[9px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 rounded">Đích</span>
                   </div>
-                  <p className="text-[10px] text-gray-400 truncate mt-0.5">Hoàn tất tuyến đường</p>
+                  <p className="text-[10px] text-slate-400 truncate mt-0.5">Hoàn tất tuyến đường</p>
                 </div>
               </div>
             </div>
@@ -787,17 +787,17 @@ function VrpPage() {
       {isLeftPanelOpen ? (
         <div className="w-72 shrink-0 flex flex-col gap-3 h-[calc(100vh-140px)] min-h-0 transition-all duration-300">
           {/* Real-time Hub Data status indicator */}
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-600 bg-emerald-50 text-emerald-800 border border-emerald-100 shrink-0">
+          <div className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium bg-emerald-50/70 text-emerald-800 border border-emerald-200 shrink-0">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {isLoadingData ? 'Đang tải...' : 'Dữ liệu thời gian thực'}
             </span>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-emerald-700">{newOrders.length} đơn</span>
+              <span className="font-mono text-emerald-700 tabular-nums">{newOrders.length} đơn</span>
               <button
                 type="button"
                 onClick={() => setIsLeftPanelOpen(false)}
-                className="text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/60 p-1 rounded-lg transition-colors"
+                className="text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/60 p-1 rounded-md transition-colors"
                 title="Thu gọn panel để mở rộng bản đồ"
               >
                 <PanelLeftClose size={14} />
@@ -807,20 +807,20 @@ function VrpPage() {
 
           {/* Orders Pool */}
           <div className="card flex-[3_3_0%] flex flex-col min-h-0 overflow-hidden">
-          <div className="p-3.5 border-b border-slate-100 shrink-0">
+          <div className="p-3.5 border-b border-slate-200 shrink-0">
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-sm font-700 text-gray-900">Đơn hàng chờ phân công</h3>
+              <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">Đơn hàng chờ phân công</h3>
               <button
                 onClick={() => clearSelection()}
-                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-xs text-slate-500 hover:text-slate-900 transition-colors"
               >
                 Bỏ chọn
               </button>
             </div>
-            <p className="text-xs text-gray-400">{selectedOrderIds.length}/{newOrders.length} đã chọn</p>
+            <p className="text-xs text-slate-500 tabular-nums">{selectedOrderIds.length}/{newOrders.length} đã chọn</p>
             <button
               onClick={handleSelectAllNew}
-              className="w-full mt-2 py-1.5 text-xs font-500 text-[#FA7070] border border-[#FA7070]/30 rounded-lg hover:bg-[#FFF0F0] transition-colors"
+              className="w-full mt-2 py-1.5 text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:text-slate-900 transition-colors tabular-nums"
             >
               Chọn tất cả ({newOrders.length})
             </button>
@@ -828,8 +828,8 @@ function VrpPage() {
 
           <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-1.5">
             {newOrders.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-8 text-center text-gray-400">
-                <Package size={28} className="opacity-30" />
+              <div className="flex flex-col items-center gap-2 py-8 text-center text-slate-400">
+                <Package size={24} className="opacity-30" />
                 <p className="text-xs">Không có đơn hàng mới</p>
               </div>
             ) : (
@@ -840,27 +840,27 @@ function VrpPage() {
                     key={order.id}
                     onClick={() => toggleOrderSelection(order.id)}
                     className={cn(
-                      'w-full text-left p-3 rounded-xl border transition-all text-sm',
+                      'w-full text-left p-2.5 rounded-md border transition-colors text-sm',
                       selected
-                        ? 'border-[#FA7070] bg-[#FFF0F0]'
-                        : 'border-slate-100 hover:border-slate-200 hover:bg-gray-50'
+                        ? 'border-slate-900 bg-slate-50'
+                        : 'border-slate-200/70 hover:border-slate-300 hover:bg-slate-50/50'
                     )}
                     id={`vrp-order-${order.id}`}
                   >
                     <div className="flex items-start gap-2">
                       <div className={cn(
-                        'w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors',
-                        selected ? 'border-[#FA7070] bg-[#FA7070]' : 'border-gray-300'
+                        'w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors',
+                        selected ? 'border-slate-900 bg-slate-900' : 'border-slate-300 bg-white'
                       )}>
                         {selected && <CheckCircle size={10} className="text-white" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="font-mono text-xs font-600 text-[#FA7070]">{order.code}</span>
+                            <span className="font-mono text-xs font-semibold text-slate-900 tabular-nums">{order.code}</span>
                             {order.depot && (
                               <span
-                                className="text-[9px] font-600 text-blue-700 bg-blue-50 px-1 py-0.5 rounded truncate max-w-[90px]"
+                                className="text-[9px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-1 py-0.2 rounded truncate max-w-[90px]"
                                 title={order.depot.name}
                               >
                                 {order.depot.name}
@@ -868,14 +868,14 @@ function VrpPage() {
                             )}
                           </div>
                           {order.codAmount > 0 && (
-                            <span className="text-[10px] text-green-600 font-500 shrink-0">
+                            <span className="text-[10px] text-emerald-700 font-medium shrink-0 tabular-nums">
                               {formatCurrency(order.codAmount)}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-700 font-500 mt-0.5 truncate">{order.receiverName}</p>
-                        <p className="text-[10px] text-gray-400 truncate mt-0.5">{order.deliveryAddress}</p>
-                        <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
+                        <p className="text-xs text-slate-800 font-medium mt-0.5 truncate">{order.receiverName}</p>
+                        <p className="text-[10px] text-slate-500 truncate mt-0.5">{order.deliveryAddress}</p>
+                        <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400 tabular-nums">
                           <span className="flex items-center gap-0.5"><Weight size={9} /> {order.weightKg}kg</span>
                           <span className="flex items-center gap-0.5"><Box size={9} /> {order.volumeM3}m³</span>
                         </div>
@@ -890,30 +890,30 @@ function VrpPage() {
 
         {/* Available Fleet */}
         <div className="card flex-[2_2_0%] flex flex-col min-h-0 overflow-hidden">
-          <div className="p-3.5 border-b border-slate-100 shrink-0 flex items-center justify-between">
-            <h3 className="text-sm font-700 text-gray-900">Đội xe khả dụng</h3>
-            <span className="text-[11px] font-600 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+          <div className="p-3.5 border-b border-slate-200 shrink-0 flex items-center justify-between">
+            <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">Đội xe khả dụng</h3>
+            <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded tabular-nums">
               {availableDrivers.length} online
             </span>
           </div>
-          <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-2">
+          <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-1.5">
             {availableDrivers.length === 0 ? (
-              <div className="p-4 text-center text-xs text-gray-400 bg-gray-50 rounded-xl">
+              <div className="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-md">
                 Không có tài xế nào đang sẵn sàng
               </div>
             ) : (
               availableDrivers.map((driver) => (
-                <div key={driver.userId} className="flex items-center gap-3 p-2 rounded-xl bg-gray-50 hover:bg-gray-100/70 transition-colors">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#FA7070]/20 to-[#8B2626]/20 flex items-center justify-center text-[#FA7070] font-700 text-xs shrink-0">
+                <div key={driver.userId} className="flex items-center gap-2.5 p-2 rounded-md bg-slate-50/70 border border-slate-200/60 hover:bg-slate-100/70 transition-colors">
+                  <div className="w-7 h-7 rounded-md bg-white border border-slate-200 flex items-center justify-center text-slate-700 font-semibold text-xs shrink-0">
                     {driver.fullName.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-600 text-gray-700 truncate">{driver.fullName}</p>
-                    <p className="text-[10px] text-gray-400 truncate">
+                    <p className="text-xs font-medium text-slate-800 truncate">{driver.fullName}</p>
+                    <p className="text-[10px] text-slate-500 truncate tabular-nums">
                       {driver.depot ? `${driver.depot.name} · ` : ''}{driver.maxWeightKg}kg · {driver.licensePlate || 'N/A'}
                     </p>
                   </div>
-                  <StatusBadge status={driver.currentShiftStatus} showDot={false} className="text-[9px] px-1.5 py-0.5" />
+                  <StatusBadge status={driver.currentShiftStatus} showDot={false} className="text-[10px] px-1.5 py-0.5" />
                 </div>
               ))
             )}
@@ -921,24 +921,24 @@ function VrpPage() {
         </div>
       </div>
       ) : (
-        <div className="w-12 shrink-0 flex flex-col items-center py-3 bg-white rounded-2xl border border-slate-100 shadow-xs h-[calc(100vh-140px)] gap-4 transition-all duration-300">
+        <div className="w-12 shrink-0 flex flex-col items-center py-3 bg-white rounded-lg border border-slate-200/80 shadow-xs h-[calc(100vh-140px)] gap-4 transition-all duration-300">
           <button
             type="button"
             onClick={() => setIsLeftPanelOpen(true)}
-            className="w-8 h-8 rounded-xl bg-gray-50 hover:bg-[#FFF0F0] hover:text-[#FA7070] flex items-center justify-center text-gray-600 transition-colors"
+            className="w-8 h-8 rounded-md bg-slate-50 hover:bg-slate-100 hover:text-slate-900 flex items-center justify-center text-slate-600 transition-colors"
             title="Mở rộng danh sách đơn hàng & tài xế"
           >
             <PanelLeftOpen size={16} />
           </button>
-          <div className="w-6 h-px bg-slate-100" />
-          <div className="flex flex-col items-center gap-1 text-[11px] font-bold text-gray-500" title="Đơn đã chọn">
-            <Package size={16} className="text-[#FA7070]" />
+          <div className="w-6 h-px bg-slate-200" />
+          <div className="flex flex-col items-center gap-1 text-[11px] font-semibold text-slate-600 tabular-nums" title="Đơn đã chọn">
+            <Package size={15} className="text-slate-700" />
             <span className="font-mono">{selectedOrderIds.length}</span>
-            <span className="text-[9px] text-gray-400">/{newOrders.length}</span>
+            <span className="text-[9px] text-slate-400">/{newOrders.length}</span>
           </div>
-          <div className="w-6 h-px bg-slate-100" />
-          <div className="flex flex-col items-center gap-1 text-[11px] font-bold text-emerald-600" title="Tài xế online">
-            <Truck size={16} />
+          <div className="w-6 h-px bg-slate-200" />
+          <div className="flex flex-col items-center gap-1 text-[11px] font-semibold text-emerald-600 tabular-nums" title="Tài xế online">
+            <Truck size={15} />
             <span className="font-mono">{availableDrivers.length}</span>
           </div>
         </div>
@@ -947,8 +947,8 @@ function VrpPage() {
       {/* ── Center Map ── */}
       <div className="flex-1 flex flex-col gap-4">
         {/* Run VRP Button & Multi-Hub Dropdown */}
-        <div className="card px-4 py-3 flex flex-wrap items-center justify-between gap-4 shrink-0 min-h-[60px]">
-          <div className="flex items-center gap-4 flex-wrap min-h-[40px]">
+        <div className="card px-4 py-3 flex flex-wrap items-center justify-between gap-4 shrink-0 min-h-[56px]">
+          <div className="flex items-center gap-4 flex-wrap">
             {/* Cascading Region -> Hub Selector: Default All, filter Region then Hub */}
             <CascadingRegionHubSelect
               selectedRegionId={selectedRegionId}
@@ -957,13 +957,13 @@ function VrpPage() {
               onHubChange={handleHubChange}
               allowAllRegions={true}
               allowAllHubs={true}
-              size="md"
+              size="sm"
             />
 
-            <div className="border-l border-gray-200 pl-4 py-1 hidden sm:flex flex-col justify-center">
-              <p className="text-sm font-700 text-gray-800">Tối ưu hóa tuyến đường</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                <span className="font-semibold text-gray-700">{selectedOrderIds.length}</span>/{newOrders.length} đơn đã chọn · <span className="font-semibold text-emerald-600">{availableDrivers.length}</span> tài xế online
+            <div className="border-l border-slate-200 pl-4 py-0.5 hidden sm:flex flex-col justify-center">
+              <p className="text-xs font-semibold text-slate-900">Tối ưu hóa tuyến đường</p>
+              <p className="text-xs text-slate-500 mt-0.5 tabular-nums">
+                <span className="font-semibold text-slate-800">{selectedOrderIds.length}</span>/{newOrders.length} đơn đã chọn · <span className="font-semibold text-emerald-600">{availableDrivers.length}</span> tài xế online
               </p>
             </div>
           </div>
@@ -971,26 +971,26 @@ function VrpPage() {
             {solution && (
               <button
                 onClick={() => { setSolution(null); clearSelection(); }}
-                className="btn-secondary text-sm"
+                className="btn-secondary text-xs h-8 px-3"
               >
-                <RefreshCw size={14} /> Đặt lại
+                <RefreshCw size={13} /> Đặt lại
               </button>
             )}
             {solution && !isOptimizing && (
               <button
                 onClick={handleConfirm}
                 disabled={isConfirming}
-                className="btn-primary text-sm bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                className="btn-primary text-xs h-8 px-3 bg-emerald-600 border-emerald-600 hover:bg-emerald-700 hover:border-emerald-700 disabled:opacity-50"
                 id="btn-confirm-dispatch"
               >
                 {isConfirming ? (
                   <>
-                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin-slow" />
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin-slow" />
                     Đang xác nhận...
                   </>
                 ) : (
                   <>
-                    <Send size={15} /> Xác nhận & Điều phối
+                    <Send size={13} /> Xác nhận & Điều phối
                   </>
                 )}
               </button>
@@ -999,7 +999,7 @@ function VrpPage() {
               onClick={handleRunVRP}
               disabled={selectedOrderIds.length === 0 || isOptimizing}
               className={cn(
-                'btn-primary text-sm flex items-center gap-2 transition-all duration-200 shadow-sm',
+                'btn-brand text-xs h-8 px-3.5 flex items-center gap-2 transition-colors',
                 (selectedOrderIds.length === 0 || isOptimizing) && 'opacity-50 cursor-not-allowed pointer-events-none'
               )}
               id="btn-run-vrp"
@@ -1008,13 +1008,13 @@ function VrpPage() {
             >
               {isOptimizing ? (
                 <>
-                  <Loader2 size={16} className="animate-spin text-white" />
-                  <span>Đang tính toán tuyến đường (Optimizing)...</span>
+                  <Loader2 size={14} className="animate-spin text-white" />
+                  <span>Đang tính toán tuyến đường...</span>
                 </>
               ) : (
                 <>
-                  <Zap size={15} />
-                  <span>Tối ưu hóa tuyến đường (Optimize Routes)</span>
+                  <Zap size={14} />
+                  <span>Tối ưu hóa tuyến đường</span>
                 </>
               )}
             </button>
@@ -1038,7 +1038,7 @@ function VrpPage() {
         {solution && !isOptimizing && (
           <div className="card p-4 shrink-0 animate-fade-in">
             <div className={cn(
-              "grid gap-4 text-center",
+              "grid gap-4 text-center tabular-nums",
               solution._api?.totalFuelLiters ? "grid-cols-5" : "grid-cols-4"
             )}>
               {[
@@ -1056,8 +1056,8 @@ function VrpPage() {
                 { label: 'Thời gian tối ưu', value: `${solution.optimizationTimeMs.toFixed(0)} ms` },
               ].map((s) => (
                 <div key={s.label}>
-                  <p className="text-xl font-700 text-gray-900">{s.value}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+                  <p className="text-lg font-semibold text-slate-900">{s.value}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -1069,8 +1069,8 @@ function VrpPage() {
       {solution && !isOptimizing && (
         <div className="w-80 shrink-0 h-[calc(100vh-140px)] flex flex-col gap-3 overflow-y-auto pr-1 pb-16 min-h-0 animate-slide-right">
           <div className="card p-4 shrink-0">
-            <h3 className="text-sm font-700 text-gray-900 mb-1">Tóm tắt tuyến đường</h3>
-            <p className="text-xs text-gray-400">{solution.routes.length} tuyến được tạo tối ưu</p>
+            <h3 className="text-sm font-semibold text-slate-900 mb-0.5">Tóm tắt tuyến đường</h3>
+            <p className="text-xs text-slate-500 tabular-nums">{solution.routes.length} tuyến được tạo tối ưu</p>
           </div>
           {solution.routes.map((route, idx) => (
             <RouteSummaryCard

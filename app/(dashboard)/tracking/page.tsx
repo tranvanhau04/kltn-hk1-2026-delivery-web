@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { fetchLiveTracking, fetchDriverActiveOrders, fetchDriverRouteToday, type ApiLiveDriver, type ApiOrder, type ApiDriverRouteTodayResponse } from '@/lib/api';
 import type { Driver } from '@/types/domain';
 import { connectSocket, onDriverLocationUpdated } from '@/lib/socketClient';
+import { useDebounce } from '@/hooks/useDebounce';
 
 const VEHICLE_LABELS: Record<string, string> = {
   MOTORBIKE: '🏍️ Xe máy',
@@ -148,7 +149,6 @@ function useLiveTracking() {
     connectSocket(token || '');
 
     const unsubscribe = onDriverLocationUpdated((data) => {
-      console.log('💻 Web Received:', data);
       const now = Date.now();
       const last = lastSocketUpdateRef.current[data.driverId] || 0;
       if (now - last < 800) {
@@ -329,123 +329,124 @@ function DriverSlideOver({ driver, position, onClose, liveData }: {
 
   return (
     <div className="absolute top-4 right-4 w-72 z-[1000] animate-slide-right max-h-[calc(100vh-160px)] flex flex-col">
-      <div className="card flex flex-col bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-100 h-full">
+      <div className="flex flex-col bg-white shadow-lg rounded-lg overflow-hidden border border-slate-200 h-full">
         {/* Header */}
-        <div className="p-4 bg-gradient-to-r from-red-500 to-rose-600 shrink-0">
-          <div className="flex items-start justify-between mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-white font-700 text-xl">
+        <div className="p-4 bg-slate-950 border-b border-slate-800 shrink-0">
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-10 h-10 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center text-white font-semibold text-base">
               {driver.fullName.charAt(0)}
             </div>
-            <button onClick={onClose} className="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer z-10">
-              <X size={18} />
+            <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800 transition-colors cursor-pointer z-10">
+              <X size={16} />
             </button>
           </div>
-          <h3 className="text-white font-700 text-base">{driver.fullName}</h3>
-          <p className="text-white/70 text-xs mt-0.5">{driver.licensePlate} · {VEHICLE_LABELS[driver.vehicleType] || driver.vehicleType.replace(/_/g, ' ')}</p>
-          <div className="mt-3 flex items-center gap-2">
+          <h3 className="text-white font-semibold text-sm">{driver.fullName}</h3>
+          <p className="text-slate-400 text-xs mt-0.5 font-mono">{driver.licensePlate} · {VEHICLE_LABELS[driver.vehicleType] || driver.vehicleType.replace(/_/g, ' ')}</p>
+          <div className="mt-2.5 flex items-center gap-2">
             <StatusBadge status={driver.currentShiftStatus} className="text-[11px]" />
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-0 border-b border-slate-100 shrink-0">
-          <div className="p-4 text-center border-r border-slate-100">
-            <div className="flex items-center justify-center gap-1 text-[#FA7070] mb-1">
-              <Activity size={14} />
-              <span className="text-xl font-700">{driver.currentSpeedKmh ?? 0}</span>
+        <div className="grid grid-cols-2 gap-0 border-b border-slate-200 shrink-0 tabular-nums">
+          <div className="p-3.5 text-center border-r border-slate-200">
+            <div className="flex items-center justify-center gap-1 text-slate-900 mb-0.5">
+              <Activity size={13} className="text-emerald-600" />
+              <span className="text-lg font-semibold">{driver.currentSpeedKmh ?? 0}</span>
             </div>
-            <p className="text-xs text-gray-400">km/h</p>
+            <p className="text-[11px] text-slate-500">km/h</p>
           </div>
-          <div className="p-4 text-center">
-            <div className="flex items-center justify-center gap-1 text-blue-500 mb-1">
-              <MapPin size={14} />
-              <span className="text-xs font-600">{position.lat.toFixed(4)}</span>
+          <div className="p-3.5 text-center font-mono">
+            <div className="flex items-center justify-center gap-1 text-slate-800 mb-0.5">
+              <MapPin size={13} className="text-indigo-600" />
+              <span className="text-xs font-semibold">{position.lat.toFixed(4)}</span>
             </div>
-            <p className="text-xs text-gray-400">{position.lng.toFixed(4)}</p>
+            <p className="text-[11px] text-slate-500">{position.lng.toFixed(4)}</p>
           </div>
         </div>
 
         {/* Active route from API */}
         {liveData?.activeRoute && (
-          <div className="p-4 border-b border-slate-100 shrink-0 bg-blue-50">
-            <p className="text-xs font-700 text-blue-600 uppercase tracking-wide mb-2">Tuyến đang chạy</p>
-            <div className="flex items-center gap-3 text-xs text-blue-800">
-              <span>📍 {liveData.activeRoute.totalDistanceKm} km</span>
-              <span>⏱ {liveData.activeRoute.totalEstimatedTimeMin} phút</span>
+          <div className="p-3.5 border-b border-slate-200 shrink-0 bg-slate-50 tabular-nums">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Tuyến đang chạy</p>
+            <div className="flex items-center gap-3 text-xs font-medium text-slate-800">
+              <span>{liveData.activeRoute.totalDistanceKm} km</span>
+              <span className="text-slate-300">·</span>
+              <span>{liveData.activeRoute.totalEstimatedTimeMin} phút</span>
             </div>
           </div>
         )}
 
         {/* Next Stop */}
-        <div className="p-4 border-b border-slate-100 shrink-0">
-          <p className="text-xs font-700 text-gray-400 uppercase tracking-wide mb-3">Điểm dừng tiếp theo</p>
+        <div className="p-3.5 border-b border-slate-200 shrink-0">
+          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Điểm dừng tiếp theo</p>
           {loadingStops ? (
-            <div className="flex items-center gap-2 text-xs text-gray-400 p-2">
-              <Loader2 size={13} className="animate-spin text-[#FA7070]" />
+            <div className="flex items-center gap-2 text-xs text-slate-400 p-1.5">
+              <Loader2 size={13} className="animate-spin text-slate-600" />
               <span>Đang tải thông tin...</span>
             </div>
           ) : nextOrder ? (
-            <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-              <div className="flex items-center gap-2 mb-1">
-                <MapPin size={13} className="text-blue-500 shrink-0" />
-                <span className="text-xs font-600 text-blue-700">{nextOrder.code} - {nextOrder.receiverName}</span>
+            <div className="p-2.5 bg-indigo-50/60 rounded-md border border-indigo-200/80">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <MapPin size={12} className="text-indigo-600 shrink-0" />
+                <span className="text-xs font-semibold text-indigo-900 truncate">{nextOrder.code} · {nextOrder.receiverName}</span>
               </div>
-              <p className="text-[11px] text-blue-500 ml-5 truncate">{nextOrder.deliveryAddress}</p>
+              <p className="text-[11px] text-indigo-700 ml-4 truncate">{nextOrder.deliveryAddress}</p>
               {Number(nextOrder.codAmount) > 0 && (
-                <p className="text-[11px] text-green-600 ml-5 mt-1 font-500">
+                <p className="text-[11px] text-emerald-700 ml-4 mt-1 font-medium tabular-nums">
                   COD: {Number(nextOrder.codAmount).toLocaleString('vi-VN')}đ
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-xs text-gray-400 italic">Không có điểm dừng tiếp theo</p>
+            <p className="text-xs text-slate-400 italic">Không có điểm dừng tiếp theo</p>
           )}
         </div>
 
         {/* Order list */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-700 text-gray-400 uppercase tracking-wide">Tất cả điểm giao</p>
+        <div className="flex-1 overflow-y-auto p-3.5 space-y-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tất cả điểm giao</p>
             {activeStops.length > 0 && (
-              <span className="text-[11px] font-600 text-gray-500">({activeStops.length})</span>
+              <span className="text-[11px] font-medium text-slate-500 tabular-nums">({activeStops.length})</span>
             )}
           </div>
           {loadingStops ? (
-            <div className="flex items-center justify-center p-6 text-xs text-gray-400 gap-2">
-              <Loader2 size={14} className="animate-spin text-[#FA7070]" />
+            <div className="flex items-center justify-center p-6 text-xs text-slate-400 gap-2">
+              <Loader2 size={14} className="animate-spin text-slate-600" />
               <span>Đang tải danh sách điểm giao...</span>
             </div>
           ) : activeStops.length > 0 ? (
             activeStops.map((order, i) => (
-              <div key={order.id} className="flex items-center gap-2 p-2 rounded-xl bg-gray-50 border border-slate-100">
-                <div className="w-5 h-5 rounded-full bg-[#FA7070]/10 flex items-center justify-center text-[#FA7070] text-[10px] font-700 shrink-0">
+              <div key={order.id} className="flex items-center gap-2 p-2 rounded-md bg-slate-50/70 border border-slate-200/70">
+                <div className="w-5 h-5 rounded bg-slate-900 flex items-center justify-center text-white text-[10px] font-semibold tabular-nums shrink-0">
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-600 text-gray-800 truncate">{order.code} - {order.receiverName}</p>
-                  <p className="text-[10px] text-gray-500 truncate">{order.deliveryAddress}</p>
-                  <StatusBadge status={order.status} className="text-[9px] mt-0.5" />
+                  <p className="text-xs font-medium text-slate-900 truncate">{order.code} · {order.receiverName}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{order.deliveryAddress}</p>
+                  <StatusBadge status={order.status} className="text-[10px] mt-1" />
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-xs text-gray-400 italic text-center p-3">Chưa có điểm giao được phân công</p>
+            <p className="text-xs text-slate-400 italic text-center p-3">Chưa có điểm giao được phân công</p>
           )}
         </div>
 
         {/* Actions */}
-        <div className="p-4 border-t border-slate-100 space-y-2 shrink-0">
+        <div className="p-3.5 border-t border-slate-200 bg-slate-50/40 space-y-2 shrink-0">
           <a
             href={`tel:${driver.phone}`}
-            className="flex items-center justify-center gap-2 w-full h-10 bg-gray-100 text-gray-700 rounded-xl text-sm font-500 hover:bg-gray-200 transition-colors"
+            className="btn-secondary w-full justify-center text-xs tabular-nums"
           >
-            <Phone size={15} /> {driver.phone}
+            <Phone size={14} /> {driver.phone}
           </a>
           <button
-            className="btn-primary w-full justify-center text-sm"
+            className="btn-primary w-full justify-center text-xs"
             id="btn-message-driver"
           >
-            <MessageSquare size={15} /> Nhắn tin tài xế
+            <MessageSquare size={14} /> Nhắn tin tài xế
           </button>
         </div>
       </div>
@@ -455,6 +456,7 @@ function DriverSlideOver({ driver, position, onClose, liveData }: {
 
 export default function TrackingPage() {
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [selectedDriverRoute, setSelectedDriverRoute] = useState<ApiDriverRouteTodayResponse | null>(null);
 
@@ -492,16 +494,15 @@ export default function TrackingPage() {
 
   const allDrivers = useMemo(() => mergeDriverData(liveDrivers, positions), [liveDrivers, positions]);
   const activeDrivers = useMemo(() => allDrivers.filter((d) => d.currentShiftStatus !== 'OFFLINE'), [allDrivers]);
-  const filteredDrivers = useMemo(
-    () =>
-      activeDrivers.filter(
-        (d) =>
-          !search ||
-          d.fullName.toLowerCase().includes(search.toLowerCase()) ||
-          d.licensePlate.toLowerCase().includes(search.toLowerCase())
-      ),
-    [activeDrivers, search]
-  );
+  const filteredDrivers = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    if (!q) return activeDrivers;
+    return activeDrivers.filter(
+      (d) =>
+        d.fullName.toLowerCase().includes(q) ||
+        d.licensePlate.toLowerCase().includes(q),
+    );
+  }, [activeDrivers, debouncedSearch]);
 
   // Ensure dropdown contains the selected driver even if excluded by search filter
   const dropdownDrivers = useMemo(() => {
@@ -532,47 +533,52 @@ export default function TrackingPage() {
   }, [allDrivers, liveDrivers, positions]);
 
   // Count GPS sources for status bar
-  const realGpsCount = Object.values(positionSource).filter(s => s === 'real').length;
+  const realGpsCount = useMemo(
+    () => Object.values(positionSource).filter((s) => s === 'real').length,
+    [positionSource],
+  );
 
   return (
     <div className="flex flex-col gap-3 animate-fade-in" style={{ height: 'calc(100vh - 128px)' }}>
       {/* Top bar */}
-      <div className="card px-4 py-2.5 flex items-center gap-3 shrink-0">
-        <div className="flex items-center gap-2 text-[#FA7070]">
-          <Navigation size={18} className="animate-pulse-glow" />
-          <span className="text-sm font-700 text-gray-800">Theo dõi trực tiếp (Live Tracking)</span>
+      <div className="card px-4 py-2.5 flex items-center gap-3 shrink-0 flex-wrap">
+        <div className="flex items-center gap-2 text-slate-900">
+          <div className="w-7 h-7 rounded-md bg-slate-900 flex items-center justify-center text-white">
+            <Navigation size={14} />
+          </div>
+          <span className="text-sm font-semibold text-slate-900">Theo dõi trực tiếp</span>
         </div>
 
         {/* Realtime Status Indicator */}
         {usingRealApi ? (
           <div className="flex items-center gap-2">
             {realGpsCount > 0 ? (
-              <div className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full text-emerald-700 bg-emerald-50 font-600 border border-emerald-200/60 shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded border text-emerald-700 bg-emerald-50/70 font-medium border-emerald-200 tabular-nums">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 {realGpsCount} GPS trực tuyến
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full text-gray-500 bg-gray-50 border border-gray-200">
-                <span className="w-2 h-2 rounded-full bg-gray-400" />
+              <div className="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded border text-slate-600 bg-slate-50 border-slate-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                 Chờ tín hiệu GPS...
               </div>
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full text-gray-500 bg-gray-50 border border-gray-200">
-            <span className="w-2 h-2 rounded-full bg-gray-400" />
+          <div className="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded border text-slate-600 bg-slate-50 border-slate-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
             Không có tín hiệu GPS
           </div>
         )}
 
         {/* Search */}
         <div className="ml-auto relative flex items-center w-52 sm:w-60">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm tài xế, biển số..."
-            className="input-base pl-10 h-9 text-xs sm:text-sm w-full"
+            className="input-base pl-9 h-8 text-xs w-full"
             id="tracking-search"
           />
         </div>
@@ -581,9 +587,9 @@ export default function TrackingPage() {
         <div className="flex items-center gap-1.5 shrink-0">
           <label
             htmlFor="driver-select"
-            className="text-xs font-600 text-gray-500 whitespace-nowrap flex items-center gap-1 cursor-pointer"
+            className="text-xs font-medium text-slate-500 whitespace-nowrap flex items-center gap-1 cursor-pointer"
           >
-            <User size={14} className="text-[#FA7070] shrink-0" />
+            <User size={13} className="text-slate-400 shrink-0" />
             <span className="hidden sm:inline">Tài xế:</span>
           </label>
           <div className="relative">
@@ -591,7 +597,7 @@ export default function TrackingPage() {
               id="driver-select"
               value={selectedDriver?.userId || ''}
               onChange={(e) => handleSelectDriver(e.target.value || null)}
-              className="bg-white border border-gray-300 text-gray-800 font-600 text-xs rounded-xl focus:ring-2 focus:ring-[#FA7070]/30 focus:border-[#FA7070] cursor-pointer shadow-2xs hover:border-gray-400 transition-colors h-9 pl-3 pr-8 min-w-[170px] max-w-[240px] truncate"
+              className="bg-white border border-slate-200 text-slate-800 font-medium text-xs rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 cursor-pointer hover:border-slate-300 transition-colors h-8 pl-2.5 pr-7 min-w-[170px] max-w-[240px] truncate tabular-nums"
               aria-label="Chọn tài xế cần theo dõi"
             >
               <option value="">Tất cả tài xế ({activeDrivers.length})</option>
